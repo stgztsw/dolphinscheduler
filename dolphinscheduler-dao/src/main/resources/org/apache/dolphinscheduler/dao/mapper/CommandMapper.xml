@@ -40,4 +40,15 @@
         </if>
         group by cmd.command_type
     </select>
+    <select id="findCommandByProcessIdInInterval" resultType="org.apache.dolphinscheduler.dao.entity.Command">
+        select * from t_ds_command
+        where process_definition_id = #{processId}
+          and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+          and scheduler_batch_no = #{batchNo}
+    </select>
+    <select id="getCurrentSchedulerBatchNo" resultType="java.lang.Integer">
+        select max(scheduler_batch_no) from t_ds_command
+        where process_definition_id = #{processId}
+          and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+    </select>
 </mapper>

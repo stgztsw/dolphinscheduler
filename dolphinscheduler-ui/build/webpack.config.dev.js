@@ -22,7 +22,8 @@ const ProgressPlugin = require('progress-bar-webpack-plugin')
 const getEnv = require('env-parse').getEnv
 
 const config = merge.smart(baseConfig, {
-  devtool: 'eval-source-map',
+  // devtool: 'eval-source-map',
+  devtool: 'source-map',
   output: {
     filename: 'js/[name].js'
   },

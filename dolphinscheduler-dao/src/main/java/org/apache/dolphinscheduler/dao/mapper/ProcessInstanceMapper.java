@@ -17,6 +17,7 @@
 package org.apache.dolphinscheduler.dao.mapper;
 
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
+import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.ExecuteStatusCount;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 
@@ -171,7 +172,8 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      */
     ProcessInstance queryLastSchedulerProcess(@Param("processDefinitionId") int definitionId,
                                               @Param("startTime") Date startTime,
-                                              @Param("endTime") Date endTime);
+                                              @Param("endTime") Date endTime,
+                                              @Param("batchNo") Integer batchNo);
 
     /**
      * query last running process instance
@@ -179,21 +181,51 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      * @param startTime startTime
      * @param endTime endTime
      * @param stateArray stateArray
+     * @param batchNo batchNo
      * @return process instance
      */
     ProcessInstance queryLastRunningProcess(@Param("processDefinitionId") int definitionId,
                                             @Param("startTime") Date startTime,
                                             @Param("endTime") Date endTime,
-                                            @Param("states") int[] stateArray);
+                                            @Param("states") int[] stateArray,
+                                            @Param("batchNo") Integer batchNo);
 
     /**
      * query last manual process instance
      * @param definitionId definitionId
      * @param startTime startTime
      * @param endTime endTime
+     * @param batchNo batchNo
      * @return process instance
      */
     ProcessInstance queryLastManualProcess(@Param("processDefinitionId") int definitionId,
                                            @Param("startTime") Date startTime,
-                                           @Param("endTime") Date endTime);
+                                           @Param("endTime") Date endTime,
+                                           @Param("batchNo") Integer batchNo);
+
+    /**
+     * find the ProcessInstance by processId in interval
+     * @param processId processId
+     * @param startTime startTime
+     * @param endTime endTime
+     * @param batchNo batchNo
+     * @return ProcessInstance list
+     */
+    List<ProcessInstance> findProcessInstanceByProcessIdInInterval(
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime,
+            @Param("batchNo") int batchNo);
+
+    /**
+     * get the current batchNo by processId in interval
+     * @param processId processId
+     * @param startTime startTime
+     * @param endTime endTime
+     * @return current batchNo
+     */
+    Integer getCurrentSchedulerBatchNo(
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime);
 }

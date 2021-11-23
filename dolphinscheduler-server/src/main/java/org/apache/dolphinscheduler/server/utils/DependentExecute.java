@@ -65,6 +65,11 @@ public class DependentExecute {
     private Map<String, DependResult> dependResultMap = new HashMap<>();
 
     /**
+     * current process batchNo
+     */
+    private Integer currentProcessBatchNo;
+
+    /**
      * logger
      */
     private Logger logger =  LoggerFactory.getLogger(DependentExecute.class);
@@ -74,9 +79,10 @@ public class DependentExecute {
      * @param itemList  item list
      * @param relation  relation
      */
-    public DependentExecute(List<DependentItem> itemList, DependentRelation relation){
+    public DependentExecute(List<DependentItem> itemList, DependentRelation relation, int currentProcessBatchNo){
         this.dependItemList = itemList;
         this.relation = relation;
+        this.currentProcessBatchNo = currentProcessBatchNo;
     }
 
     /**
@@ -176,17 +182,18 @@ public class DependentExecute {
      */
     private ProcessInstance findLastProcessInterval(int definitionId, DateInterval dateInterval) {
 
-        ProcessInstance runningProcess = processService.findLastRunningProcess(definitionId, dateInterval.getStartTime(), dateInterval.getEndTime());
+        ProcessInstance runningProcess = processService.findLastRunningProcess(definitionId, dateInterval.getStartTime(),
+                dateInterval.getEndTime(), currentProcessBatchNo);
         if(runningProcess != null){
             return runningProcess;
         }
 
         ProcessInstance lastSchedulerProcess = processService.findLastSchedulerProcessInterval(
-                definitionId, dateInterval
+                definitionId, dateInterval, currentProcessBatchNo
         );
 
         ProcessInstance lastManualProcess = processService.findLastManualProcessInterval(
-                definitionId, dateInterval
+                definitionId, dateInterval, currentProcessBatchNo
         );
 
         if(lastManualProcess ==null){
@@ -285,4 +292,11 @@ public class DependentExecute {
         return dependResultMap;
     }
 
+    public Integer getCurrentProcessBatchNo() {
+        return currentProcessBatchNo;
+    }
+
+    public void setCurrentProcessBatchNo(Integer currentProcessBatchNo) {
+        this.currentProcessBatchNo = currentProcessBatchNo;
+    }
 }

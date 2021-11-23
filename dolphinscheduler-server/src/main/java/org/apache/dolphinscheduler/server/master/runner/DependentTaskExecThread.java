@@ -19,6 +19,7 @@ package org.apache.dolphinscheduler.server.master.runner;
 import static org.apache.dolphinscheduler.common.Constants.DEPENDENT_SPLIT;
 
 import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.CommandType;
 import org.apache.dolphinscheduler.common.enums.DependResult;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.model.DependentTaskModel;
@@ -74,6 +75,15 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
     public Boolean submitWaitComplete() {
         try{
             logger.info("dependent task start");
+            if ((!CommandType.SCHEDULER.equals(processInstance.getCommandType())
+                    && !CommandType.MANUAL_SCHEDULER.equals(processInstance.getCommandType()))) {
+                taskInstance.setState(ExecutionStatus.SUCCESS);
+                taskInstance.setEndTime(new Date());
+                processService.saveTaskInstance(taskInstance);
+                logger.debug("processId={} taskName={} dependent task skip to check the dependent task process, " +
+                                "because process is not in scheduler mode", processInstance.getId(), taskInstance.getName());
+                return true;
+            }
             this.taskInstance = submit();
             logger = LoggerFactory.getLogger(LoggerUtils.buildTaskId(LoggerUtils.TASK_LOGGER_INFO_PREFIX,
                     taskInstance.getProcessDefinitionId(),
@@ -101,7 +111,7 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
 
         for(DependentTaskModel taskModel : dependentParameters.getDependTaskList()){
             this.dependentTaskList.add(new DependentExecute(
-                    taskModel.getDependItemList(), taskModel.getRelation()));
+                    taskModel.getDependItemList(), taskModel.getRelation(), processInstance.getSchedulerBatchNo()));
         }
         if(this.processInstance.getScheduleTime() != null){
             this.dependentDate = this.processInstance.getScheduleTime();

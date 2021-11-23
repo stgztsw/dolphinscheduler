@@ -114,6 +114,19 @@ public class Command {
     @TableField("worker_group")
     private String workerGroup;
 
+    /**
+     * scheduler interval
+     * 0 minute; 1 hour; 2 day; 3 week; 4 month; 5 year; 9 default;
+     */
+    @TableField("scheduler_interval")
+    private int schedulerInterval;
+
+    /**
+     * scheduler batch no
+     */
+    @TableField("scheduler_batch_no")
+    private int schedulerBatchNo;
+
     public Command() {
         this.taskDependType = TaskDependType.TASK_POST;
         this.failureStrategy = FailureStrategy.CONTINUE;
@@ -262,6 +275,22 @@ public class Command {
         this.workerGroup = workerGroup;
     }
 
+    public int getSchedulerInterval() {
+        return schedulerInterval;
+    }
+
+    public void setSchedulerInterval(int schedulerInterval) {
+        this.schedulerInterval = schedulerInterval;
+    }
+
+    public int getSchedulerBatchNo() {
+        return schedulerBatchNo;
+    }
+
+    public void setSchedulerBatchNo(int schedulerBatchNo) {
+        this.schedulerBatchNo = schedulerBatchNo;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -334,6 +363,7 @@ public class Command {
         result = 31 * result + (workerGroup != null ? workerGroup.hashCode() : 0);
         return result;
     }
+
     @Override
     public String toString() {
         return "Command{" +
@@ -351,6 +381,8 @@ public class Command {
                 ", processInstancePriority=" + processInstancePriority +
                 ", updateTime=" + updateTime +
                 ", workerGroup='" + workerGroup + '\'' +
+                ", schedulerInterval='" + schedulerInterval + '\'' +
+                ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
                 '}';
     }
 }

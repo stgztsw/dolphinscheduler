@@ -62,7 +62,7 @@ public class DependentTaskTest {
         DateInterval dateInterval =DependentDateUtils.getTodayInterval(new Date()).get(0);
         Mockito.when(processService
                 .findLastRunningProcess(4, dateInterval.getStartTime(),
-                        dateInterval.getEndTime()))
+                        dateInterval.getEndTime(), null))
                 .thenReturn(findLastProcessInterval());
 
 
@@ -114,7 +114,7 @@ public class DependentTaskTest {
 
         Mockito.when(processService
                 .findLastRunningProcess(4, dateInterval.getStartTime(),
-                        dateInterval.getEndTime()))
+                        dateInterval.getEndTime(), null))
                 .thenReturn(findLastStopProcessInterval());
         DependentTaskExecThread dependentFailure = new DependentTaskExecThread(taskInstance);
         dependentFailure.call();
@@ -139,7 +139,7 @@ public class DependentTaskTest {
         DateInterval dateInterval =DependentDateUtils.getTodayInterval(new Date()).get(0);
         Mockito.when(processService
                 .findLastRunningProcess(4, dateInterval.getStartTime(),
-                        dateInterval.getEndTime()))
+                        dateInterval.getEndTime(), null))
                 .thenReturn(findLastStopProcessInterval());
 
         Mockito.when(processService

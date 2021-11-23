@@ -30,14 +30,16 @@ public class DependentItem {
     private String dateValue;
     private DependResult dependResult;
     private ExecutionStatus status;
+    private int batchNo;
 
 
     public String getKey(){
-        return String.format("%d-%s-%s-%s",
+        return String.format("%d-%s-%s-%s-%s",
                 getDefinitionId(),
                 getDepTasks(),
                 getCycle(),
-                getDateValue());
+                getDateValue(),
+                getBatchNo());
     }
 
     public int getDefinitionId() {
@@ -86,5 +88,13 @@ public class DependentItem {
 
     public void setStatus(ExecutionStatus status) {
         this.status = status;
+    }
+
+    public int getBatchNo() {
+        return batchNo;
+    }
+
+    public void setBatchNo(int batchNo) {
+        this.batchNo = batchNo;
     }
 }

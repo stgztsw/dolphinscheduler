@@ -18,6 +18,8 @@ package org.apache.dolphinscheduler.service.process;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cronutils.model.Cron;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.dolphinscheduler.common.Constants;
@@ -98,6 +100,9 @@ public class ProcessService {
 
     @Autowired
     private  ProjectMapper projectMapper;
+
+    @Autowired
+    private ProcessDependentMapper processDependentMapper;
 
     /**
      * handle Command (construct ProcessInstance from Command) , wrapped in transaction
@@ -502,6 +507,8 @@ public class ProcessService {
         processInstance.setWorkerGroup(workerGroup);
         processInstance.setTimeout(processDefinition.getTimeout());
         processInstance.setTenantId(processDefinition.getTenantId());
+        processInstance.setSchedulerInterval(command.getSchedulerInterval());
+        processInstance.setSchedulerBatchNo(command.getSchedulerBatchNo());
         return processInstance;
     }
 
@@ -1712,10 +1719,11 @@ public class ProcessService {
      * @param dateInterval dateInterval
      * @return process instance
      */
-    public ProcessInstance findLastSchedulerProcessInterval(int definitionId, DateInterval dateInterval) {
+    public ProcessInstance findLastSchedulerProcessInterval(int definitionId, DateInterval dateInterval, Integer batchNo) {
         return processInstanceMapper.queryLastSchedulerProcess(definitionId,
                 dateInterval.getStartTime(),
-                dateInterval.getEndTime());
+                dateInterval.getEndTime(),
+                batchNo);
     }
 
     /**
@@ -1724,10 +1732,11 @@ public class ProcessService {
      * @param dateInterval dateInterval
      * @return process instance
      */
-    public ProcessInstance findLastManualProcessInterval(int definitionId, DateInterval dateInterval) {
+    public ProcessInstance findLastManualProcessInterval(int definitionId, DateInterval dateInterval, Integer batchNo) {
         return processInstanceMapper.queryLastManualProcess(definitionId,
                 dateInterval.getStartTime(),
-                dateInterval.getEndTime());
+                dateInterval.getEndTime(),
+                batchNo);
     }
 
     /**
@@ -1737,11 +1746,12 @@ public class ProcessService {
      * @param endTime end time
      * @return process instance
      */
-    public ProcessInstance findLastRunningProcess(int definitionId, Date startTime, Date endTime) {
+    public ProcessInstance findLastRunningProcess(int definitionId, Date startTime, Date endTime, Integer batchNo) {
         return processInstanceMapper.queryLastRunningProcess(definitionId,
                 startTime,
                 endTime,
-                stateArray);
+                stateArray,
+                batchNo);
     }
 
     /**
@@ -1904,6 +1914,42 @@ public class ProcessService {
                 definition.getId(),
                 processInstanceById.getId(),
                 taskInstance.getId());
+    }
+
+    /**
+     * find the process by dependent id
+     * @param dependentId
+     * @return processDependents
+     */
+    public List<ProcessDependent> findProcessDependentsByDependentId(int dependentId) {
+        return processDependentMapper.queryByDependentId(dependentId);
+    }
+
+    /**
+     * find the process by dependent id in paging
+     * @param page page
+     * @param dependentId dependentId
+     * @return processDependents
+     */
+    public Page<ProcessDependent> queryByDependentIdListPaging(IPage<ProcessDependent> page, int dependentId) {
+        return processDependentMapper.queryByDependentIdListPaging(page, dependentId);
+    }
+
+    public boolean dependentProcessIsFired(int processId, List<DateInterval> dateIntervals, int batchNo) {
+        Date start = dateIntervals.get(0).getStartTime();
+        Date end = dateIntervals.get(0).getEndTime();
+        return (commandMapper.findCommandByProcessIdInInterval(processId, start, end, batchNo).size() > 0
+                || processInstanceMapper.findProcessInstanceByProcessIdInInterval(processId, start, end, batchNo).size() > 0);
+    }
+
+    public Integer getNextSchedulerBatchNo(int processId, List<DateInterval> dateIntervals) {
+        Date start = dateIntervals.get(0).getStartTime();
+        Date end = dateIntervals.get(0).getEndTime();
+        Integer commandBatchNo = commandMapper.getCurrentSchedulerBatchNo(processId, start, end);
+        Integer processInstanceBatchNo = processInstanceMapper.getCurrentSchedulerBatchNo(processId, start, end);
+        commandBatchNo = commandBatchNo == null ? 0 : commandBatchNo;
+        processInstanceBatchNo = processInstanceBatchNo == null ? 0 : processInstanceBatchNo;
+        return commandBatchNo>processInstanceBatchNo ? commandBatchNo+1 : processInstanceBatchNo+1;
     }
 
 }

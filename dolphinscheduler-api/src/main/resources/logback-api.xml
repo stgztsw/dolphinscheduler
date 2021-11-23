@@ -21,6 +21,9 @@
 
     <property name="log.base" value="logs"/>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
         <encoder>
             <pattern>
                 [%level] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{96}:[%line] - %msg%n
@@ -57,10 +60,15 @@
     <logger name="org.apache.hbase" level="WARN"/>
     <logger name="org.apache.hadoop" level="WARN"/>
 
-
-    <root level="INFO">
+    <root level="info">
+        <appender-ref ref="STDOUT"/>
         <appender-ref ref="APILOGFILE"/>
         <appender-ref ref="SKYWALKING-LOG"/>
     </root>
+
+    <logger name="org.apache.dolphinscheduler" level="DEBUG">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
 
 </configuration>

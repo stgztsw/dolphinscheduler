@@ -83,7 +83,12 @@ public class CronUtils {
   public static CycleEnum getMiniCycle(Cron cron) {
     return min(cron).addCycle(hour(cron)).addCycle(day(cron)).addCycle(week(cron)).addCycle(month(cron)).getMiniCycle();
   }
-
+  
+  public static int getSchedulerInterval(String crontab) {
+    CycleEnum e = CronUtils.getMiniCycle(parse2Cron(crontab));
+    return e.ordinal();
+  }
+  
   /**
    * get max cycle
    * @param crontab crontab

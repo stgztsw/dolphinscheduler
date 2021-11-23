@@ -146,5 +146,21 @@ public class DependentUtils {
         return result;
     }
 
+    public static List<DateInterval> getDateIntervalListForDependent(Date businessDate, int interval) {
+        switch (interval) {
+            case 1 :
+                return getDateIntervalList(businessDate, "currentHour");
+            case 2 :
+                return getDateIntervalList(businessDate, "today");
+            case 3 :
+                return getDateIntervalList(businessDate, "thisWeek");
+            case 4 :
+                return getDateIntervalList(businessDate, "thisMonth");
+            default:
+                throw new RuntimeException("dependent process only support the hour, day, week, month interval");
+        }
+    }
+
+
 
 }

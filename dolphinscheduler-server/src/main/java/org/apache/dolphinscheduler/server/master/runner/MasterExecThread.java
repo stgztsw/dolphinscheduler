@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -51,7 +52,7 @@ import static org.apache.dolphinscheduler.common.Constants.*;
 /**
  * master exec thread,split dag
  */
-public class MasterExecThread implements Runnable {
+public class MasterExecThread implements Callable<ProcessInstance> {
     /**
      * logger of MasterExecThread
      */
@@ -160,17 +161,17 @@ public class MasterExecThread implements Runnable {
     }
 
     @Override
-    public void run() {
+    public ProcessInstance call() {
 
         // process instance is null
         if (processInstance == null){
             logger.info("process instance is not exists");
-            return;
+            return processInstance;
         }
         // check to see if it's done
         if (processInstance.getState().typeIsFinished()){
             logger.info("process instance is done : {}",processInstance.getId());
-            return;
+            return processInstance;
         }
         try {
             if (processInstance.isComplementData() &&  Flag.NO == processInstance.getIsSubProcess()){
@@ -180,12 +181,14 @@ public class MasterExecThread implements Runnable {
                 // execute flow
                 executeProcess();
             }
+            return processInstance;
         }catch (Exception e){
             logger.error("master exec thread exception", e);
             logger.error("process execute failed, process id:{}", processInstance.getId());
             processInstance.setState(ExecutionStatus.FAILURE);
             processInstance.setEndTime(new Date());
             processService.updateProcessInstance(processInstance);
+            return processInstance;
         }finally {
             taskExecService.shutdown();
         }

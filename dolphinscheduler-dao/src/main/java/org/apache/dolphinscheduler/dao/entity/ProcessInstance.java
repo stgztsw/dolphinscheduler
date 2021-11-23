@@ -221,6 +221,19 @@ public class ProcessInstance {
     @TableField(exist = false)
     private String receiversCc;
 
+    /**
+     * scheduler interval
+     * 0 minute; 1 hour; 2 day; 3 week; 4 month; 5 year; 9 default;
+     */
+    @TableField("scheduler_interval")
+    private int schedulerInterval;
+
+    /**
+     * scheduler batch no
+     */
+    @TableField("scheduler_batch_no")
+    private int schedulerBatchNo;
+
     public ProcessInstance(){
 
     }
@@ -484,6 +497,22 @@ public class ProcessInstance {
         this.historyCmd = historyCmd;
     }
 
+    public int getSchedulerInterval() {
+        return schedulerInterval;
+    }
+
+    public void setSchedulerInterval(int schedulerInterval) {
+        this.schedulerInterval = schedulerInterval;
+    }
+
+    public int getSchedulerBatchNo() {
+        return schedulerBatchNo;
+    }
+
+    public void setSchedulerBatchNo(int schedulerBatchNo) {
+        this.schedulerBatchNo = schedulerBatchNo;
+    }
+
     /**
      * add command to history
      * @param cmd cmd
@@ -615,6 +644,8 @@ public class ProcessInstance {
                 ", tenantId=" + tenantId +
                 ", receivers='" + receivers + '\'' +
                 ", receiversCc='" + receiversCc + '\'' +
+                ", schedulerInterval='" + schedulerInterval + '\'' +
+                ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
                 '}';
     }
 

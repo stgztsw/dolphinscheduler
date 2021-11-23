@@ -238,6 +238,7 @@ public enum Status {
     EXPORT_PROCESS_DEFINE_BY_ID_ERROR(50028,"export process definition by id error", "导出工作流定义错误"),
     BATCH_EXPORT_PROCESS_DEFINE_BY_IDS_ERROR(50028,"batch export process definition by ids error", "批量导出工作流定义错误"),
     IMPORT_PROCESS_DEFINE_ERROR(50029,"import process definition error", "导入工作流定义错误"),
+    DELETE_PROCESS_IS_DEPENDENT(50030, "the process is dependent", "当前工作流被其他工作流依赖"),
 
     HDFS_NOT_STARTUP(60001,"hdfs not startup", "hdfs未启用"),
 

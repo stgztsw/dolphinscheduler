@@ -68,7 +68,7 @@
     <select id="queryProcessInstanceListPaging" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
         select instance.id, instance.process_definition_id, instance.command_type, instance.executor_id,
         instance.name, instance.state, instance.schedule_time, instance.start_time, instance.end_time,
-        instance.run_times, instance.recovery, instance.host
+        instance.run_times, instance.recovery, instance.host, instance.scheduler_interval, instance.scheduler_batch_no
         from t_ds_process_instance instance
         join t_ds_process_definition define ON instance.process_definition_id = define.id
         where instance.is_sub_process=0
@@ -153,6 +153,9 @@
         <if test="startTime!=null and endTime != null ">
             and schedule_time <![CDATA[ >= ]]> #{startTime} and  schedule_time <![CDATA[ <= ]]> #{endTime}
         </if>
+        <if test="batchNo != null and batchNo != 0">
+            and scheduler_batch_no = #{batchNo}
+        </if>
         order by end_time desc limit 1
     </select>
     <select id="queryLastRunningProcess" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
@@ -170,6 +173,9 @@
             and (schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
                   or start_time <![CDATA[ >= ]]> #{startTime} and start_time <![CDATA[ <= ]]> #{endTime})
         </if>
+        <if test="batchNo != null and batchNo != 0">
+            and scheduler_batch_no = #{batchNo}
+        </if>
         order by start_time desc limit 1
     </select>
     <select id="queryLastManualProcess" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
@@ -180,8 +186,22 @@
         <if test="startTime!=null and endTime != null ">
             and start_time <![CDATA[ >= ]]> #{startTime} and start_time <![CDATA[ <= ]]> #{endTime}
         </if>
+        <if test="batchNo != null and batchNo != 0">
+            and scheduler_batch_no = #{batchNo}
+        </if>
         order by end_time desc limit 1
     </select>
-
+    <select id="findProcessInstanceByProcessIdInInterval" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
+        select *
+        from t_ds_process_instance
+        where process_definition_id = #{processId}
+          and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+          and scheduler_batch_no = #{batchNo}
+    </select>
+    <select id="getCurrentSchedulerBatchNo" resultType="java.lang.Integer">
+        select max(scheduler_batch_no) from t_ds_process_instance
+        where process_definition_id = #{processId}
+          and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+    </select>
 
 </mapper>

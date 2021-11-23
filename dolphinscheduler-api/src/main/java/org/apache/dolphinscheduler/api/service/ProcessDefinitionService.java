@@ -122,7 +122,6 @@ public class ProcessDefinitionService extends BaseDAGService {
     @Autowired
     private ProcessInstanceMapper processInstanceMapper;
 
-
     @Autowired
     private TaskInstanceMapper taskInstanceMapper;
 
@@ -131,6 +130,9 @@ public class ProcessDefinitionService extends BaseDAGService {
 
     @Autowired
     private ProcessService processService;
+
+    @Autowired
+    private ProcessDependentService processDependentService;
 
     /**
      * create process definition
@@ -145,6 +147,7 @@ public class ProcessDefinitionService extends BaseDAGService {
      * @return create result code
      * @throws JsonProcessingException JsonProcessingException
      */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> createProcessDefinition(User loginUser,
                                                        String projectName,
                                                        String name,
@@ -195,6 +198,7 @@ public class ProcessDefinitionService extends BaseDAGService {
         processDefine.setUpdateTime(now);
         processDefine.setFlag(Flag.YES);
         processDefineMapper.insert(processDefine);
+        processDependentService.createProcessDependent(processDefine);
         putMsg(result, Status.SUCCESS);
         result.put(PROCESSDEFINITIONID,processDefine.getId());
         return result;
@@ -324,6 +328,7 @@ public class ProcessDefinitionService extends BaseDAGService {
      * @param processId process definition id
      * @return copy result code
      */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> copyProcessDefinition(User loginUser, String projectName, Integer processId) throws JsonProcessingException {
 
         Map<String, Object> result = new HashMap<>(5);
@@ -364,6 +369,7 @@ public class ProcessDefinitionService extends BaseDAGService {
      * @param connects connects for nodes
      * @return update result code
      */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> updateProcessDefinition(User loginUser, String projectName, int id, String name,
                                                        String processDefinitionJson, String desc,
                                                        String locations, String connects) {
@@ -429,10 +435,10 @@ public class ProcessDefinitionService extends BaseDAGService {
         processDefine.setFlag(Flag.YES);
         if (processDefineMapper.updateById(processDefine) > 0) {
             putMsg(result, Status.SUCCESS);
-
         } else {
             putMsg(result, Status.UPDATE_PROCESS_DEFINITION_ERROR);
         }
+        processDependentService.updateProcessDependent(processDefine);
         return result;
     }
 
@@ -517,10 +523,15 @@ public class ProcessDefinitionService extends BaseDAGService {
                 return result;
             }
         }
-
+        if (processDependentService.hasProcessDependent(processDefinitionId)) {
+            logger.warn("process {} can not be deleted, because this process is dependent " +
+                    "by others process", processDefinitionId);
+            putMsg(result, Status.DELETE_PROCESS_IS_DEPENDENT);
+            return result;
+        }
         int delete = processDefineMapper.deleteById(processDefinitionId);
-
         if (delete > 0) {
+            processDependentService.deleteProcessDependentByProcessId(processDefinitionId);
             putMsg(result, Status.SUCCESS);
         } else {
             putMsg(result, Status.DELETE_PROCESS_DEFINE_BY_ID_ERROR);
