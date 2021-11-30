@@ -223,7 +223,8 @@
           processInstancePriority: this.processInstancePriority,
           receivers: this.receivers.join(',') || '',
           receiversCc: this.receiversCc.join(',') || '',
-          workerGroup: this.workerGroup
+          workerGroup: this.workerGroup,
+          processType: this.item.processType
         }
         // Executed from the specified node
         if (this.sourceType === 'contextmenu') {

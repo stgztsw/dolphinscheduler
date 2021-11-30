@@ -34,6 +34,9 @@
           <th scope="col" style="min-width: 70px">
             <span>{{$t('Run Type')}}</span>
           </th>
+          <th scope="col" style="min-width: 30px">
+            <span>{{$t('Scheduler Batch')}}</span>
+          </th>
           <th scope="col" style="min-width: 130px">
             <span>{{$t('Scheduling Time')}}</span>
           </th>
@@ -74,6 +77,7 @@
             <span v-html="_rtState(item.state)" style="cursor: pointer;"></span>
           </td>
           <td><span>{{_rtRunningType(item.commandType)}}</span></td>
+          <td><span>{{item.dependentSchedulerFlag ? item.schedulerBatchNo : '-'}}</span></td>
           <td>
             <span v-if="item.scheduleTime">{{item.scheduleTime | formatDate}}</span>
             <span v-else>-</span>
@@ -104,22 +108,34 @@
                         @click="_reEdit(item)"
                         icon="ans-icon-edit"
                         :disabled="item.state !== 'SUCCESS' && item.state !== 'PAUSE' && item.state !== 'FAILURE' && item.state !== 'STOP'"></x-button>
-              <x-button type="info"
+              <x-button v-if="!item.dependentSchedulerFlag"
+                        type="info"
                         shape="circle"
                         size="xsmall"
                         data-toggle="tooltip"
                         :title="$t('Rerun')"
                         @click="_reRun(item,$index)"
                         icon="ans-icon-refresh"
-                        :disabled="item.state !== 'SUCCESS' && item.state !== 'PAUSE' && item.state !== 'FAILURE' && item.state !== 'STOP'"></x-button>
-              <x-button type="success"
+                        :disabled="item.state !== 'SUCCESS' && item.state !== 'PAUSE' && item.state !== 'FAILURE' && item.state !== 'STOP' && item.state !== 'STOP_BY_DEPENDENT_FAILURE'"></x-button>
+<!--              <x-button v-if="item.processType !== 'SCHEDULER'|| (item.processType === 'SCHEDULER' && item.commandType !== 'SCHEDULER' && item.commandType !== 'RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER')"-->
+              <x-button v-if="!item.dependentSchedulerFlag"
+                        type="success"
                         shape="circle"
                         size="xsmall"
                         data-toggle="tooltip"
                         :title="$t('Recovery Failed')"
                         @click="_restore(item,$index)"
                         icon="ans-icon-fail-empty"
-                        :disabled="item.state !== 'FAILURE'"></x-button>
+                        :disabled="item.state !== 'FAILURE' && item.state !== 'STOP_BY_DEPENDENT_FAILURE'"></x-button>
+              <x-button v-if="item.processType === 'SCHEDULER' && item.dependentSchedulerFlag"
+                        type="error"
+                        shape="circle"
+                        size="xsmall"
+                        data-toggle="tooltip"
+                        :title="$t('Recovery Scheduler Failed')"
+                        @click="_restoreScheduler(item,$index)"
+                        icon="ans-icon-fail-empty"
+                        :disabled="false"></x-button>
               <x-button type="error"
                         shape="circle"
                         size="xsmall"
@@ -395,6 +411,14 @@
         this._countDownFn({
           id: item.id,
           executeType: 'START_FAILURE_TASK_PROCESS',
+          index: index,
+          buttonType: 'store'
+        })
+      },
+      _restoreScheduler (item, index) {
+        this._countDownFn({
+          id: item.id,
+          executeType: 'RECOVER_FAILURE_PROCESS_IN_SCHEDULER',
           index: index,
           buttonType: 'store'
         })

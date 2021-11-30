@@ -87,5 +87,8 @@
     <logger name="org.apache.dolphinscheduler" level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </logger>
+    <logger name="com.baomidou.mybatisplus" level="DEBUG">
+        <appender-ref ref="STDOUT"/>
+    </logger>
 
 </configuration>

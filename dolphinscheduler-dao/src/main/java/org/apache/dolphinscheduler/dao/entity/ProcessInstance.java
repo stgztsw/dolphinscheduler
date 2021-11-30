@@ -234,6 +234,12 @@ public class ProcessInstance {
     @TableField("scheduler_batch_no")
     private int schedulerBatchNo;
 
+    @TableField("process_type")
+    private ProcessType processType;
+
+    @TableField("dependent_scheduler_flag")
+    private boolean dependentSchedulerFlag;
+
     public ProcessInstance(){
 
     }
@@ -605,6 +611,22 @@ public class ProcessInstance {
         this.receiversCc = receiversCc;
     }
 
+    public ProcessType getProcessType() {
+        return processType;
+    }
+
+    public void setProcessType(ProcessType processType) {
+        this.processType = processType;
+    }
+
+    public boolean isDependentSchedulerFlag() {
+        return dependentSchedulerFlag;
+    }
+
+    public void setDependentSchedulerFlag(boolean dependentSchedulerFlag) {
+        this.dependentSchedulerFlag = dependentSchedulerFlag;
+    }
+
     @Override
     public String toString() {
         return "ProcessInstance{" +
@@ -646,6 +668,8 @@ public class ProcessInstance {
                 ", receiversCc='" + receiversCc + '\'' +
                 ", schedulerInterval='" + schedulerInterval + '\'' +
                 ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
+                ", processType='" + processType + '\'' +
+                ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
                 '}';
     }
 

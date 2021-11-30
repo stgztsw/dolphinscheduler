@@ -34,6 +34,7 @@ import org.apache.dolphinscheduler.dao.mapper.*;
 import org.apache.dolphinscheduler.remote.utils.Host;
 import org.apache.dolphinscheduler.service.log.LogClientService;
 import org.apache.dolphinscheduler.service.quartz.cron.CronUtils;
+import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,7 @@ public class ProcessService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final int[] stateArray = new int[]{ExecutionStatus.SUBMITTED_SUCCESS.ordinal(),
+    private final int[] runningStateArray = new int[]{ExecutionStatus.SUBMITTED_SUCCESS.ordinal(),
             ExecutionStatus.RUNNING_EXECUTION.ordinal(),
             ExecutionStatus.READY_PAUSE.ordinal(),
             ExecutionStatus.READY_STOP.ordinal()};
@@ -509,6 +510,8 @@ public class ProcessService {
         processInstance.setTenantId(processDefinition.getTenantId());
         processInstance.setSchedulerInterval(command.getSchedulerInterval());
         processInstance.setSchedulerBatchNo(command.getSchedulerBatchNo());
+        processInstance.setProcessType(processDefinition.getProcessType());
+        processInstance.setDependentSchedulerFlag(command.isDependentSchedulerFlag());
         return processInstance;
     }
 
@@ -627,6 +630,7 @@ public class ProcessService {
             // generate one new process instance
             processInstance = generateNewProcessInstance(processDefinition, command, cmdParam);
         }
+
         if(!checkCmdParam(command, cmdParam)){
             logger.error("command parameter check failed!");
             return null;
@@ -643,6 +647,7 @@ public class ProcessService {
             case START_PROCESS:
                 break;
             case START_FAILURE_TASK_PROCESS:
+            case RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER:
                 // find failed tasks and init these tasks
                 List<Integer> failedList = this.findTaskIdByInstanceState(processInstance.getId(), ExecutionStatus.FAILURE);
                 List<Integer> toleranceList = this.findTaskIdByInstanceState(processInstance.getId(), ExecutionStatus.NEED_FAULT_TOLERANCE);
@@ -709,6 +714,16 @@ public class ProcessService {
                 processInstance.setRunTimes(runTime +1);
                 initComplementDataParam(processDefinition, processInstance, cmdParam);
                 break;
+            case RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER:
+                if (ProcessType.SCHEDULER != processInstance.getProcessType()) {
+                    String msg = String.format("processInstance=%s is not a scheduler process, " +
+                            "can not be RECOVER_FAILURE_PROCESS_IN_SCHEDULER", processInstance.getId());
+                    logger.error(msg);
+                    throw new RuntimeException(msg);
+                }
+                initAllProcessInstanceFromScheduler(processInstance);
+                //只需要将调度节点后的失败停止节点的状态初始化，当前节点不需要执行，所以直接返回
+                return processInstance;
             case SCHEDULER:
                 break;
             default:
@@ -716,6 +731,22 @@ public class ProcessService {
         }
         processInstance.setState(runStatus);
         return processInstance;
+    }
+
+    private void initAllProcessInstanceFromScheduler(ProcessInstance parentProcessInstance) {
+
+        Date schedulerTime = parentProcessInstance.getScheduleTime();
+        int schedulerInterval = parentProcessInstance.getSchedulerInterval();
+        int batchNo = parentProcessInstance.getSchedulerBatchNo();
+        List<DateInterval> dateIntervals = DependentUtils
+                .getDateIntervalListForDependent(schedulerTime, schedulerInterval);
+        Date start = dateIntervals.get(0).getStartTime();
+        Date end = dateIntervals.get(0).getEndTime();
+        int[] states = new int[]{ExecutionStatus.FAILURE.ordinal(),
+                ExecutionStatus.STOP_BY_DEPENDENT_FAILURE.ordinal(), ExecutionStatus.KILL.ordinal(),
+                ExecutionStatus.STOP.ordinal(), ExecutionStatus.PAUSE.ordinal()};
+        logger.debug("init all the failed or stopped process state which scheduler by processInstance={} to SUBMITTED_SUCCESS", parentProcessInstance.getId());
+        processInstanceMapper.updateProcessStateInBatch(start, end, states, batchNo, ExecutionStatus.INITED.ordinal());
     }
 
     /**
@@ -1525,7 +1556,7 @@ public class ProcessService {
      */
     public List<ProcessInstance> queryNeedFailoverProcessInstances(String host){
 
-        return processInstanceMapper.queryByHostAndStatus(host, stateArray);
+        return processInstanceMapper.queryByHostAndStatus(host, runningStateArray);
     }
 
     /**
@@ -1547,6 +1578,7 @@ public class ProcessService {
         cmd.setCommandParam(String.format("{\"%s\":%d}", Constants.CMDPARAM_RECOVER_PROCESS_ID_STRING, processInstance.getId()));
         cmd.setExecutorId(processInstance.getExecutorId());
         cmd.setCommandType(CommandType.RECOVER_TOLERANCE_FAULT_PROCESS);
+        cmd.setDependentSchedulerFlag(processInstance.isDependentSchedulerFlag());
         createCommand(cmd);
     }
 
@@ -1557,7 +1589,7 @@ public class ProcessService {
      */
     public List<TaskInstance> queryNeedFailoverTaskInstances(String host){
         return taskInstanceMapper.queryByHostAndStatus(host,
-                stateArray);
+                runningStateArray);
     }
 
     /**
@@ -1750,7 +1782,7 @@ public class ProcessService {
         return processInstanceMapper.queryLastRunningProcess(definitionId,
                 startTime,
                 endTime,
-                stateArray,
+                runningStateArray,
                 batchNo);
     }
 
@@ -1935,11 +1967,36 @@ public class ProcessService {
         return processDependentMapper.queryByDependentIdListPaging(page, dependentId);
     }
 
+//    public boolean dependentProcessIsFired(int processId, List<DateInterval> dateIntervals, int batchNo) {
+//        int[] commandType = new int[]{CommandType.SCHEDULER.ordinal()};
+//        Date start = dateIntervals.get(0).getStartTime();
+//        Date end = dateIntervals.get(0).getEndTime();
+//        //必须先查command表再查processInstance表，顺序不能错，否则会导致查到的逻辑结果不正确
+//        return (commandMapper.findCommandByProcessIdInInterval(processId, start, end, commandType, batchNo).size() > 0
+//                || processInstanceMapper.findProcessInstanceByProcessIdInInterval(processId, start, end, null, batchNo).size() > 0);
+//    }
+
     public boolean dependentProcessIsFired(int processId, List<DateInterval> dateIntervals, int batchNo) {
+        int[] commandType = new int[]{CommandType.SCHEDULER.ordinal()};
         Date start = dateIntervals.get(0).getStartTime();
         Date end = dateIntervals.get(0).getEndTime();
-        return (commandMapper.findCommandByProcessIdInInterval(processId, start, end, batchNo).size() > 0
-                || processInstanceMapper.findProcessInstanceByProcessIdInInterval(processId, start, end, batchNo).size() > 0);
+        return commandMapper.findCommandByProcessIdInInterval(processId, start, end, commandType, batchNo).size()>0;
+    }
+
+    public ProcessInstance findProcessInstanceByProcessIdInInterval(int processId, List<DateInterval> dateIntervals,
+                                                                          int batchNo, int[] states, int[] commandTypes) {
+        Date start = dateIntervals.get(0).getStartTime();
+        Date end = dateIntervals.get(0).getEndTime();
+        List<ProcessInstance> processInstances = processInstanceMapper
+                .findProcessInstanceByProcessIdInInterval(processId, start, end, states, commandTypes,batchNo);
+        if (processInstances.isEmpty()) {
+            return null;
+        }else if (processInstances.size() == 1) {
+            return processInstances.get(0);
+        }else {
+            processInstances.sort((o1, o2) -> !DateUtils.compare(o1.getScheduleTime(), o2.getScheduleTime()) ? -1 : 1);
+            return processInstances.get(0);
+        }
     }
 
     public Integer getNextSchedulerBatchNo(int processId, List<DateInterval> dateIntervals) {
@@ -1950,6 +2007,14 @@ public class ProcessService {
         commandBatchNo = commandBatchNo == null ? 0 : commandBatchNo;
         processInstanceBatchNo = processInstanceBatchNo == null ? 0 : processInstanceBatchNo;
         return commandBatchNo>processInstanceBatchNo ? commandBatchNo+1 : processInstanceBatchNo+1;
+    }
+
+    public SchedulingBatch getSchedulingBatch(Schedule schedule, Date scheduledFireTime, int processId) {
+        int schedulerInterval = CronUtils.getSchedulerInterval(schedule.getCrontab());
+        List<DateInterval> dateIntervals = DependentUtils
+                .getDateIntervalListForDependent(scheduledFireTime, schedulerInterval);
+        int nextBatchNo = getNextSchedulerBatchNo(processId, dateIntervals);
+        return new SchedulingBatch(scheduledFireTime, schedulerInterval, nextBatchNo);
     }
 
 }

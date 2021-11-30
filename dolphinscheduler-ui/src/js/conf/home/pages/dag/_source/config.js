@@ -133,6 +133,18 @@ const runningType = [
   {
     desc: `${i18n.$t('Recovery waiting thread')}`,
     code: 'RECOVER_WAITTING_THREAD'
+  },
+  {
+    desc: `${i18n.$t('Recovery scheduler process')}`,
+    code: 'RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER'
+  },
+  {
+    desc: `${i18n.$t('Recovery scheduler process')}`,
+    code: 'RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER'
+  },
+  {
+    desc: `${i18n.$t('Manual Scheduler')}`,
+    code: 'MANUAL_SCHEDULER'
   }
 ]
 
@@ -228,6 +240,20 @@ const tasksState = {
     desc: `${i18n.$t('Waiting for dependence')}`,
     color: '#5101be',
     icoUnicode: 'ans-icon-dependence',
+    isSpin: false
+  },
+  STOP_BY_DEPENDENT_FAILURE: {
+    id: 12,
+    desc: `${i18n.$t('Stop by dependent failure')}`,
+    color: '#FF8C00',
+    icoUnicode: 'ans-icon-stop',
+    isSpin: false
+  },
+  INITED: {
+    id: 13,
+    desc: `${i18n.$t('initialized for recover')}`,
+    color: '#A9A9A9',
+    icoUnicode: 'ans-icon-dot-circle',
     isSpin: false
   }
 }

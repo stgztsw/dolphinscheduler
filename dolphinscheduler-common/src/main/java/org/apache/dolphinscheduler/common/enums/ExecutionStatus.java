@@ -51,7 +51,9 @@ public enum ExecutionStatus {
     NEED_FAULT_TOLERANCE(8, "need fault tolerance"),
     KILL(9, "kill"),
     WAITTING_THREAD(10, "waiting thread"),
-    WAITTING_DEPEND(11, "waiting depend node complete");
+    WAITTING_DEPEND(11, "waiting depend node complete"),
+    STOP_BY_DEPENDENT_FAILURE(12, "stopped by dependent failure"),
+    INITED(13, "inited for recover");
 
     ExecutionStatus(int code, String descp){
         this.code = code;
@@ -71,12 +73,17 @@ public enum ExecutionStatus {
      return this == SUCCESS;
    }
 
- /**
+    public boolean typeIsInited(){
+        return this == INITED;
+    }
+
+
+    /**
   * status is failure
   * @return status
   */
    public boolean typeIsFailure(){
-     return this == FAILURE || this == NEED_FAULT_TOLERANCE;
+     return this == FAILURE || this == NEED_FAULT_TOLERANCE || this == STOP_BY_DEPENDENT_FAILURE;
    }
 
  /**
@@ -109,7 +116,7 @@ public enum ExecutionStatus {
      * @return status
      */
     public boolean typeIsStop(){
-        return this == STOP;
+        return this == STOP || this == STOP_BY_DEPENDENT_FAILURE;
     }
 
     /**

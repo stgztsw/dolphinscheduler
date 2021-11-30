@@ -75,8 +75,7 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
     public Boolean submitWaitComplete() {
         try{
             logger.info("dependent task start");
-            if ((!CommandType.SCHEDULER.equals(processInstance.getCommandType())
-                    && !CommandType.MANUAL_SCHEDULER.equals(processInstance.getCommandType()))) {
+            if (!processInstance.isDependentSchedulerFlag()) {
                 taskInstance.setState(ExecutionStatus.SUCCESS);
                 taskInstance.setEndTime(new Date());
                 processService.saveTaskInstance(taskInstance);

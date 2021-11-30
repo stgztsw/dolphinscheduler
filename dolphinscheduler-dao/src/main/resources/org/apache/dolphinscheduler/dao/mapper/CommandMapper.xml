@@ -43,6 +43,12 @@
     <select id="findCommandByProcessIdInInterval" resultType="org.apache.dolphinscheduler.dao.entity.Command">
         select * from t_ds_command
         where process_definition_id = #{processId}
+            <if test="commandTypes != null and commandTypes.length != 0">
+                and command_type in
+                <foreach collection="commandTypes" item="i" index="index" open="(" separator="," close=")">
+                    #{i}
+                </foreach>
+            </if>
           and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
           and scheduler_batch_no = #{batchNo}
     </select>

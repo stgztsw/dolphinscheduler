@@ -263,6 +263,7 @@ public enum Status {
     QUEUE_COUNT_ERROR(90001,"queue count error", "查询队列数据错误"),
 
     KERBEROS_STARTUP_STATE(100001,"get kerberos startup state error", "获取kerberos启动状态错误"),
+    MANUAL_SCHEDULER_FAILED(100002, "failed to start the job in manual scheduler mode", "手动调度执行失败"),
     ;
 
     private final int code;

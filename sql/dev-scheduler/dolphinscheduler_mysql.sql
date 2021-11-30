@@ -11,16 +11,24 @@ CREATE TABLE t_ds_process_dependent (
     KEY `t_ds_process_dependent_process_id_IDX` (`process_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
-
 alter table t_ds_command
     add scheduler_interval tinyint default 9 null comment 'scheduler interval';
 alter table t_ds_command
     add scheduler_batch_no int default 0 null comment 'scheduler batch no';
-
 
 alter table t_ds_process_instance
     add scheduler_interval tinyint default 9 null comment 'scheduler interval';
 alter table t_ds_process_instance
     add scheduler_batch_no int default 0 null comment 'scheduler batch no';
 
+alter table t_ds_process_definition
+    add process_type tinyint default 0 null comment 'process type';
 
+alter table t_ds_process_instance
+    add process_type tinyint default 0 null comment 'process type';
+
+alter table t_ds_process_instance
+    add dependent_scheduler_flag tinyint default 0 null comment 'dependent scheduler flag';
+
+alter table t_ds_command
+    add dependent_scheduler_flag tinyint default 0 null comment 'dependent scheduler flag';

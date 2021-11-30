@@ -68,7 +68,7 @@
     <select id="queryProcessInstanceListPaging" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
         select instance.id, instance.process_definition_id, instance.command_type, instance.executor_id,
         instance.name, instance.state, instance.schedule_time, instance.start_time, instance.end_time,
-        instance.run_times, instance.recovery, instance.host, instance.scheduler_interval, instance.scheduler_batch_no
+        instance.run_times, instance.recovery, instance.host, instance.scheduler_interval, instance.scheduler_batch_no, instance.process_type, instance.dependent_scheduler_flag
         from t_ds_process_instance instance
         join t_ds_process_definition define ON instance.process_definition_id = define.id
         where instance.is_sub_process=0
@@ -195,13 +195,38 @@
         select *
         from t_ds_process_instance
         where process_definition_id = #{processId}
+            <if test="states !=null and states.length != 0">
+                and state in
+                <foreach collection="states" item="i" index="index" open="(" separator="," close=")">
+                    #{i}
+                </foreach>
+            </if>
+            <if test="commandTypes != null and commandTypes.length != 0">
+                and command_type in
+                <foreach collection="commandTypes" item="i" index="index" open="(" separator="," close=")">
+                    #{i}
+                </foreach>
+            </if>
           and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
           and scheduler_batch_no = #{batchNo}
+          and dependent_scheduler_flag = true
     </select>
     <select id="getCurrentSchedulerBatchNo" resultType="java.lang.Integer">
         select max(scheduler_batch_no) from t_ds_process_instance
         where process_definition_id = #{processId}
           and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
     </select>
-
+    <update id="updateProcessStateInBatch">
+        update t_ds_process_instance
+        set state = #{newState}
+        where 1=1
+        <if test="states !=null and states.length != 0">
+            and state in
+            <foreach collection="states" item="i" index="index" open="(" separator="," close=")">
+                #{i}
+            </foreach>
+        </if>
+        and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+        and scheduler_batch_no = #{batchNo}
+    </update>
 </mapper>

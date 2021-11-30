@@ -64,6 +64,12 @@ export default {
     state.tenantId = payload
   },
   /**
+   * set processType
+   */
+  setProcessType (state, payload) {
+    state.processType = payload
+  },
+  /**
    * set global params
    */
   setGlobalParams (state, payload) {
@@ -106,6 +112,7 @@ export default {
     state.description = (payload && payload.description) || ''
     state.timeout = (payload && payload.timeout) || 0
     state.tenantId = (payload && payload.tenantId) || -1
+    state.processType = (payload && payload.processType) || 'NORMAL'
     state.processListS = (payload && payload.processListS) || []
     state.resourcesListS = (payload && payload.resourcesListS) || []
     state.resourcesListJar = (payload && payload.resourcesListJar) || []

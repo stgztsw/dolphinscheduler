@@ -18,6 +18,7 @@ package org.apache.dolphinscheduler.dao.entity;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.dolphinscheduler.common.enums.Flag;
+import org.apache.dolphinscheduler.common.enums.ProcessType;
 import org.apache.dolphinscheduler.common.enums.ReleaseState;
 import org.apache.dolphinscheduler.common.process.Property;
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -168,6 +169,11 @@ public class ProcessDefinition {
      */
     private String resourceIds;
 
+    /**
+     * process type
+     */
+    @TableField("process_type")
+    private ProcessType processType;
 
     public String getName() {
         return name;
@@ -379,6 +385,14 @@ public class ProcessDefinition {
         this.modifyBy = modifyBy;
     }
 
+    public ProcessType getProcessType() {
+        return processType;
+    }
+
+    public void setProcessType(ProcessType processType) {
+        this.processType = processType;
+    }
+
     @Override
     public String toString() {
         return "ProcessDefinition{" +
@@ -407,6 +421,7 @@ public class ProcessDefinition {
                 ", tenantId=" + tenantId +
                 ", modifyBy='" + modifyBy + '\'' +
                 ", resourceIds='" + resourceIds + '\'' +
+                ", processType='" + processType + '\'' +
                 '}';
     }
 

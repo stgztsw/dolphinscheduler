@@ -444,6 +444,15 @@ public class SchedulerService extends BaseService {
         return result;
     }
 
+    public Schedule getOneScheduler(Integer processDefineId) {
+        Page<Schedule> page = new Page(1, 1);
+        IPage<Schedule> scheduleIPage = scheduleMapper.queryByProcessDefineIdPaging(
+                page, processDefineId, null);
+        List<Schedule> schedules = scheduleIPage.getRecords();
+        assert schedules.size() == 1;
+        return schedules.get(0);
+    }
+
     /**
      * query schedule list
      *

@@ -16,6 +16,7 @@
  */
 package org.apache.dolphinscheduler.dao.entity;
 
+import org.apache.dolphinscheduler.common.enums.ProcessType;
 import org.apache.dolphinscheduler.common.model.TaskNode;
 import org.apache.dolphinscheduler.common.process.Property;
 import org.apache.dolphinscheduler.common.utils.CollectionUtils;
@@ -41,6 +42,7 @@ public class ProcessData {
 
   private int tenantId;
 
+  private ProcessType processType;
 
   public ProcessData() {
   }
@@ -103,6 +105,14 @@ public class ProcessData {
     this.tenantId = tenantId;
   }
 
+  public ProcessType getProcessType() {
+    return processType;
+  }
+
+  public void setProcessType(ProcessType processType) {
+    this.processType = processType;
+  }
+
   @Override
   public String toString() {
     return "ProcessData{" +
@@ -110,6 +120,7 @@ public class ProcessData {
             ", globalParams=" + globalParams +
             ", timeout=" + timeout +
             ", tenantId=" + tenantId +
+            ", processType=" + processType +
             '}';
   }
 }

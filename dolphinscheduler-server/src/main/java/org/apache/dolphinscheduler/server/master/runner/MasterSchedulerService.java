@@ -21,6 +21,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.CommandType;
+import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.enums.UserType;
 import org.apache.dolphinscheduler.common.model.DateInterval;
 import org.apache.dolphinscheduler.common.thread.Stopper;
@@ -38,13 +39,8 @@ import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 import javax.annotation.PostConstruct;
 
@@ -54,6 +50,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_RECOVER_PROCESS_ID_STRING;
 
 /**
  *  master scheduler thread
@@ -170,12 +168,18 @@ public class MasterSchedulerService extends Thread {
                                     this.masterConfig.getMasterExecThreads() - activeCount, command);
                             if (processInstance != null) {
                                 logger.info("start master exec thread , split DAG ...");
-                                Future<ProcessInstance> future = masterExecService.submit(
-                                    new MasterExecThread(
-                                            processInstance
-                                            , processService
-                                            , nettyRemotingClient
+                                Future<ProcessInstance> future;
+                                if (processInstance.getState() == ExecutionStatus.RUNNING_EXECUTION) {
+                                    future = masterExecService.submit(
+                                            new MasterExecThread(
+                                                    processInstance
+                                                    , processService
+                                                    , nettyRemotingClient
                                             ));
+                                } else {
+                                    logger.debug("process={} is not in running status, add it to dependentProcessQueue", processInstance.getId());
+                                    future = CompletableFuture.completedFuture(processInstance);
+                                }
                                 dependentProcessQueue.offer(future);
                             }
                         }catch (Exception e){
@@ -220,20 +224,19 @@ public class MasterSchedulerService extends Thread {
                         if (!future.isDone()) {
                             continue;
                         }
-                        ProcessInstance processInstance = future.get();
-                        if (!processInstance.getState().typeIsFinished()) {
+                        ProcessInstance parentProcessInstance = future.get();
+                        if (!parentProcessInstance.getState().typeIsFinished()) {
                             continue;
                         }
-                        if (!processInstance.getState().typeIsSuccess()) {
-                            logger.debug("process={} is not success, not need to fire the dependent process",
-                                    processInstance.getProcessDefinitionId());
+                        if (!parentProcessInstance.getState().typeIsSuccess()) {
+                            logger.debug("parentProcessInstance={} is not success, not need to fire the dependent process",
+                                    parentProcessInstance.getProcessDefinitionId());
                             futureIterator.remove();
                             continue;
                         }
-                        if (!CommandType.SCHEDULER.equals(processInstance.getCommandType())
-                                && !CommandType.MANUAL_SCHEDULER.equals(processInstance.getCommandType())) {
-                            logger.debug("process={} is not in SCHEDULER or MANUAL_SCHEDULER mode, not need to fire the dependent process",
-                                    processInstance.getProcessDefinitionId());
+                        if (!parentProcessInstance.isDependentSchedulerFlag()) {
+                            logger.debug("parentProcessInstance={} DependentSchedulerFlag is false, " +
+                                            "not need to fire the dependent process", parentProcessInstance.getProcessDefinitionId());
                             futureIterator.remove();
                             continue;
                         }
@@ -242,42 +245,13 @@ public class MasterSchedulerService extends Thread {
                         Page<ProcessDependent> page;
                         do {
                             iPage = new Page<>(pageNo++,pageSize);
-                            page = processService.queryByDependentIdListPaging(iPage,processInstance.getProcessDefinitionId());
+                            page = processService.queryByDependentIdListPaging(iPage,parentProcessInstance.getProcessDefinitionId());
                             List<ProcessDependent> processDependents = page.getRecords();
                             if (page.getTotal() == 0) {
-                                logger.debug("process={} has no dependent process", processInstance.getProcessDefinitionId());
+                                logger.debug("process={} has no dependent process", parentProcessInstance.getProcessDefinitionId());
                                 break;
                             }
-                            for (ProcessDependent processDependent : processDependents) {
-                                ProcessDefinition processDefinition = processService
-                                        .findProcessDefineById(processDependent.getProcessId());
-                                Date schedulerTime = processInstance.getScheduleTime();
-                                int schedulerInterval = processInstance.getSchedulerInterval();
-                                int batchNo = processInstance.getSchedulerBatchNo();
-                                List<DateInterval> dateIntervals = DependentUtils
-                                        .getDateIntervalListForDependent(schedulerTime, schedulerInterval);
-                                if (processService.dependentProcessIsFired(processDefinition.getId(), dateIntervals, batchNo)) {
-                                    continue;
-                                }
-                                Command command = new Command();
-                                command.setCommandType(CommandType.SCHEDULER);
-                                command.setExecutorId(processDefinition.getUserId());
-                                command.setFailureStrategy(processInstance.getFailureStrategy());
-                                command.setProcessDefinitionId(processDefinition.getId());
-                                command.setScheduleTime(schedulerTime);
-                                command.setStartTime(new Date());
-                                command.setWarningGroupId(processInstance.getWarningGroupId());
-                                String workerGroup = StringUtils.isEmpty(processInstance.getWorkerGroup()) ? Constants.DEFAULT_WORKER_GROUP : processInstance.getWorkerGroup();
-                                command.setWorkerGroup(workerGroup);
-                                command.setWarningType(processInstance.getWarningType());
-                                command.setProcessInstancePriority(processInstance.getProcessInstancePriority());
-                                command.setSchedulerInterval(schedulerInterval);
-                                command.setSchedulerBatchNo(batchNo);
-                                processService.createCommand(command);
-                            }
-                            logger.info("process={} finished, fire the dependent process {}",
-                                    processInstance.getProcessDefinitionId(),
-                                    StringUtil.join(processDependents.stream().map(ProcessDependent::getProcessId).toArray(), ","));
+                            schedulerProcess(parentProcessInstance, processDependents);
                         } while (page.hasNext());
                         futureIterator.remove();
                     }
@@ -286,5 +260,79 @@ public class MasterSchedulerService extends Thread {
                 }
             }
         }
+
+        private void schedulerProcess(ProcessInstance parentProcessInstance, List<ProcessDependent> processDependents) {
+            for (ProcessDependent processDependent : processDependents) {
+                ProcessDefinition processDefinition = processService
+                        .findProcessDefineById(processDependent.getProcessId());
+                Date schedulerTime = parentProcessInstance.getScheduleTime();
+                int schedulerInterval = parentProcessInstance.getSchedulerInterval();
+                int batchNo = parentProcessInstance.getSchedulerBatchNo();
+                List<DateInterval> dateIntervals = DependentUtils
+                        .getDateIntervalListForDependent(schedulerTime, schedulerInterval);
+                if (processService.dependentProcessIsFired(processDefinition.getId(), dateIntervals, batchNo)) {
+                    logger.debug("ProcessDependent which dependentId={} processId={} has been fired in command queue",
+                            processDependent.getDependentId(), processDependent.getProcessId());
+                    continue;
+                }
+                //查询对应的时间周期内的批次，并且dependent_scheduler_flag为true的数据
+                ProcessInstance processInstance= processService
+                        .findProcessInstanceByProcessIdInInterval(processDefinition.getId(), dateIntervals, batchNo, null, null);
+                Command command;
+                if (processInstance != null) {
+                    if (!processInstance.getState().typeIsFinished() && ExecutionStatus.INITED != processInstance.getState()) {
+                        logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={} in running now",
+                                processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId());
+                        continue;
+                    }
+                    if (ExecutionStatus.SUCCESS == processInstance.getState()) {
+                        logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={}, and it's state is success, " +
+                                "no need to submit to executor, and add it to dependentProcessQueue",
+                                processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId());
+                        dependentProcessQueue.offer(CompletableFuture.completedFuture(processInstance));
+                        continue;
+                    }
+                    logger.debug("processInstance={} is exist, and not in success state, do START_FAILURE_TASK_PROCESS", processInstance.getId());
+                    command = generateCommand(parentProcessInstance, processDefinition, processInstance.getState());
+                    command.setCommandParam(String.format("{\"%s\":%d}",
+                            CMDPARAM_RECOVER_PROCESS_ID_STRING, processInstance.getId()));
+                    logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={}, need to be fired in {} mode",
+                            processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId(), command.getCommandType());
+                } else {
+                    command = generateCommand(parentProcessInstance, processDefinition, null);
+                }
+                processService.createCommand(command);
+                logger.debug("ProcessDependent which dependentId={} processId={} fired in {} mode",
+                        processDependent.getDependentId(), processDependent.getProcessId(), command.getCommandType());
+            }
+        }
+
+        private Command generateCommand(ProcessInstance parentProcessInstance, ProcessDefinition processDefinition, ExecutionStatus currentStatus) {
+            Date schedulerTime = parentProcessInstance.getScheduleTime();
+            int schedulerInterval = parentProcessInstance.getSchedulerInterval();
+            int batchNo = parentProcessInstance.getSchedulerBatchNo();
+            Command command = new Command();
+            if (currentStatus == null) {
+                command.setCommandType(CommandType.SCHEDULER);
+            } else {
+                command.setCommandType(CommandType.RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER);
+            }
+            command.setExecutorId(processDefinition.getUserId());
+            command.setFailureStrategy(parentProcessInstance.getFailureStrategy());
+            command.setProcessDefinitionId(processDefinition.getId());
+            command.setScheduleTime(schedulerTime);
+            command.setStartTime(new Date());
+            command.setWarningGroupId(parentProcessInstance.getWarningGroupId());
+            String workerGroup = StringUtils.isEmpty(parentProcessInstance.getWorkerGroup()) ? Constants.DEFAULT_WORKER_GROUP : parentProcessInstance.getWorkerGroup();
+            command.setWorkerGroup(workerGroup);
+            command.setWarningType(parentProcessInstance.getWarningType());
+            command.setProcessInstancePriority(parentProcessInstance.getProcessInstancePriority());
+            command.setSchedulerInterval(schedulerInterval);
+            command.setSchedulerBatchNo(batchNo);
+            command.setDependentSchedulerFlag(parentProcessInstance.isDependentSchedulerFlag());
+            return command;
+        }
+
+
     }
 }

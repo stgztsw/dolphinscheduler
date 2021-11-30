@@ -208,6 +208,8 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      * @param processId processId
      * @param startTime startTime
      * @param endTime endTime
+     * @param stateArray stateArray
+     * @param commandTypes commandTypes
      * @param batchNo batchNo
      * @return ProcessInstance list
      */
@@ -215,6 +217,8 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
             @Param("processId") int processId,
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime,
+            @Param("states") int[] stateArray,
+            @Param("commandTypes") int[] commandTypes,
             @Param("batchNo") int batchNo);
 
     /**
@@ -228,4 +232,20 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
             @Param("processId") int processId,
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime);
+
+
+    /**
+     * update the state in batch
+     * @param startTime startTime
+     * @param endTime endTime
+     * @param stateArray stateArray
+     * @param batchNo batchNo
+     * @param newState newState
+     * @return ProcessInstance list
+     */
+    int updateProcessStateInBatch(@Param("startTime") Date startTime,
+                                  @Param("endTime") Date endTime,
+                                  @Param("states") int[] stateArray,
+                                  @Param("batchNo") int batchNo,
+                                  @Param("newState") int newState);
 }

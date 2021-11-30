@@ -47,6 +47,10 @@
         <form-tenant v-model="tenantId"></form-tenant>
       </div>
       <div class="title" style="padding-top: 6px;">
+        <span class="text-b">{{$t('select process type')}}</span>
+        <form-processType v-model="processType"></form-processType>
+      </div>
+      <div class="title" style="padding-top: 6px;">
         <span class="text-b">{{$t('warning of timeout')}}</span>
         <span style="padding-left: 6px;">
           <x-switch v-model="checkedTimeout"></x-switch>
@@ -93,7 +97,8 @@
   import mLocalParams from '../formModel/tasks/_source/localParams'
   import disabledState from '@/module/mixin/disabledState'
   import Affirm from '../jumpAffirm'
-  import FormTenant from "./_source/selectTenant";
+  import FormTenant from "./_source/selectTenant"
+  import FormProcessType from "./_source/selectProcessType";
 
   export default {
     name: 'udp',
@@ -113,6 +118,7 @@
         timeout: 0,
 
         tenantId: -1,
+        processType: 'NORMAL',
         // checked Timeout alarm
         checkedTimeout: true
       }
@@ -142,6 +148,7 @@
         this.store.commit('dag/setTenantId', _.cloneDeep(this.tenantId))
         this.store.commit('dag/setDesc', _.cloneDeep(this.description))
         this.store.commit('dag/setSyncDefine', this.syncDefine)
+        this.store.commit('dag/setProcessType', _.cloneDeep(this.processType))
       },
       /**
        * submit
@@ -203,6 +210,7 @@
       this.syncDefine = dag.syncDefine
       this.timeout = dag.timeout || 0
       this.checkedTimeout = this.timeout !== 0
+      this.processType = dag.processType
       this.$nextTick(() => {
         if (dag.tenantId > -1) {
           this.tenantId = dag.tenantId
@@ -212,7 +220,7 @@
       })
     },
     mounted () {},
-    components: {FormTenant, mLocalParams }
+    components: {FormTenant, mLocalParams, FormProcessType}
   }
 </script>
 

@@ -141,6 +141,7 @@ export default {
         state.timeout = processDefinitionJson.timeout
 
         state.tenantId = processDefinitionJson.tenantId
+        state.processType = processDefinitionJson.processType
         resolve(res.data)
       }).catch(res => {
         reject(res)
@@ -214,6 +215,7 @@ export default {
         globalParams: state.globalParams,
         tasks: deleteDefinitionList(state.tasks),
         tenantId: state.tenantId,
+        processType: state.processType,
         timeout: state.timeout
       }
       io.post(`projects/${state.projectName}/process/save`, {
@@ -238,6 +240,7 @@ export default {
         globalParams: state.globalParams,
         tasks: deleteDefinitionList(state.tasks),
         tenantId: state.tenantId,
+        processType: state.processType,
         timeout: state.timeout
       }
       io.post(`projects/${state.projectName}/process/update`, {

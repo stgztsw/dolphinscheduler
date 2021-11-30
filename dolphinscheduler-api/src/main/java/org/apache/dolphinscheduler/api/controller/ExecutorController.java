@@ -17,6 +17,7 @@
 package org.apache.dolphinscheduler.api.controller;
 
 
+import com.sun.org.apache.xalan.internal.xslt.Process;
 import org.apache.dolphinscheduler.api.enums.ExecuteType;
 import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.ExecutorService;
@@ -107,7 +108,8 @@ public class ExecutorController extends BaseController {
                                        @RequestParam(value = "runMode", required = false) RunMode runMode,
                                        @RequestParam(value = "processInstancePriority", required = false) Priority processInstancePriority,
                                        @RequestParam(value = "workerGroup", required = false, defaultValue = "default") String workerGroup,
-                                       @RequestParam(value = "timeout", required = false) Integer timeout) throws ParseException {
+                                       @RequestParam(value = "timeout", required = false) Integer timeout,
+                                       @RequestParam(value = "processType", required = true) ProcessType processType) throws ParseException {
         logger.info("login user {}, start process instance, project name: {}, process definition id: {}, schedule time: {}, "
                         + "failure policy: {}, node name: {}, node dep: {}, notify type: {}, "
                         + "notify group id: {},receivers:{},receiversCc:{}, run mode: {},process instance priority:{}, workerGroup: {}, timeout: {}",
@@ -118,7 +120,7 @@ public class ExecutorController extends BaseController {
         if (timeout == null) {
             timeout = Constants.MAX_TASK_TIMEOUT;
         }
-
+        execType = ProcessType.SCHEDULER == processType ? CommandType.MANUAL_SCHEDULER : execType;
         Map<String, Object> result = execService.execProcessInstance(loginUser, projectName, processDefinitionId, scheduleTime, execType, failureStrategy,
                 startNodeList, taskDependType, warningType,
                 warningGroupId, receivers, receiversCc, runMode, processInstancePriority, workerGroup, timeout);

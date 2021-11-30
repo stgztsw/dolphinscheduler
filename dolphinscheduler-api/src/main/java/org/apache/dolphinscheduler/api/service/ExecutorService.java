@@ -21,17 +21,16 @@ import org.apache.dolphinscheduler.api.enums.ExecuteType;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.*;
+import org.apache.dolphinscheduler.common.model.DateInterval;
 import org.apache.dolphinscheduler.common.model.Server;
-import org.apache.dolphinscheduler.common.utils.CollectionUtils;
-import org.apache.dolphinscheduler.common.utils.DateUtils;
-import org.apache.dolphinscheduler.common.utils.JSONUtils;
-import org.apache.dolphinscheduler.common.utils.StringUtils;
+import org.apache.dolphinscheduler.common.utils.*;
 import org.apache.dolphinscheduler.dao.entity.*;
 import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.quartz.cron.CronUtils;
+import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +68,9 @@ public class ExecutorService extends BaseService{
 
     @Autowired
     private ProcessService processService;
+
+    @Autowired
+    private SchedulerService schedulerService;
 
     /**
      * execute process instance
@@ -129,13 +131,26 @@ public class ExecutorService extends BaseService{
             return result;
         }
 
+        SchedulingBatch sb = null;
+        if (commandType == CommandType.MANUAL_SCHEDULER) {
+            Schedule schedule = null;
+            try {
+                schedule = schedulerService.getOneScheduler(processDefinitionId);
+                sb = processService.getSchedulingBatch(schedule, new Date(), processDefinitionId);
+            } catch (Exception e) {
+                logger.error(String.format("fail to start the process=%s in manual scheduler mode",
+                        processDefinitionId), processDefinitionId, e);
+                putMsg(result,Status.MANUAL_SCHEDULER_FAILED);
+                return result;
+            }
+        }
 
         /**
          * create command
          */
         int create = this.createCommand(commandType, processDefinitionId,
                 taskDependType, failureStrategy, startNodeList, cronTime, warningType, loginUser.getId(),
-                warningGroupId, runMode,processInstancePriority, workerGroup);
+                warningGroupId, runMode,processInstancePriority, workerGroup, sb);
         if(create > 0 ){
             /**
              * according to the process definition ID updateProcessInstance and CC recipient
@@ -264,6 +279,9 @@ public class ExecutorService extends BaseService{
                     result = updateProcessInstancePrepare(processInstance, CommandType.PAUSE, ExecutionStatus.READY_PAUSE);
                 }
                 break;
+            case RECOVER_FAILURE_PROCESS_IN_SCHEDULER:
+                result = insertCommand(loginUser, processInstanceId, processDefinition.getId(), CommandType.RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER);
+                break;
             default:
                 logger.error("unknown execute type : {}", executeType);
                 putMsg(result, Status.REQUEST_PARAMS_NOT_VALID_ERROR, "unknown execute type");
@@ -316,6 +334,11 @@ public class ExecutorService extends BaseService{
                 break;
             case RECOVER_SUSPENDED_PROCESS:
                 if (executionStatus.typeIsPause()|| executionStatus.typeIsCancel()) {
+                    checkResult = true;
+                }
+                break;
+            case RECOVER_FAILURE_PROCESS_IN_SCHEDULER:
+                if (executionStatus.typeIsFinished()) {
                     checkResult = true;
                 }
                 break;
@@ -482,7 +505,8 @@ public class ExecutorService extends BaseService{
                               TaskDependType nodeDep, FailureStrategy failureStrategy,
                               String startNodeList, String schedule, WarningType warningType,
                               int executorId, int warningGroupId,
-                              RunMode runMode,Priority processInstancePriority, String workerGroup) throws ParseException {
+                              RunMode runMode,Priority processInstancePriority, String workerGroup,
+                              SchedulingBatch sb) throws ParseException {
 
         /**
          * instantiate command schedule instance
@@ -514,6 +538,13 @@ public class ExecutorService extends BaseService{
         command.setWarningGroupId(warningGroupId);
         command.setProcessInstancePriority(processInstancePriority);
         command.setWorkerGroup(workerGroup);
+
+        if (sb != null) {
+            command.setDependentSchedulerFlag(true);
+            command.setSchedulerInterval(sb.getSchedulerInterval());
+            command.setSchedulerBatchNo(sb.getNextBatchNo());
+            command.setScheduleTime(sb.getSchedulerTime());
+        }
 
         Date start = null;
         Date end = null;
@@ -575,6 +606,17 @@ public class ExecutorService extends BaseService{
         }
 
         return 0;
+    }
+
+    private void createSchedulerParam(Command command) {
+        Schedule schedule = schedulerService.getOneScheduler(command.getProcessDefinitionId());
+        int schedulerInterval = CronUtils.getSchedulerInterval(schedule.getCrontab());
+        List<DateInterval> dateIntervals = DependentUtils
+                .getDateIntervalListForDependent(new Date(), schedulerInterval);
+        int nextBatchNo = processService.getNextSchedulerBatchNo(command.getProcessDefinitionId(), dateIntervals);
+        command.setSchedulerBatchNo(nextBatchNo);
+        command.setDependentSchedulerFlag(true);
+        command.setSchedulerInterval(CronUtils.getSchedulerInterval(schedule.getCrontab()));
     }
 
     /**

@@ -19,6 +19,7 @@ package org.apache.dolphinscheduler.service.quartz;
 
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.CommandType;
+import org.apache.dolphinscheduler.common.enums.ProcessType;
 import org.apache.dolphinscheduler.common.enums.ReleaseState;
 import org.apache.dolphinscheduler.common.model.DateInterval;
 import org.apache.dolphinscheduler.common.utils.DependentUtils;
@@ -28,6 +29,7 @@ import org.apache.dolphinscheduler.dao.entity.Schedule;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.quartz.cron.CronUtils;
+import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
@@ -93,11 +95,11 @@ public class ProcessScheduleJob implements Job {
             logger.warn("process definition does not exist in db or offline，need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
             return;
         }
-
-        int schedulerInterval = CronUtils.getSchedulerInterval(schedule.getCrontab());
-        List<DateInterval> dateIntervals = DependentUtils
-                .getDateIntervalListForDependent(scheduledFireTime, schedulerInterval);
-        int nextBatchNo = getProcessService().getNextSchedulerBatchNo(processDefinition.getId(), dateIntervals);
+        if (ProcessType.SCHEDULER != processDefinition.getProcessType()) {
+            logger.warn("process definition is not a scheduler process, need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
+            return;
+        }
+        SchedulingBatch sb = getProcessService().getSchedulingBatch(schedule, scheduledFireTime, processDefinition.getId());
         Command command = new Command();
         command.setCommandType(CommandType.SCHEDULER);
         command.setExecutorId(schedule.getUserId());
@@ -110,8 +112,9 @@ public class ProcessScheduleJob implements Job {
         command.setWorkerGroup(workerGroup);
         command.setWarningType(schedule.getWarningType());
         command.setProcessInstancePriority(schedule.getProcessInstancePriority());
-        command.setSchedulerInterval(CronUtils.getSchedulerInterval(schedule.getCrontab()));
-        command.setSchedulerBatchNo(nextBatchNo);
+        command.setSchedulerInterval(sb.getSchedulerInterval());
+        command.setSchedulerBatchNo(sb.getNextBatchNo());
+        command.setDependentSchedulerFlag(true);
         getProcessService().createCommand(command);
     }
 

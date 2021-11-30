@@ -127,6 +127,9 @@ public class Command {
     @TableField("scheduler_batch_no")
     private int schedulerBatchNo;
 
+    @TableField("dependent_scheduler_flag")
+    private boolean dependentSchedulerFlag;
+
     public Command() {
         this.taskDependType = TaskDependType.TASK_POST;
         this.failureStrategy = FailureStrategy.CONTINUE;
@@ -291,6 +294,14 @@ public class Command {
         this.schedulerBatchNo = schedulerBatchNo;
     }
 
+    public boolean isDependentSchedulerFlag() {
+        return dependentSchedulerFlag;
+    }
+
+    public void setDependentSchedulerFlag(boolean dependentSchedulerFlag) {
+        this.dependentSchedulerFlag = dependentSchedulerFlag;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -383,6 +394,7 @@ public class Command {
                 ", workerGroup='" + workerGroup + '\'' +
                 ", schedulerInterval='" + schedulerInterval + '\'' +
                 ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
+                ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
                 '}';
     }
 }

@@ -676,7 +676,17 @@ public class MasterExecThread implements Callable<ProcessInstance> {
         }
         // process failure
         if(processFailed()){
-            return ExecutionStatus.FAILURE;
+            if (errorTaskList.size() == 0) {
+                return ExecutionStatus.FAILURE;
+            } else {
+                for (Map.Entry<String, TaskInstance> entry :errorTaskList.entrySet()) {
+                    TaskInstance taskInstance = entry.getValue();
+                    if (!taskInstance.isDependTask()) {
+                        return ExecutionStatus.FAILURE;
+                    }
+                }
+                return ExecutionStatus.STOP_BY_DEPENDENT_FAILURE;
+            }
         }
 
         // waiting thread

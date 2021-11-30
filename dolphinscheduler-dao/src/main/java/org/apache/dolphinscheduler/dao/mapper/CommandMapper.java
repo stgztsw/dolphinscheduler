@@ -56,12 +56,14 @@ public interface CommandMapper extends BaseMapper<Command> {
      * @param startTime startTime
      * @param endTime endTime
      * @param batchNo batchNo
+     * @param commandTypes commandTypes
      * @return command list
      */
     List<Command> findCommandByProcessIdInInterval(
             @Param("processId") int processId,
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime,
+            @Param("commandTypes") int[] commandTypes,
             @Param("batchNo") int batchNo);
 
     /**
