@@ -1,4 +1,3 @@
-DROP TABLE IF EXISTS `t_ds_process_dependent`;
 CREATE TABLE t_ds_process_dependent (
     `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
     `dependent_id` int(11) NOT NULL COMMENT 'dependent process id',
