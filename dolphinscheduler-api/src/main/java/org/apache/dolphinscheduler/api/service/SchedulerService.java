@@ -449,7 +449,7 @@ public class SchedulerService extends BaseService {
         IPage<Schedule> scheduleIPage = scheduleMapper.queryByProcessDefineIdPaging(
                 page, processDefineId, null);
         List<Schedule> schedules = scheduleIPage.getRecords();
-        assert schedules.size() == 1;
+        assert schedules.size() != 1;
         return schedules.get(0);
     }
 
