@@ -276,6 +276,7 @@ export default {
   Executor: 'Executor',
   'Run Type': 'Run Type',
   'Scheduler Batch': 'Scheduler Batch',
+  'Scheduler Interval': 'Scheduler Interval',
   'Scheduling Time': 'Scheduling Time',
   'Run Times': 'Run Times',
   host: 'host',

@@ -17,8 +17,11 @@
 package org.apache.dolphinscheduler.dao.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.CommandCount;
+import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
@@ -77,4 +80,12 @@ public interface CommandMapper extends BaseMapper<Command> {
             @Param("processId") int processId,
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime);
+
+    Page<Command> querySchedulerCommandListPaging(
+            IPage<Command> page,
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime,
+            @Param("commandTypes") int[] commandTypes,
+            @Param("batchNo") int batchNo);
 }

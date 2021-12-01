@@ -22,8 +22,12 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import org.apache.dolphinscheduler.common.enums.*;
+import org.apache.dolphinscheduler.common.model.DateInterval;
+import org.apache.dolphinscheduler.common.utils.DependentUtils;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -240,6 +244,9 @@ public class ProcessInstance {
     @TableField("dependent_scheduler_flag")
     private boolean dependentSchedulerFlag;
 
+    @TableField(exist = false)
+    private String interval;
+
     public ProcessInstance(){
 
     }
@@ -405,6 +412,7 @@ public class ProcessInstance {
 
     public void setScheduleTime(Date scheduleTime) {
         this.scheduleTime = scheduleTime;
+        setInterval();
     }
 
     public Date getCommandStartTime() {
@@ -509,6 +517,7 @@ public class ProcessInstance {
 
     public void setSchedulerInterval(int schedulerInterval) {
         this.schedulerInterval = schedulerInterval;
+        setInterval();
     }
 
     public int getSchedulerBatchNo() {
@@ -625,6 +634,27 @@ public class ProcessInstance {
 
     public void setDependentSchedulerFlag(boolean dependentSchedulerFlag) {
         this.dependentSchedulerFlag = dependentSchedulerFlag;
+        setInterval();
+    }
+
+    public String getInterval() {
+        return interval;
+    }
+
+    public void setInterval() {
+        if (interval != null || !dependentSchedulerFlag || scheduleTime == null || schedulerInterval == 0) {
+            return;
+        }
+        List<DateInterval> dateIntervals = DependentUtils.getDateIntervalListForDependent(scheduleTime, schedulerInterval);
+        SimpleDateFormat sdf = null;
+        if (schedulerInterval == 1) {
+            sdf = new SimpleDateFormat("yyyyMMddHH");
+        }  else if (schedulerInterval == 4) {
+            sdf = new SimpleDateFormat("yyyyMM");
+        } else {
+            sdf = new SimpleDateFormat("yyyyMMdd");
+        }
+        this.interval = sdf.format(dateIntervals.get(0).getStartTime());
     }
 
     @Override
@@ -670,6 +700,7 @@ public class ProcessInstance {
                 ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
                 ", processType='" + processType + '\'' +
                 ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
+                ", interval='" + interval + '\'' +
                 '}';
     }
 

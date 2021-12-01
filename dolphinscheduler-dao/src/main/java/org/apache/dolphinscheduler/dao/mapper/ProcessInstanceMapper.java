@@ -248,4 +248,24 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
                                   @Param("states") int[] stateArray,
                                   @Param("batchNo") int batchNo,
                                   @Param("newState") int newState);
+
+    /**
+     * find the ProcessInstance by processId in interval
+     * @param page page
+     * @param processId processId
+     * @param startTime startTime
+     * @param endTime endTime
+     * @param stateArray stateArray
+     * @param commandTypes commandTypes
+     * @param batchNo batchNo
+     * @return ProcessInstance page
+     */
+    Page<ProcessInstance> querySchedulerProcessInstanceListPaging(
+            IPage<ProcessInstance> page,
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime,
+            @Param("states") int[] stateArray,
+            @Param("commandTypes") int[] commandTypes,
+            @Param("batchNo") int batchNo);
 }

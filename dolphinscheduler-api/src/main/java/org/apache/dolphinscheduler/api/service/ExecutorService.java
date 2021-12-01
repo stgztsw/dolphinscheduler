@@ -134,13 +134,19 @@ public class ExecutorService extends BaseService{
         SchedulingBatch sb = null;
         if (commandType == CommandType.MANUAL_SCHEDULER) {
             Schedule schedule = null;
+            Date schedulerTime = new Date();
             try {
                 schedule = schedulerService.getOneScheduler(processDefinitionId);
-                sb = processService.getSchedulingBatch(schedule, new Date(), processDefinitionId);
+                sb = processService.getSchedulingBatch(schedule, schedulerTime, processDefinitionId);
             } catch (Exception e) {
                 logger.error(String.format("fail to start the process=%s in manual scheduler mode",
                         processDefinitionId), processDefinitionId, e);
                 putMsg(result,Status.MANUAL_SCHEDULER_FAILED);
+                return result;
+            }
+            //判断是否有当前周期实例和批次的任务正在运行
+            if (processService.currentSchedulingBatchIsRunning(schedule, schedulerTime, processDefinitionId)) {
+                putMsg(result,Status.SAME_INTERVAL_BATCH_SCHEDULER_FAILED);
                 return result;
             }
         }

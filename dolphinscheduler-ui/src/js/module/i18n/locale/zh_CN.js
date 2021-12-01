@@ -276,6 +276,7 @@ export default {
   Executor: '执行用户',
   'Run Type': '运行类型',
   'Scheduler Batch':'批次',
+  'Scheduler Interval':'周期实例',
   'Scheduling Time': '调度时间',
   'Run Times': '运行次数',
   host: 'host',

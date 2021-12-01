@@ -34,6 +34,9 @@
           <th scope="col" style="min-width: 70px">
             <span>{{$t('Run Type')}}</span>
           </th>
+          <th scope="col" style="min-width: 60px">
+            <span>{{$t('Scheduler Interval')}}</span>
+          </th>
           <th scope="col" style="min-width: 30px">
             <span>{{$t('Scheduler Batch')}}</span>
           </th>
@@ -77,6 +80,7 @@
             <span v-html="_rtState(item.state)" style="cursor: pointer;"></span>
           </td>
           <td><span>{{_rtRunningType(item.commandType)}}</span></td>
+          <td><span>{{item.dependentSchedulerFlag ? item.interval : '-'}}</span></td>
           <td><span>{{item.dependentSchedulerFlag ? item.schedulerBatchNo : '-'}}</span></td>
           <td>
             <span v-if="item.scheduleTime">{{item.scheduleTime | formatDate}}</span>

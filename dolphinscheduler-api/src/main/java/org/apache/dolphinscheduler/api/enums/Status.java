@@ -264,6 +264,7 @@ public enum Status {
 
     KERBEROS_STARTUP_STATE(100001,"get kerberos startup state error", "获取kerberos启动状态错误"),
     MANUAL_SCHEDULER_FAILED(100002, "failed to start the job in manual scheduler mode", "手动调度执行失败"),
+    SAME_INTERVAL_BATCH_SCHEDULER_FAILED(100003 ,"failed to start, Because there are tasks of the same period running", "因为有相同实例批次的任务在运行，任务启动失败"),
     ;
 
     private final int code;
