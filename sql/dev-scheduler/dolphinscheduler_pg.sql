@@ -10,6 +10,9 @@ create unique index t_ds_process_dependent_id_process_id_IDX on t_ds_process_dep
 create index t_ds_process_dependent_dependent_id_IDX on t_ds_process_dependent (dependent_id);
 create index t_ds_process_dependent_process_id_IDX on t_ds_process_dependent (process_id);
 
+CREATE SEQUENCE  t_ds_process_dependent_id_sequence;
+ALTER TABLE t_ds_process_dependent ALTER COLUMN id SET DEFAULT NEXTVAL('t_ds_process_dependent_id_sequence');
+
 ALTER TABLE t_ds_command ADD COLUMN scheduler_interval int default 9;
 ALTER TABLE t_ds_command ADD COLUMN scheduler_batch_no int default 0;
 ALTER TABLE t_ds_command ADD COLUMN dependent_scheduler_flag boolean default false;
