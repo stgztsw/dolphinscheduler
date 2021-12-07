@@ -225,6 +225,8 @@ public class MasterSchedulerService extends Thread {
                             continue;
                         }
                         ProcessInstance parentProcessInstance = future.get();
+                        logger.debug("parentProcessInstance={} processId={} take from dependentProcessQueue",
+                                parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId());
                         if (!parentProcessInstance.getState().typeIsFinished()) {
                             continue;
                         }
@@ -302,7 +304,7 @@ public class MasterSchedulerService extends Thread {
                     command = generateCommand(parentProcessInstance, processDefinition, null);
                 }
                 processService.createCommand(command);
-                logger.debug("ProcessDependent which dependentId={} processId={} fired in {} mode",
+                logger.info("ProcessDependent which dependentId={} processId={} fired in {} mode",
                         processDependent.getDependentId(), processDependent.getProcessId(), command.getCommandType());
             }
         }
