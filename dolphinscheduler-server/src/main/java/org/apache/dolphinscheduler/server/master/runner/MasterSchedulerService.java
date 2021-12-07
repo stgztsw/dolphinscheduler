@@ -236,8 +236,9 @@ public class MasterSchedulerService extends Thread {
                         }
                         if (!parentProcessInstance.getState().typeIsFinished()) {
                             //对于部分状态的任务如果运行时间超过1天的，判断为异常数据，强行从队列删除
-                            if (ExecutionStatus.READY_STOP == parentProcessInstance.getState()
-                                    && DateUtils.differSec(new Date(), parentProcessInstance.getStartTime()) > 86400) {
+                            if (DateUtils.differSec(new Date(), parentProcessInstance.getStartTime()) > 86400) {
+                                logger.info("parentProcessInstance={} status={} running time > 24h, remove it from dependentProcessQueue",
+                                        parentProcessInstance.getId(), parentProcessInstance.getState().getDescp());
                                 futureIterator.remove();
                                 continue;
                             }
