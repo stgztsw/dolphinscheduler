@@ -244,6 +244,9 @@ public class ProcessInstance {
     @TableField("dependent_scheduler_flag")
     private boolean dependentSchedulerFlag;
 
+    /**
+     * 周期实例
+     */
     @TableField(exist = false)
     private String interval;
 

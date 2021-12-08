@@ -190,7 +190,6 @@ public class MasterServer implements IStoppable {
 
     @Override
     public void stop(String cause) {
-        // todo
-//        close(cause);
+        close(cause);
     }
 }

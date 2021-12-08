@@ -26,6 +26,7 @@ import org.apache.dolphinscheduler.common.enums.UserType;
 import org.apache.dolphinscheduler.common.model.DateInterval;
 import org.apache.dolphinscheduler.common.thread.Stopper;
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
+import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.DependentUtils;
 import org.apache.dolphinscheduler.common.utils.NetUtils;
 import org.apache.dolphinscheduler.common.utils.OSUtils;
@@ -225,20 +226,27 @@ public class MasterSchedulerService extends Thread {
                             continue;
                         }
                         ProcessInstance parentProcessInstance = future.get();
-                        logger.debug("parentProcessInstance={} processId={} take from dependentProcessQueue",
+                        logger.debug("parentProcessInstance={} processDefinitionId={} take from dependentProcessQueue",
                                 parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId());
+                        if (!parentProcessInstance.isDependentSchedulerFlag()) {
+                            logger.debug("parentProcessInstance={} DependentSchedulerFlag is false, " +
+                                    "not need to fire the dependent process", parentProcessInstance.getProcessDefinitionId());
+                            futureIterator.remove();
+                            continue;
+                        }
                         if (!parentProcessInstance.getState().typeIsFinished()) {
+                            //对于部分状态的任务如果运行时间超过1天的，判断为异常数据，强行从队列删除
+                            if (DateUtils.differSec(new Date(), parentProcessInstance.getStartTime()) > 86400) {
+                                logger.info("parentProcessInstance={} status={} running time > 24h, remove it from dependentProcessQueue",
+                                        parentProcessInstance.getId(), parentProcessInstance.getState().getDescp());
+                                futureIterator.remove();
+                                continue;
+                            }
                             continue;
                         }
                         if (!parentProcessInstance.getState().typeIsSuccess()) {
                             logger.debug("parentProcessInstance={} is not success, not need to fire the dependent process",
                                     parentProcessInstance.getProcessDefinitionId());
-                            futureIterator.remove();
-                            continue;
-                        }
-                        if (!parentProcessInstance.isDependentSchedulerFlag()) {
-                            logger.debug("parentProcessInstance={} DependentSchedulerFlag is false, " +
-                                            "not need to fire the dependent process", parentProcessInstance.getProcessDefinitionId());
                             futureIterator.remove();
                             continue;
                         }
