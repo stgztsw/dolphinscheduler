@@ -130,6 +130,15 @@ public class Command {
     @TableField("dependent_scheduler_flag")
     private boolean dependentSchedulerFlag;
 
+    @TableField("scheduler_start_id")
+    private int schedulerStartId;
+
+    @TableField("scheduler_rerun_no")
+    private String schedulerRerunNo;
+
+    @TableField("rerun_scheduler_flag")
+    private boolean rerunSchedulerFlag;
+
     public Command() {
         this.taskDependType = TaskDependType.TASK_POST;
         this.failureStrategy = FailureStrategy.CONTINUE;
@@ -302,6 +311,30 @@ public class Command {
         this.dependentSchedulerFlag = dependentSchedulerFlag;
     }
 
+    public int getSchedulerStartId() {
+        return schedulerStartId;
+    }
+
+    public void setSchedulerStartId(int schedulerStartId) {
+        this.schedulerStartId = schedulerStartId;
+    }
+
+    public String getSchedulerRerunNo() {
+        return schedulerRerunNo;
+    }
+
+    public void setSchedulerRerunNo(String schedulerRerunNo) {
+        this.schedulerRerunNo = schedulerRerunNo;
+    }
+
+    public boolean isRerunSchedulerFlag() {
+        return rerunSchedulerFlag;
+    }
+
+    public void setRerunSchedulerFlag(boolean rerunSchedulerFlag) {
+        this.rerunSchedulerFlag = rerunSchedulerFlag;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -395,6 +428,9 @@ public class Command {
                 ", schedulerInterval='" + schedulerInterval + '\'' +
                 ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
                 ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
+                ", schedulerStartId='" + schedulerStartId + '\'' +
+                ", schedulerRerunNo='" + schedulerRerunNo + '\'' +
+                ", rerunSchedulerFlag='" + rerunSchedulerFlag + '\'' +
                 '}';
     }
 }

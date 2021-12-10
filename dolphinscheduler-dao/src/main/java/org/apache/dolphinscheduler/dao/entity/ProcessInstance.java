@@ -250,6 +250,15 @@ public class ProcessInstance {
     @TableField(exist = false)
     private String interval;
 
+    @TableField("scheduler_start_id")
+    private int schedulerStartId;
+
+    @TableField("scheduler_rerun_no")
+    private String schedulerRerunNo;
+
+    @TableField("rerun_scheduler_flag")
+    private boolean rerunSchedulerFlag;
+
     public ProcessInstance(){
 
     }
@@ -660,6 +669,30 @@ public class ProcessInstance {
         this.interval = sdf.format(dateIntervals.get(0).getStartTime());
     }
 
+    public int getSchedulerStartId() {
+        return schedulerStartId;
+    }
+
+    public void setSchedulerStartId(int schedulerStartId) {
+        this.schedulerStartId = schedulerStartId;
+    }
+
+    public String getSchedulerRerunNo() {
+        return schedulerRerunNo;
+    }
+
+    public void setSchedulerRerunNo(String schedulerRerunNo) {
+        this.schedulerRerunNo = schedulerRerunNo;
+    }
+
+    public boolean isRerunSchedulerFlag() {
+        return rerunSchedulerFlag;
+    }
+
+    public void setRerunSchedulerFlag(boolean rerunSchedulerFlag) {
+        this.rerunSchedulerFlag = rerunSchedulerFlag;
+    }
+
     @Override
     public String toString() {
         return "ProcessInstance{" +
@@ -704,6 +737,9 @@ public class ProcessInstance {
                 ", processType='" + processType + '\'' +
                 ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
                 ", interval='" + interval + '\'' +
+                ", schedulerStartId='" + schedulerStartId + '\'' +
+                ", schedulerRerunNo='" + schedulerRerunNo + '\'' +
+                ", rerunSchedulerFlag='" + rerunSchedulerFlag + '\'' +
                 '}';
     }
 

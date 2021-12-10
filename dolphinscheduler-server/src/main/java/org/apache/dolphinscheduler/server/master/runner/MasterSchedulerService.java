@@ -16,43 +16,39 @@
  */
 package org.apache.dolphinscheduler.server.master.runner;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.CommandType;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
-import org.apache.dolphinscheduler.common.enums.UserType;
-import org.apache.dolphinscheduler.common.model.DateInterval;
+import org.apache.dolphinscheduler.common.enums.ProcessType;
+import org.apache.dolphinscheduler.common.function.TriConsumer;
 import org.apache.dolphinscheduler.common.thread.Stopper;
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
-import org.apache.dolphinscheduler.common.utils.DateUtils;
-import org.apache.dolphinscheduler.common.utils.DependentUtils;
-import org.apache.dolphinscheduler.common.utils.NetUtils;
-import org.apache.dolphinscheduler.common.utils.OSUtils;
-import org.apache.dolphinscheduler.dao.entity.*;
+import org.apache.dolphinscheduler.common.utils.*;
+import org.apache.dolphinscheduler.dao.entity.Command;
+import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
+import org.apache.dolphinscheduler.dao.entity.ProcessDependent;
+import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.remote.NettyRemotingClient;
 import org.apache.dolphinscheduler.remote.config.NettyClientConfig;
 import org.apache.dolphinscheduler.server.master.config.MasterConfig;
 import org.apache.dolphinscheduler.server.master.zk.ZKMasterClient;
 import org.apache.dolphinscheduler.service.process.ProcessService;
-
-import org.apache.curator.framework.imps.CuratorFrameworkState;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-
-import java.util.*;
-import java.util.concurrent.*;
-
-import javax.annotation.PostConstruct;
-
-import org.apache.poi.util.StringUtil;
+import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+
+import javax.annotation.PostConstruct;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_RECOVER_PROCESS_ID_STRING;
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_RERUN_SCHEDULER;
 
 /**
  *  master scheduler thread
@@ -205,6 +201,31 @@ public class MasterSchedulerService extends Thread {
 
         private final int pageSize = 10;
 
+        private long lastCheckTime = System.currentTimeMillis();
+
+        private final TriConsumer<Command, ProcessInstance, ProcessInstance> nullConsumer =
+                (command, processInstance, parentProcessInstance)-> {};
+
+        private final TriConsumer<Command, ProcessInstance, ProcessInstance> recoveryFailureConsumer = (
+                (command, processInstance, parentProcessInstance) -> {
+            Map<String, String> cmdParam = this.convert2Map(command.getCommandParam());
+            setProcessId(cmdParam, processInstance.getId());
+            command.setCommandParam(map2String(cmdParam));
+        });
+
+        private final TriConsumer<Command, ProcessInstance, ProcessInstance> reRunConsumer = (
+                (command, processInstance, parentProcessInstance) -> {
+            Map<String, String> cmdParam = this.convert2Map(command.getCommandParam());
+            setProcessId(cmdParam, processInstance.getId());
+            setRerunNo(cmdParam, parentProcessInstance.getSchedulerRerunNo());
+            command.setCommandParam(map2String(cmdParam));
+        });
+
+        /**
+         * abnormal Process Queue
+         */
+        private final ConcurrentLinkedQueue<Integer> abnormalProcessQueue = new ConcurrentLinkedQueue();
+
         public DependentScheduler(String name) {
             super(name);
         }
@@ -235,14 +256,15 @@ public class MasterSchedulerService extends Thread {
                             continue;
                         }
                         if (!parentProcessInstance.getState().typeIsFinished()) {
-                            //对于部分状态的任务如果运行时间超过1天的，判断为异常数据，强行从队列删除
-                            if (DateUtils.differSec(new Date(), parentProcessInstance.getStartTime()) > 86400) {
-                                logger.info("parentProcessInstance={} status={} running time > 24h, remove it from dependentProcessQueue",
+                            //future已经完成，虽然任务没有完成，但其实任务状态不会再被执行线程改变，所以这边需要检查数据库内的状态
+                            parentProcessInstance = processService.findProcessInstanceDetailById(parentProcessInstance.getId());
+                            if (!parentProcessInstance.getState().typeIsFinished()) {
+                                logger.info("future is complete, but parentProcessInstance={} status={} is still not finished, transfer it to abnormalProcessQueue",
                                         parentProcessInstance.getId(), parentProcessInstance.getState().getDescp());
+                                abnormalProcessQueue.offer(parentProcessInstance.getId());
                                 futureIterator.remove();
                                 continue;
                             }
-                            continue;
                         }
                         if (!parentProcessInstance.getState().typeIsSuccess()) {
                             logger.debug("parentProcessInstance={} is not success, not need to fire the dependent process",
@@ -265,6 +287,30 @@ public class MasterSchedulerService extends Thread {
                         } while (page.hasNext());
                         futureIterator.remove();
                     }
+                    //检查异常实例
+                    if (System.currentTimeMillis() - lastCheckTime > 60000) {
+                        if (abnormalProcessQueue.isEmpty()) {
+                            lastCheckTime = System.currentTimeMillis();
+                            continue;
+                        }
+                        Iterator<Integer> iterator = abnormalProcessQueue.iterator();
+                        while (iterator.hasNext()) {
+                            ProcessInstance abnormalProcessInstance = processService.findProcessInstanceDetailById(iterator.next());
+                            if (!abnormalProcessInstance.getState().typeIsFinished()) {
+                                if (DateUtils.differSec(new Date(), abnormalProcessInstance.getStartTime()) > 86400) {
+                                    logger.info("abnormalProcessInstance={} status={} running time > 24h, remove it from abnormalProcessQueue",
+                                            abnormalProcessInstance.getId(), abnormalProcessInstance.getState().getDescp());
+                                    futureIterator.remove();
+                                    continue;
+                                }
+                            }
+                            logger.info("abnormalProcessInstance={} status={} is complete, transfer it to dependentProcessQueue",
+                                    abnormalProcessInstance.getId(), abnormalProcessInstance.getState().getDescp());
+                            dependentProcessQueue.offer(CompletableFuture.completedFuture(abnormalProcessInstance));
+                            iterator.remove();
+                        }
+                        lastCheckTime = System.currentTimeMillis();
+                    }
                 } catch (Throwable e) {
                     logger.error("master scheduler thread error", e);
                 }
@@ -275,27 +321,30 @@ public class MasterSchedulerService extends Thread {
             for (ProcessDependent processDependent : processDependents) {
                 ProcessDefinition processDefinition = processService
                         .findProcessDefineById(processDependent.getProcessId());
-                Date schedulerTime = parentProcessInstance.getScheduleTime();
-                int schedulerInterval = parentProcessInstance.getSchedulerInterval();
-                int batchNo = parentProcessInstance.getSchedulerBatchNo();
-                List<DateInterval> dateIntervals = DependentUtils
-                        .getDateIntervalListForDependent(schedulerTime, schedulerInterval);
-                if (processService.dependentProcessIsFired(processDefinition.getId(), dateIntervals, batchNo)) {
+                SchedulingBatch sb = new SchedulingBatch(parentProcessInstance);
+                if (processService.dependentProcessIsFired(sb, processDefinition.getId())) {
                     logger.debug("ProcessDependent which dependentId={} processId={} has been fired in command queue",
                             processDependent.getDependentId(), processDependent.getProcessId());
                     continue;
                 }
                 //查询对应的时间周期内的批次，并且dependent_scheduler_flag为true的数据
                 ProcessInstance processInstance= processService
-                        .findProcessInstanceByProcessIdInInterval(processDefinition.getId(), dateIntervals, batchNo, null, null);
+                        .findProcessInstanceByProcessIdInInterval(sb, processDefinition.getId(),null, null);
+                initOlderProperty(processInstance);
                 Command command;
                 if (processInstance != null) {
-                    if (!processInstance.getState().typeIsFinished() && ExecutionStatus.INITED != processInstance.getState()) {
+                    if (parentProcessInstance.isRerunSchedulerFlag()) {
+                        if (!parentProcessInstance.getSchedulerRerunNo().equals(processInstance.getSchedulerRerunNo())) {
+                            //发起重跑调度这个processInstance
+                            generateCommand(parentProcessInstance, processDefinition, processInstance,
+                                    CommandType.REPEAT_RUNNING_SCHEDULER, reRunConsumer);
+                        }
+                        continue;
+                    } else if (!processInstance.getState().typeIsFinished() && ExecutionStatus.INITED != processInstance.getState()) {
                         logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={} in running now",
                                 processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId());
                         continue;
-                    }
-                    if (ExecutionStatus.SUCCESS == processInstance.getState()) {
+                    }else if (ExecutionStatus.SUCCESS == processInstance.getState()) {
                         logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={}, and it's state is success, " +
                                 "no need to submit to executor, and add it to dependentProcessQueue",
                                 processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId());
@@ -303,30 +352,28 @@ public class MasterSchedulerService extends Thread {
                         continue;
                     }
                     logger.debug("processInstance={} is exist, and not in success state, do START_FAILURE_TASK_PROCESS", processInstance.getId());
-                    command = generateCommand(parentProcessInstance, processDefinition, processInstance.getState());
-                    command.setCommandParam(String.format("{\"%s\":%d}",
-                            CMDPARAM_RECOVER_PROCESS_ID_STRING, processInstance.getId()));
+                    command = generateCommand(parentProcessInstance, processDefinition, processInstance,
+                            CommandType.RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER, recoveryFailureConsumer);
                     logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={}, need to be fired in {} mode",
                             processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId(), command.getCommandType());
                 } else {
-                    command = generateCommand(parentProcessInstance, processDefinition, null);
+                    generateCommand(parentProcessInstance, processDefinition, null, CommandType.SCHEDULER, nullConsumer);
                 }
-                processService.createCommand(command);
-                logger.info("ProcessDependent which dependentId={} processId={} fired in {} mode",
-                        processDependent.getDependentId(), processDependent.getProcessId(), command.getCommandType());
             }
         }
 
-        private Command generateCommand(ProcessInstance parentProcessInstance, ProcessDefinition processDefinition, ExecutionStatus currentStatus) {
+        private void initOlderProperty(ProcessInstance processInstance) {
+            processInstance.setRerunSchedulerFlag(false);
+        }
+
+        private Command generateCommand(ProcessInstance parentProcessInstance, ProcessDefinition processDefinition,
+                                        ProcessInstance processInstance, CommandType commandType,
+                                        TriConsumer<Command, ProcessInstance, ProcessInstance> consumer) {
             Date schedulerTime = parentProcessInstance.getScheduleTime();
             int schedulerInterval = parentProcessInstance.getSchedulerInterval();
             int batchNo = parentProcessInstance.getSchedulerBatchNo();
             Command command = new Command();
-            if (currentStatus == null) {
-                command.setCommandType(CommandType.SCHEDULER);
-            } else {
-                command.setCommandType(CommandType.RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER);
-            }
+            command.setCommandType(commandType);
             command.setExecutorId(processDefinition.getUserId());
             command.setFailureStrategy(parentProcessInstance.getFailureStrategy());
             command.setProcessDefinitionId(processDefinition.getId());
@@ -340,9 +387,43 @@ public class MasterSchedulerService extends Thread {
             command.setSchedulerInterval(schedulerInterval);
             command.setSchedulerBatchNo(batchNo);
             command.setDependentSchedulerFlag(parentProcessInstance.isDependentSchedulerFlag());
+            command.setSchedulerRerunNo(parentProcessInstance.getSchedulerRerunNo());
+            if (parentProcessInstance.getProcessType() == ProcessType.SCHEDULER) {
+                command.setSchedulerStartId(parentProcessInstance.getId());
+            } else {
+                command.setSchedulerStartId(parentProcessInstance.getSchedulerStartId());
+            }
+            command.setRerunSchedulerFlag(parentProcessInstance.isRerunSchedulerFlag());
+            consumer.accept(command, processInstance, parentProcessInstance);
+            processService.createCommand(command);
+            logger.info("ProcessDependent which dependentId={} processId={} fired in {} mode",
+                    parentProcessInstance.getProcessDefinitionId(), processDefinition.getId(), command.getCommandType());
             return command;
         }
 
+        private Map<String, String> convert2Map(String cmdParam) {
+            if(StringUtils.isEmpty(cmdParam)) {
+                return new HashMap<>();
+            }
+            return JSONUtils.toMap(cmdParam);
+        }
+
+        private Map<String, String> setProcessId(Map<String, String> cmdParam, int processInstanceId) {
+            cmdParam.put(CMDPARAM_RECOVER_PROCESS_ID_STRING, String.valueOf(processInstanceId));
+            return cmdParam;
+        }
+
+        private Map<String, String> setRerunNo(Map<String, String> cmdParam, String rerunNo) {
+            cmdParam.put(CMDPARAM_RERUN_SCHEDULER, rerunNo);
+            return cmdParam;
+        }
+
+        private String map2String(Map<String, String> cmdParam) {
+            if (cmdParam == null || cmdParam.isEmpty()) {
+                return null;
+            }
+            return JSONUtils.toJson(cmdParam);
+        }
 
     }
 }

@@ -31,3 +31,22 @@ alter table t_ds_process_instance
 
 alter table t_ds_command
     add dependent_scheduler_flag tinyint default 0 null comment 'dependent scheduler flag';
+
+-- 调度重跑功能
+alter table t_ds_command
+    add scheduler_start_id int(11) default 0 null comment 'scheduler start id';
+
+alter table t_ds_process_instance
+    add scheduler_start_id int(11) default 0 null comment 'scheduler start id';
+
+alter table t_ds_command
+    add scheduler_rerun_no varchar(64) comment 'scheduler rerun no';
+
+alter table t_ds_process_instance
+    add scheduler_rerun_no varchar(64) comment 'scheduler rerun no';
+
+alter table t_ds_command
+    add rerun_scheduler_flag tinyint default 0 null comment 'rerun scheduler flag';
+
+alter table t_ds_process_instance
+    add rerun_scheduler_flag tinyint default 0 null comment 'rerun scheduler flag';

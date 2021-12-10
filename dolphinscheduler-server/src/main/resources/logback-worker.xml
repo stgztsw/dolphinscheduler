@@ -84,8 +84,8 @@
         <appender-ref ref="SKYWALKING-LOG"/>
     </root>
 
-<!--    <logger name="org.apache.dolphinscheduler" level="DEBUG">-->
-<!--        <appender-ref ref="STDOUT"/>-->
-<!--    </logger>-->
+    <logger name="org.apache.dolphinscheduler" level="DEBUG">
+        <appender-ref ref="STDOUT"/>
+    </logger>
 
 </configuration>

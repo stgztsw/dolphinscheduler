@@ -145,6 +145,10 @@ const runningType = [
   {
     desc: `${i18n.$t('Manual Scheduler')}`,
     code: 'MANUAL_SCHEDULER'
+  },
+  {
+    desc: `${i18n.$t('Repeat Running Scheduler')}`,
+    code: 'REPEAT_RUNNING_SCHEDULER'
   }
 ]
 

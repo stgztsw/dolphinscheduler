@@ -81,9 +81,11 @@ public interface CommandMapper extends BaseMapper<Command> {
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime);
 
+
     Page<Command> querySchedulerCommandListPaging(
             IPage<Command> page,
             @Param("processId") int processId,
+            @Param("schedulerStartId") int schedulerStartId,
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime,
             @Param("commandTypes") int[] commandTypes,

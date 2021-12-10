@@ -64,6 +64,9 @@
         <if test="processId != 0">
             and process_definition_id = #{processId}
         </if>
+        <if test="schedulerStartId != 0">
+            and scheduler_start_id = #{schedulerStartId}
+        </if>
         <if test="commandTypes != null and commandTypes.length != 0">
             and command_type in
             <foreach collection="commandTypes" item="i" index="index" open="(" separator="," close=")">

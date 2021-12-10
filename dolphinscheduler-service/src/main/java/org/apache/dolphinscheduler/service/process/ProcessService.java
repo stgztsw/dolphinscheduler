@@ -512,6 +512,7 @@ public class ProcessService {
         processInstance.setSchedulerBatchNo(command.getSchedulerBatchNo());
         processInstance.setProcessType(processDefinition.getProcessType());
         processInstance.setDependentSchedulerFlag(command.isDependentSchedulerFlag());
+        processInstance.setSchedulerStartId(command.getSchedulerStartId());
         return processInstance;
     }
 
@@ -640,7 +641,8 @@ public class ProcessService {
             processInstance.setScheduleTime(command.getScheduleTime());
         }
         processInstance.setHost(host);
-
+        processInstance.setSchedulerRerunNo(command.getSchedulerRerunNo());
+        processInstance.setRerunSchedulerFlag(command.isRerunSchedulerFlag());
         ExecutionStatus runStatus = ExecutionStatus.RUNNING_EXECUTION;
         int runTime = processInstance.getRunTimes();
         switch (commandType){
@@ -698,6 +700,7 @@ public class ProcessService {
                 initComplementDataParam(processDefinition, processInstance, cmdParam);
                 break;
             case REPEAT_RUNNING:
+            case REPEAT_RUNNING_SCHEDULER:
                 // delete the recover task names from command parameter
                 if(cmdParam.containsKey(Constants.CMDPARAM_RECOVERY_START_NODE_STRING)){
                     cmdParam.remove(Constants.CMDPARAM_RECOVERY_START_NODE_STRING);
@@ -746,7 +749,7 @@ public class ProcessService {
                 ExecutionStatus.STOP_BY_DEPENDENT_FAILURE.ordinal(), ExecutionStatus.KILL.ordinal(),
                 ExecutionStatus.STOP.ordinal(), ExecutionStatus.PAUSE.ordinal()};
         logger.debug("init all the failed or stopped process state which scheduler by processInstance={} to SUBMITTED_SUCCESS", parentProcessInstance.getId());
-        processInstanceMapper.updateProcessStateInBatch(start, end, states, batchNo, ExecutionStatus.INITED.ordinal());
+        processInstanceMapper.updateProcessStateInBatch(start, end, states, batchNo, ExecutionStatus.INITED.ordinal(), parentProcessInstance.getId());
     }
 
     /**
@@ -1967,18 +1970,14 @@ public class ProcessService {
         return processDependentMapper.queryByDependentIdListPaging(page, dependentId);
     }
 
-    public boolean dependentProcessIsFired(int processId, List<DateInterval> dateIntervals, int batchNo) {
-        Date start = dateIntervals.get(0).getStartTime();
-        Date end = dateIntervals.get(0).getEndTime();
-        return commandMapper.findCommandByProcessIdInInterval(processId, start, end, null, batchNo).size()>0;
+    public boolean dependentProcessIsFired(SchedulingBatch sb , int processId) {
+        return commandMapper.findCommandByProcessIdInInterval(processId, sb.getStartTime(), sb.getEndTime(),
+                null, sb.getBatchNo()).size()>0;
     }
 
-    public ProcessInstance findProcessInstanceByProcessIdInInterval(int processId, List<DateInterval> dateIntervals,
-                                                                          int batchNo, int[] states, int[] commandTypes) {
-        Date start = dateIntervals.get(0).getStartTime();
-        Date end = dateIntervals.get(0).getEndTime();
+    public ProcessInstance findProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes) {
         List<ProcessInstance> processInstances = processInstanceMapper
-                .findProcessInstanceByProcessIdInInterval(processId, start, end, states, commandTypes,batchNo);
+                .findProcessInstanceByProcessIdInInterval(processId, sb.getStartTime(), sb.getEndTime(), states, commandTypes,sb.getBatchNo());
         if (processInstances.isEmpty()) {
             return null;
         }else if (processInstances.size() == 1) {
@@ -2008,27 +2007,23 @@ public class ProcessService {
         int schedulerInterval = CronUtils.getSchedulerInterval(schedule.getCrontab());
         List<DateInterval> dateIntervals = DependentUtils
                 .getDateIntervalListForDependent(scheduledFireTime, schedulerInterval);
-        int nextBatchNo = getNextSchedulerBatchNo(processId, dateIntervals);
-        return new SchedulingBatch(scheduledFireTime, schedulerInterval, nextBatchNo);
+        int batchNo = getCurrentSchedulerBatchNo(processId, dateIntervals);
+        return new SchedulingBatch(scheduledFireTime, schedulerInterval, batchNo);
     }
 
-    public boolean currentSchedulingBatchIsRunning(Schedule schedule, Date scheduledFireTime, int processId) {
+    public boolean currentSchedulingBatchIsRunning(SchedulingBatch sb, int schedulerStartId) {
         int[] states = new int[]{ExecutionStatus.SUBMITTED_SUCCESS.ordinal(), ExecutionStatus.RUNNING_EXECUTION.ordinal(),
-                ExecutionStatus.READY_PAUSE.ordinal(), ExecutionStatus.READY_STOP.ordinal(), ExecutionStatus.INITED.ordinal(),
+                ExecutionStatus.READY_PAUSE.ordinal(), ExecutionStatus.READY_STOP.ordinal(),
                 ExecutionStatus.WAITTING_THREAD.ordinal(), ExecutionStatus.WAITTING_DEPEND.ordinal()};
-        int schedulerInterval = CronUtils.getSchedulerInterval(schedule.getCrontab());
-        List<DateInterval> dateIntervals = DependentUtils
-                .getDateIntervalListForDependent(scheduledFireTime, schedulerInterval);
-        Integer currentBatchNo = getCurrentSchedulerBatchNo(processId, dateIntervals);
-        Date start = dateIntervals.get(0).getStartTime();
-        Date end = dateIntervals.get(0).getEndTime();
         IPage<Command> iPageCommand = new Page<>(1,1);
-        Page<Command> pageCommand = commandMapper.querySchedulerCommandListPaging(iPageCommand, 0, start, end, null, currentBatchNo);
+        Page<Command> pageCommand = commandMapper.querySchedulerCommandListPaging(iPageCommand, 0, schedulerStartId,
+                sb.getStartTime(), sb.getEndTime(), null, sb.getBatchNo());
         if (!pageCommand.getRecords().isEmpty()) {
             return true;
         }
         IPage<ProcessInstance> iPageInstance = new Page<>(1,1);
-        Page<ProcessInstance> pageInstance = processInstanceMapper.querySchedulerProcessInstanceListPaging(iPageInstance, 0, start, end, states, null, currentBatchNo);
+        Page<ProcessInstance> pageInstance = processInstanceMapper.querySchedulerProcessInstanceListPaging(iPageInstance, 0,
+                schedulerStartId, sb.getStartTime(), sb.getEndTime(), states, null, sb.getBatchNo());
         return !pageInstance.getRecords().isEmpty();
     }
 

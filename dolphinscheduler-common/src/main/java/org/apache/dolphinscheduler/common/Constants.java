@@ -446,6 +446,8 @@ public final class Constants {
 
     public static final String CMDPARAM_START_NODE_NAMES = "StartNodeNameList";
 
+    public static final String CMDPARAM_RERUN_SCHEDULER = "rerunScheduler";
+
     /**
      * complement data start date
      */

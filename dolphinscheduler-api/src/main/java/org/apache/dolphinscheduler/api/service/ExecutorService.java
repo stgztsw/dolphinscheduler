@@ -145,7 +145,7 @@ public class ExecutorService extends BaseService{
                 return result;
             }
             //判断是否有当前周期实例和批次的任务正在运行
-            if (processService.currentSchedulingBatchIsRunning(schedule, schedulerTime, processDefinitionId)) {
+            if (processService.currentSchedulingBatchIsRunning(sb, processDefinitionId)) {
                 putMsg(result,Status.SAME_INTERVAL_BATCH_SCHEDULER_FAILED);
                 return result;
             }
@@ -265,6 +265,15 @@ public class ExecutorService extends BaseService{
             case REPEAT_RUNNING:
                 result = insertCommand(loginUser, processInstanceId, processDefinition.getId(), CommandType.REPEAT_RUNNING);
                 break;
+            case REPEAT_RUNNING_SCHEDULER:
+                int schedulerStartId = processInstance.getProcessType() == ProcessType.SCHEDULER ? processInstance.getId() : processInstance.getSchedulerStartId();
+                SchedulingBatch sb = new SchedulingBatch(processInstance);
+                if (processService.currentSchedulingBatchIsRunning(sb, schedulerStartId)) {
+                    putMsg(result, Status.SAME_INTERVAL_BATCH_SCHEDULER_FAILED, processInstance.getName(), processInstance.getState());
+                } else {
+                    result = insertCommand(loginUser, processInstanceId, processDefinition.getId(), CommandType.REPEAT_RUNNING_SCHEDULER);
+                }
+                break;
             case RECOVER_SUSPENDED_PROCESS:
                 result = insertCommand(loginUser, processInstanceId, processDefinition.getId(), CommandType.RECOVER_SUSPENDED_PROCESS);
                 break;
@@ -329,6 +338,7 @@ public class ExecutorService extends BaseService{
                 }
                 break;
             case REPEAT_RUNNING:
+            case REPEAT_RUNNING_SCHEDULER:
                 if (executionStatus.typeIsFinished()) {
                     checkResult = true;
                 }
@@ -405,6 +415,11 @@ public class ExecutorService extends BaseService{
         if(!processService.verifyIsNeedCreateCommand(command)){
             putMsg(result, Status.PROCESS_INSTANCE_EXECUTING_COMMAND,processDefinitionId);
             return result;
+        }
+
+        if (commandType == CommandType.REPEAT_RUNNING_SCHEDULER) {
+            command.setSchedulerRerunNo(String.valueOf(System.currentTimeMillis()));
+            command.setRerunSchedulerFlag(true);
         }
 
         int create = processService.createCommand(command);

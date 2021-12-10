@@ -1,6 +1,11 @@
 package org.apache.dolphinscheduler.service.quartz.cron;
 
+import org.apache.dolphinscheduler.common.model.DateInterval;
+import org.apache.dolphinscheduler.common.utils.DependentUtils;
+import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
+
 import java.util.Date;
+import java.util.List;
 
 public class SchedulingBatch {
 
@@ -8,12 +13,20 @@ public class SchedulingBatch {
 
     private int schedulerInterval;
 
-    private int nextBatchNo;
+    private int batchNo;
 
-    public SchedulingBatch(Date schedulerTime, int schedulerInterval, int nextBatchNo) {
+    private DateInterval dateInterval;
+
+    public SchedulingBatch(Date schedulerTime, int schedulerInterval, int batchNo) {
         this.schedulerTime = schedulerTime;
         this.schedulerInterval = schedulerInterval;
-        this.nextBatchNo = nextBatchNo;
+        this.batchNo = batchNo;
+    }
+
+    public SchedulingBatch(ProcessInstance processInstance) {
+        this.schedulerTime = processInstance.getScheduleTime();
+        this.schedulerInterval = processInstance.getSchedulerInterval();
+        this.batchNo = processInstance.getSchedulerBatchNo();
     }
 
     public Date getSchedulerTime() {
@@ -32,11 +45,33 @@ public class SchedulingBatch {
         this.schedulerInterval = schedulerInterval;
     }
 
-    public int getNextBatchNo() {
-        return nextBatchNo;
+    public int getBatchNo() {
+        return batchNo;
     }
 
-    public void setNextBatchNo(int nextBatchNo) {
-        this.nextBatchNo = nextBatchNo;
+    public void setBatchNo(int batchNo) {
+        this.batchNo = batchNo;
+    }
+
+    public int getNextBatchNo() {
+        return batchNo + 1;
+    }
+
+    public DateInterval getDateInterval() {
+        if (dateInterval != null) {
+            return dateInterval;
+        }
+        List<DateInterval> dateIntervals = DependentUtils
+                .getDateIntervalListForDependent(this.schedulerTime, this.schedulerInterval);
+        this.dateInterval = dateIntervals.get(0);
+        return dateInterval;
+    }
+
+    public Date getStartTime() {
+        return getDateInterval().getStartTime();
+    }
+
+    public Date getEndTime() {
+        return getDateInterval().getEndTime();
     }
 }

@@ -50,8 +50,9 @@ public enum CommandType {
     RECOVER_WAITTING_THREAD(10, "recover waiting thread"),
     MANUAL_SCHEDULER(11, "start a new process from manual scheduler"),
     RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER(12, "recover all the failure process in scheduler"),
-    RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER(13, "recover single the failure process in scheduler");
-//    RERUN_SINGLE_FAILURE_PROCESS_IN_SCHEDULER(14, "rerun single the failure process in scheduler");
+    RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER(13, "recover single the failure process in scheduler"),
+    REPEAT_RUNNING_SCHEDULER(14, "repeat running a scheduler");
+
 
     CommandType(int code, String descp){
         this.code = code;

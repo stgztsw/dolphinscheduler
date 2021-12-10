@@ -121,7 +121,15 @@
                         @click="_reRun(item,$index)"
                         icon="ans-icon-refresh"
                         :disabled="item.state !== 'SUCCESS' && item.state !== 'PAUSE' && item.state !== 'FAILURE' && item.state !== 'STOP' && item.state !== 'STOP_BY_DEPENDENT_FAILURE'"></x-button>
-<!--              <x-button v-if="item.processType !== 'SCHEDULER'|| (item.processType === 'SCHEDULER' && item.commandType !== 'SCHEDULER' && item.commandType !== 'RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER')"-->
+              <x-button v-if="item.dependentSchedulerFlag"
+                        type="error"
+                        shape="circle"
+                        size="xsmall"
+                        data-toggle="tooltip"
+                        :title="$t('Rerun Scheduler')"
+                        @click="_reRunScheduler(item,$index)"
+                        icon="ans-icon-refresh"
+                        :disabled="item.state !== 'SUCCESS' && item.state !== 'PAUSE' && item.state !== 'FAILURE' && item.state !== 'STOP' && item.state !== 'STOP_BY_DEPENDENT_FAILURE'"></x-button>
               <x-button v-if="!item.dependentSchedulerFlag"
                         type="success"
                         shape="circle"
@@ -402,6 +410,18 @@
         this._countDownFn({
           id: item.id,
           executeType: 'REPEAT_RUNNING',
+          index: index,
+          buttonType: 'run'
+        })
+      },
+      /**
+       * RerunScheduler
+       * @param REPEAT_RUNNING_SCHEDULER
+       */
+      _reRunScheduler (item, index) {
+        this._countDownFn({
+          id: item.id,
+          executeType: 'REPEAT_RUNNING_SCHEDULER',
           index: index,
           buttonType: 'run'
         })

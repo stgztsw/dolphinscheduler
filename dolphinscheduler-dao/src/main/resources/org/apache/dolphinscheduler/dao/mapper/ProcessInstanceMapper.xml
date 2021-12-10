@@ -68,7 +68,9 @@
     <select id="queryProcessInstanceListPaging" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
         select instance.id, instance.process_definition_id, instance.command_type, instance.executor_id,
         instance.name, instance.state, instance.schedule_time, instance.start_time, instance.end_time,
-        instance.run_times, instance.recovery, instance.host, instance.scheduler_interval, instance.scheduler_batch_no, instance.process_type, instance.dependent_scheduler_flag
+        instance.run_times, instance.recovery, instance.host, instance.scheduler_interval, instance.scheduler_batch_no,
+        instance.process_type, instance.dependent_scheduler_flag, instance.scheduler_start_id, instance.scheduler_rerun_no,
+        instance.rerun_scheduler_flag
         from t_ds_process_instance instance
         join t_ds_process_definition define ON instance.process_definition_id = define.id
         where instance.is_sub_process=0
@@ -226,6 +228,7 @@
                 #{i}
             </foreach>
         </if>
+        and scheduler_start_id = #{schedulerStartId}
         and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
         and scheduler_batch_no = #{batchNo}
     </update>
@@ -235,6 +238,9 @@
         where 1=1
         <if test="processId != 0">
             and process_definition_id = #{processId}
+        </if>
+        <if test="schedulerStartId != 0">
+            and scheduler_start_id = #{schedulerStartId}
         </if>
         <if test="states !=null and states.length != 0">
             and state in
