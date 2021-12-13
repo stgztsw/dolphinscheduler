@@ -24,6 +24,7 @@ import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.CommandType;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.enums.ProcessType;
+import org.apache.dolphinscheduler.common.enums.ReleaseState;
 import org.apache.dolphinscheduler.common.function.TriConsumer;
 import org.apache.dolphinscheduler.common.thread.Stopper;
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
@@ -321,6 +322,11 @@ public class MasterSchedulerService extends Thread {
             for (ProcessDependent processDependent : processDependents) {
                 ProcessDefinition processDefinition = processService
                         .findProcessDefineById(processDependent.getProcessId());
+                if (ReleaseState.OFFLINE == processDefinition.getReleaseState()) {
+                    logger.debug("ProcessDependent which dependentId={} processId={} is offline, no need to fire it",
+                            processDependent.getDependentId(), processDependent.getProcessId());
+                    continue;
+                }
                 SchedulingBatch sb = new SchedulingBatch(parentProcessInstance);
                 if (processService.dependentProcessIsFired(sb, processDefinition.getId())) {
                     logger.debug("ProcessDependent which dependentId={} processId={} has been fired in command queue",
