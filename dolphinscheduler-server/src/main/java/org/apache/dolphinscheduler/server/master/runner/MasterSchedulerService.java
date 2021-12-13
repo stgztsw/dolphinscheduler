@@ -363,6 +363,9 @@ public class MasterSchedulerService extends Thread {
         }
 
         private void initOlderProperty(ProcessInstance processInstance) {
+            if (processInstance == null) {
+                return;
+            }
             processInstance.setRerunSchedulerFlag(false);
         }
 

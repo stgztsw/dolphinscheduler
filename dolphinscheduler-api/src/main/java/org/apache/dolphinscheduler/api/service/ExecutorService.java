@@ -145,7 +145,7 @@ public class ExecutorService extends BaseService{
                 return result;
             }
             //判断是否有当前周期实例和批次的任务正在运行
-            if (processService.currentSchedulingBatchIsRunning(sb, processDefinitionId)) {
+            if (processService.currentSchedulingBatchIsRunning(sb, 0)) {
                 putMsg(result,Status.SAME_INTERVAL_BATCH_SCHEDULER_FAILED);
                 return result;
             }
