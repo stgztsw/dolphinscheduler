@@ -24,3 +24,15 @@ ALTER TABLE t_ds_process_instance ADD COLUMN dependent_scheduler_flag boolean de
 
 ALTER TABLE t_ds_process_definition ADD COLUMN process_type int default 0;
 
+-- 调度重跑功能
+ALTER TABLE t_ds_command ADD COLUMN scheduler_start_id int default 0;
+
+ALTER TABLE t_ds_process_instance ADD COLUMN scheduler_start_id int default 0;
+
+ALTER TABLE t_ds_command ADD COLUMN scheduler_rerun_no varchar(64) DEFAULT NULL;
+
+ALTER TABLE t_ds_process_instance ADD COLUMN scheduler_rerun_no varchar(64) DEFAULT NULL;
+
+ALTER TABLE t_ds_command ADD COLUMN rerun_scheduler_flag boolean default false;
+
+ALTER TABLE t_ds_process_instance ADD COLUMN rerun_scheduler_flag boolean default false;
