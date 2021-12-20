@@ -624,7 +624,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
                 return true;
             }
             if (processInstance.getFailureStrategy() == FailureStrategy.CONTINUE) {
-                return readyToSubmitTaskQueue.size() == 0 || activeTaskNode.size() == 0;
+                return readyToSubmitTaskQueue.size() == 0 && activeTaskNode.size() == 0;
             }
         }
         return false;
