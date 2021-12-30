@@ -263,7 +263,7 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      * @param batchNo batchNo
      * @return ProcessInstance page
      */
-    Page<ProcessInstance> querySchedulerProcessInstanceListPaging(
+    Page<ProcessInstance> querySchedulerProcessInstances(
             IPage<ProcessInstance> page,
             @Param("processId") int processId,
             @Param("schedulerStartId") int schedulerStartId,
@@ -271,5 +271,13 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
             @Param("endTime") Date endTime,
             @Param("states") int[] stateArray,
             @Param("commandTypes") int[] commandTypes,
+            @Param("batchNo") int batchNo,
+            @Param("dependentSchedulerFlag") boolean dependentSchedulerFlag);
+
+
+    ProcessInstance findInformalProcessInstanceByProcessId(
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime,
             @Param("batchNo") int batchNo);
 }

@@ -53,7 +53,8 @@ public enum ExecutionStatus {
     WAITTING_THREAD(10, "waiting thread"),
     WAITTING_DEPEND(11, "waiting depend node complete"),
     STOP_BY_DEPENDENT_FAILURE(12, "stopped by dependent failure"),
-    INITED(13, "inited for recover");
+    INITED(13, "inited for recover"),
+    INFORMAL(14, "this status will not display on page, and will not to be executed until the status is changed");
 
     ExecutionStatus(int code, String descp){
         this.code = code;

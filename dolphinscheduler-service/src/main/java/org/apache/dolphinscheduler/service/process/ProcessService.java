@@ -516,6 +516,58 @@ public class ProcessService {
         return processInstance;
     }
 
+    private ProcessInstance generateNewInformalProcessInstance(ProcessDefinition processDefinition, SchedulingBatch sb, ProcessInstance parent){
+        ProcessInstance processInstance = new ProcessInstance(processDefinition);
+        processInstance.setProcessType(processDefinition.getProcessType());
+        processInstance.setProcessInstanceJson(processDefinition.getProcessDefinitionJson());
+        processInstance.setConnects(processDefinition.getConnects());
+        processInstance.setLocations(processDefinition.getLocations());
+        processInstance.setState(ExecutionStatus.INFORMAL);
+        processInstance.setRecovery(Flag.NO);
+        processInstance.setProcessDefinitionId(processDefinition.getId());
+        processInstance.setIsSubProcess(Flag.NO);
+        processInstance.setTimeout(processDefinition.getTimeout());
+        processInstance.setTenantId(processDefinition.getTenantId());
+        if (sb != null) {
+            processInstance.setScheduleTime(sb.getSchedulerTime());
+            processInstance.setSchedulerInterval(sb.getSchedulerInterval());
+            processInstance.setSchedulerBatchNo(sb.getNextBatchNo());
+        } else if (parent != null) {
+            processInstance.setSchedulerStartId(parent.getSchedulerStartId());
+            processInstance.setProcessInstancePriority(parent.getProcessInstancePriority());
+            processInstance.setDependentSchedulerFlag(parent.isDependentSchedulerFlag());
+            processInstance.setExecutorId(parent.getExecutorId());
+            processInstance.setFailureStrategy(parent.getFailureStrategy());
+            processInstance.setCommandType(parent.getCommandType());
+            processInstance.setWarningGroupId(parent.getWarningGroupId());
+            processInstance.setWorkerGroup(parent.getWorkerGroup());
+            processInstance.setWarningType(parent.getWarningType());
+        }
+        processInstanceMapper.insert(processInstance);
+        return processInstance;
+    }
+
+    private ProcessInstance updateInformalProcessInstance(ProcessInstance processInstance, SchedulingBatch sb, ProcessInstance parent) {
+        if (sb != null) {
+            processInstance.setScheduleTime(sb.getSchedulerTime());
+            processInstance.setSchedulerInterval(sb.getSchedulerInterval());
+            processInstance.setSchedulerBatchNo(sb.getNextBatchNo());
+        }else if (parent != null) {
+            processInstance.setSchedulerStartId(parent.getSchedulerStartId());
+            processInstance.setProcessInstancePriority(parent.getProcessInstancePriority());
+            processInstance.setDependentSchedulerFlag(parent.isDependentSchedulerFlag());
+            processInstance.setSchedulerBatchNo(parent.getSchedulerBatchNo());
+            processInstance.setExecutorId(parent.getExecutorId());
+            processInstance.setFailureStrategy(parent.getFailureStrategy());
+            processInstance.setCommandType(parent.getCommandType());
+            processInstance.setWarningGroupId(parent.getWarningGroupId());
+            processInstance.setWorkerGroup(parent.getWorkerGroup());
+            processInstance.setWarningType(parent.getWarningType());
+        }
+        processInstanceMapper.updateById(processInstance);
+        return processInstance;
+    }
+
     /**
      * get process tenant
      * there is tenant id in definition, use the tenant of the definition.
@@ -2022,9 +2074,21 @@ public class ProcessService {
             return true;
         }
         IPage<ProcessInstance> iPageInstance = new Page<>(1,1);
-        Page<ProcessInstance> pageInstance = processInstanceMapper.querySchedulerProcessInstanceListPaging(iPageInstance, 0,
-                schedulerStartId, sb.getStartTime(), sb.getEndTime(), states, null, sb.getBatchNo());
+        Page<ProcessInstance> pageInstance = processInstanceMapper.querySchedulerProcessInstances(iPageInstance, 0,
+                schedulerStartId, sb.getStartTime(), sb.getEndTime(), states, null, sb.getBatchNo(), true);
         return !pageInstance.getRecords().isEmpty();
+    }
+
+    synchronized public int createOrUpdateInformalProcessInstance(ProcessDefinition processDefinition, SchedulingBatch sb, ProcessInstance parent) {
+        ProcessInstance processInstance = processInstanceMapper.findInformalProcessInstanceByProcessId(processDefinition.getId(), sb.getStartTime(), sb.getEndTime(), sb.getBatchNo());
+        if (processInstance == null) {
+            generateNewInformalProcessInstance(processDefinition, sb, parent);
+            return 0;
+        } else {
+            updateInformalProcessInstance(processInstance, sb, parent);
+            //need to fire command
+            return processInstance.getId();
+        }
     }
 
 }

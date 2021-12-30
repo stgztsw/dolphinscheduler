@@ -37,6 +37,10 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_RECOVER_PROCESS_ID_STRING;
 
 /**
  * process schedule job
@@ -91,11 +95,16 @@ public class ProcessScheduleJob implements Job {
             logger.warn("process definition does not exist in db or offline，need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
             return;
         }
-        if (ProcessType.SCHEDULER != processDefinition.getProcessType()) {
-            logger.warn("process definition is not a scheduler process, need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
+
+        int instanceId = 0;
+        boolean isSchedulerProcess = ProcessType.SCHEDULER == processDefinition.getProcessType();
+        SchedulingBatch sb = getProcessService().getSchedulingBatch(schedule, scheduledFireTime, processDefinition.getId());
+        if (ProcessType.NORMAL == processDefinition.getProcessType()) {
+            instanceId = getProcessService().createOrUpdateInformalProcessInstance(processDefinition, sb, null);
+        }
+        if (!isSchedulerProcess && instanceId != 0) {
             return;
         }
-        SchedulingBatch sb = getProcessService().getSchedulingBatch(schedule, scheduledFireTime, processDefinition.getId());
         Command command = new Command();
         command.setCommandType(CommandType.SCHEDULER);
         command.setExecutorId(schedule.getUserId());
@@ -111,6 +120,10 @@ public class ProcessScheduleJob implements Job {
         command.setSchedulerInterval(sb.getSchedulerInterval());
         command.setSchedulerBatchNo(sb.getNextBatchNo());
         command.setDependentSchedulerFlag(true);
+        if (instanceId != 0) {
+            command.setCommandParam(String.format("{\"%s\":%d}",
+                    CMDPARAM_RECOVER_PROCESS_ID_STRING, instanceId));
+        }
         getProcessService().createCommand(command);
     }
 

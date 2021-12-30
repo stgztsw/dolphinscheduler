@@ -232,7 +232,7 @@
         and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
         and scheduler_batch_no = #{batchNo}
     </update>
-    <select id="querySchedulerProcessInstanceListPaging" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
+    <select id="querySchedulerProcessInstances" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
         select *
         from t_ds_process_instance
         where 1=1
@@ -254,8 +254,19 @@
                 #{i}
             </foreach>
         </if>
+        <if test="dependentSchedulerFlag">
+            and dependent_scheduler_flag = #{dependentSchedulerFlag}
+        </if>
         and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
         and scheduler_batch_no = #{batchNo}
-        and dependent_scheduler_flag = true
+    </select>
+    <select id="findInformalProcessInstanceByProcessId" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
+        select *
+        from t_ds_process_instance
+        where 1=1
+        and process_definition_id = #{processId}
+        and state = 14
+        and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+        and scheduler_batch_no = #{batchNo}
     </select>
 </mapper>
