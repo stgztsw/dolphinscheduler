@@ -130,9 +130,15 @@ public class Command {
     @TableField("dependent_scheduler_flag")
     private boolean dependentSchedulerFlag;
 
+    /**
+     * desc 起始scheduler节点是哪个
+     */
     @TableField("scheduler_start_id")
     private int schedulerStartId;
 
+    /**
+     * desc 确定唯一一次重跑，避免一个任务被调起多次，在原有的实例上重跑，不会生成新的批次
+     */
     @TableField("scheduler_rerun_no")
     private String schedulerRerunNo;
 

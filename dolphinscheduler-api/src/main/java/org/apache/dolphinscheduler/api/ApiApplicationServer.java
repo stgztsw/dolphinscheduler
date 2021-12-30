@@ -17,12 +17,19 @@
 
 package org.apache.dolphinscheduler.api;
 
+import org.apache.dolphinscheduler.api.service.ProcessInstanceService;
+import org.apache.dolphinscheduler.common.enums.UserType;
+import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
+import org.apache.dolphinscheduler.dao.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+
+import java.util.Map;
 
 @SpringBootApplication
 @ServletComponentScan
@@ -32,6 +39,7 @@ public class ApiApplicationServer extends SpringBootServletInitializer {
 
   public static void main(String[] args) {
     SpringApplication.run(ApiApplicationServer.class, args);
+
   }
 
 }

@@ -175,6 +175,18 @@ public class ProcessDefinition {
     @TableField("process_type")
     private ProcessType processType;
 
+    /**
+     * update jack 显示上下游依赖的标记
+     */
+    @TableField(exist = false)
+    private Integer viewDependentFlag;
+
+    /**
+     * update jack definition work dir path
+     */
+//    @TableField("work_path_dir")
+//    private String workPathDir;
+
     public String getName() {
         return name;
     }
@@ -391,6 +403,14 @@ public class ProcessDefinition {
 
     public void setProcessType(ProcessType processType) {
         this.processType = processType;
+    }
+
+    public Integer getViewDependentFlag() {
+        return viewDependentFlag;
+    }
+
+    public void setViewDependentFlag(Integer viewDependentFlag) {
+        this.viewDependentFlag = viewDependentFlag;
     }
 
     @Override

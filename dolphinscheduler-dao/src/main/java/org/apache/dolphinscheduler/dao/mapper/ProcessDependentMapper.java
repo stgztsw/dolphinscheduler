@@ -56,4 +56,13 @@ public interface ProcessDependentMapper extends BaseMapper<ProcessDependent> {
      */
     Page<ProcessDependent> queryByDependentIdListPaging(IPage<ProcessDependent> page,
                                                         @Param("dependentId") int dependentId);
+
+    /**
+     * query dependent by processId
+     * @param page
+     * @param processId
+     * @return
+     */
+    Page<ProcessDependent> queryByProcessIdListPaging(IPage<ProcessDependent> page,
+                                                        @Param("processId") int processId);
 }

@@ -18,6 +18,9 @@
 package org.apache.dolphinscheduler.api.service;
 
 import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_SUB_PROCESS_DEFINE_ID;
+import static org.apache.dolphinscheduler.common.Constants.DATA_LIST;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_ASCEND;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_DESCEND;
 
 import org.apache.dolphinscheduler.api.dto.ProcessMeta;
 import org.apache.dolphinscheduler.api.dto.treeview.Instance;
@@ -29,14 +32,7 @@ import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.exportprocess.ProcessAddTaskParam;
 import org.apache.dolphinscheduler.api.utils.exportprocess.TaskNodeParamFactory;
 import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.AuthorizationType;
-import org.apache.dolphinscheduler.common.enums.FailureStrategy;
-import org.apache.dolphinscheduler.common.enums.Flag;
-import org.apache.dolphinscheduler.common.enums.Priority;
-import org.apache.dolphinscheduler.common.enums.ReleaseState;
-import org.apache.dolphinscheduler.common.enums.TaskType;
-import org.apache.dolphinscheduler.common.enums.UserType;
-import org.apache.dolphinscheduler.common.enums.WarningType;
+import org.apache.dolphinscheduler.common.enums.*;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.TaskNode;
 import org.apache.dolphinscheduler.common.model.TaskNodeRelation;
@@ -50,13 +46,7 @@ import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
 import org.apache.dolphinscheduler.common.utils.TaskParametersUtils;
-import org.apache.dolphinscheduler.dao.entity.ProcessData;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
-import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
-import org.apache.dolphinscheduler.dao.entity.Project;
-import org.apache.dolphinscheduler.dao.entity.Schedule;
-import org.apache.dolphinscheduler.dao.entity.TaskInstance;
-import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.entity.*;
 import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
@@ -84,7 +74,9 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.PUT;
 
+import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -132,7 +124,7 @@ public class ProcessDefinitionService extends BaseDAGService {
     private ProcessService processService;
 
     @Autowired
-    private ProcessDependentService processDependentService;
+    private ProcessDependentService processDependentService;// update
 
     /**
      * create process definition
@@ -197,9 +189,9 @@ public class ProcessDefinitionService extends BaseDAGService {
         processDefine.setCreateTime(now);
         processDefine.setUpdateTime(now);
         processDefine.setFlag(Flag.YES);
-        processDefine.setProcessType(processData.getProcessType());
+        processDefine.setProcessType(processData.getProcessType());// update 设置Process类型
         processDefineMapper.insert(processDefine);
-        processDependentService.createProcessDependent(processDefine);
+        processDependentService.createProcessDependent(processDefine);// update 创建程序依赖
         putMsg(result, Status.SUCCESS);
         result.put(PROCESSDEFINITIONID,processDefine.getId());
         return result;
@@ -322,6 +314,127 @@ public class ProcessDefinitionService extends BaseDAGService {
     }
 
     /**
+     * update jack 实例级别支持查询processInstance级别的依赖关系
+     *
+     * @param loginUser
+     * @param projectName
+     * @param result
+     * @param processId
+     * @return
+     */
+    public Map<String, Object> queryProcessDefinitionDependentById(User loginUser, String projectName, Map<String, Object> result, Integer processId){
+        Project project = projectMapper.queryByName(projectName);
+
+        Map<String, Object> checkResult = projectService.checkProjectAndAuth(loginUser, project, projectName);
+        Status resultEnum = (Status) checkResult.get(Constants.STATUS);
+        if (resultEnum != Status.SUCCESS) {
+            return checkResult;
+        }
+        ProcessDefinition processDefinition = processDefineMapper.selectById(processId);
+
+        getDependentViewProcessDefinitions(result,processDefinition);
+        return null;
+    }
+
+    /**
+     * update jack 实例级别展开上层或下层的功能接口
+     *
+     * @param processId
+     * @return
+     */
+    public Map<String, Object> queryProcessDefinitionOneLayerDependentById(User loginUser, String projectName, Integer processId, DependentViewRelation dependentViewRelation){
+        Map<String, Object> result = new HashMap<>(5);
+        ProcessDefinition processDefinition = processDefineMapper.selectById(processId);
+        switch (dependentViewRelation) {
+            case ONE_ASCEND:
+                List<ProcessDefinition> ascendProcessDependents = queryDependentsByProcessDefinition(processDefinition, ONE_ASCEND);
+                putResult(result,ascendProcessDependents,ONE_ASCEND,processDefinition);
+                break;
+            case ONE_DESCEND:
+                List<ProcessDefinition> descendProcessDependents = queryDependentsByProcessDefinition(processDefinition, ONE_DESCEND);
+                putResult(result,descendProcessDependents,ONE_DESCEND,processDefinition);
+                break;
+            case ONE_ALL:
+                Map<String, Object> checkResult = queryProcessDefinitionDependentById(loginUser, projectName, result, processId);
+                result = checkResult != null ? checkResult : result;
+                break;
+            default:
+                break;
+        }
+        return result;
+    }
+
+    private void getDependentViewProcessDefinitions(Map<String, Object> result, ProcessDefinition processDefinition) {
+
+        List<ProcessDefinition> ascendProcessDependentDefinitions = queryDependentsByProcessDefinition(processDefinition, ONE_ASCEND);
+
+        if (ascendProcessDependentDefinitions==null || ascendProcessDependentDefinitions.isEmpty()){
+            putMsg(result,Status.QUERY_DEFINITION_DEPENDENCIES_ASCEND_IS_FAILD,processDefinition.getId());
+            return;
+        }
+
+        List<ProcessDefinition> descendProcessDependentDefinitions = queryDependentsByProcessDefinition(processDefinition, ONE_DESCEND);
+        ascendProcessDependentDefinitions.addAll(descendProcessDependentDefinitions);
+
+        putResult(result,ascendProcessDependentDefinitions,descendProcessDependentDefinitions,processDefinition.getId(),ProcessDefinition.class);
+    }
+
+    public List<ProcessDefinition> queryDependentsByProcessDefinition(ProcessDefinition processDefinition,
+                                                                  DependentViewRelation dependentViewRelation){
+        List<ProcessDefinition> dataList = new ArrayList<>();
+
+        // 查询所有的当层dependent
+        int pageNo = 1;
+        IPage<ProcessDependent> iPage;
+        Page<ProcessDependent> page;
+        int pageSize = 10;
+        List<ProcessDependent> processDependents = new ArrayList<>();
+        do {
+            iPage = new Page<>(pageNo++,pageSize);
+            if (ONE_DESCEND==dependentViewRelation) {
+                page = processService.queryByDependentIdListPaging(iPage, processDefinition.getId());
+            } else {
+                page = processService.queryByProcessIdListPaging(iPage, processDefinition.getId());
+                if (page==null || page.getRecords().isEmpty()){
+                    logger.info("processDefinition {} is the first node, don't allow the query",processDefinition.getId());
+                    return dataList;
+                }
+            }
+            List<ProcessDependent> processDependentsPage = page.getRecords();
+            processDependents.addAll(processDependentsPage);
+            if (page.getTotal() == 0) {
+                logger.debug("process={} has no dependent process", processDefinition.getId());
+                break;
+            }
+        } while (page.hasNext());
+
+        for (ProcessDependent processDependent : processDependents) {
+            int id = ONE_DESCEND == dependentViewRelation ? processDependent.getProcessId() : processDependent.getDependentId();
+            ProcessDefinition depProcessDefinition = processService
+                    .findProcessDefineById(id);
+
+            if (ReleaseState.OFFLINE == depProcessDefinition.getReleaseState()) {
+                logger.debug("ProcessDependent which dependentId={} processId={} is offline, no need to query it",
+                        processDependent.getDependentId(), processDependent.getProcessId());
+                continue;
+            }
+
+            if (depProcessDefinition==null) {
+                logger.info("query definition dependents faild definitionId {}",id);
+            }else {
+                addDependentsProcessDefinition(depProcessDefinition, dataList, dependentViewRelation);
+            }
+        }
+        return dataList;
+    }
+
+    private void addDependentsProcessDefinition(ProcessDefinition depProcessDefinition, List<ProcessDefinition> result, DependentViewRelation dependentViewRelation){
+
+        depProcessDefinition.setViewDependentFlag(ONE_DESCEND==dependentViewRelation? ONE_DESCEND.getCode() : ONE_ASCEND.getCode());
+        result.add(depProcessDefinition);
+    }
+
+    /**
      * copy process definition
      *
      * @param loginUser login user
@@ -395,7 +508,7 @@ public class ProcessDefinitionService extends BaseDAGService {
             return result;
         }
 
-        if (processDefine.getReleaseState() == ReleaseState.ONLINE) {
+        if (processDefine.getReleaseState() == ReleaseState.ONLINE) {// desc 上线状态不能重编辑
             // online can not permit edit
             putMsg(result, Status.PROCESS_DEFINE_NOT_ALLOWED_EDIT, processDefine.getName());
             return result;
@@ -434,13 +547,13 @@ public class ProcessDefinitionService extends BaseDAGService {
         processDefine.setGlobalParamList(globalParamsList);
         processDefine.setUpdateTime(now);
         processDefine.setFlag(Flag.YES);
-        processDefine.setProcessType(processData.getProcessType());
+        processDefine.setProcessType(processData.getProcessType());// update
         if (processDefineMapper.updateById(processDefine) > 0) {
             putMsg(result, Status.SUCCESS);
         } else {
             putMsg(result, Status.UPDATE_PROCESS_DEFINITION_ERROR);
         }
-        processDependentService.updateProcessDependent(processDefine);
+        processDependentService.updateProcessDependent(processDefine);// update
         return result;
     }
 
@@ -525,7 +638,7 @@ public class ProcessDefinitionService extends BaseDAGService {
                 return result;
             }
         }
-        if (processDependentService.hasProcessDependent(processDefinitionId)) {
+        if (processDependentService.hasProcessDependent(processDefinitionId)) {// update 是否有依赖关系
             logger.warn("process {} can not be deleted, because this process is dependent " +
                     "by others process", processDefinitionId);
             putMsg(result, Status.DELETE_PROCESS_IS_DEPENDENT);
@@ -543,7 +656,7 @@ public class ProcessDefinitionService extends BaseDAGService {
 
     /**
      * release process definition: online / offline
-     *
+     * 更新上下线状态
      * @param loginUser login user
      * @param projectName project name
      * @param id process definition id
@@ -571,7 +684,7 @@ public class ProcessDefinitionService extends BaseDAGService {
 
         ProcessDefinition processDefinition = processDefineMapper.selectById(id);
 
-        switch (state) {
+        switch (state) {// desc state 前端传过来的
             case ONLINE:
                 // To check resources whether they are already cancel authorized or deleted
                 String resourceIds = processDefinition.getResourceIds();
@@ -588,7 +701,7 @@ public class ProcessDefinitionService extends BaseDAGService {
                 }
 
                 processDefinition.setReleaseState(state);
-                processDefineMapper.updateById(processDefinition);
+                processDefineMapper.updateById(processDefinition);// desc 更新definition的ReleaseState的状态
                 break;
             case OFFLINE:
                 processDefinition.setReleaseState(state);
@@ -1158,7 +1271,7 @@ public class ProcessDefinitionService extends BaseDAGService {
             }
 
             // check has cycle
-            if (graphHasCycle(taskNodes)) {
+            if (graphHasCycle(taskNodes)) {// question 什么是 has
                 logger.error("process DAG has cycle");
                 putMsg(result, Status.PROCESS_NODE_HAS_CYCLE);
                 return result;

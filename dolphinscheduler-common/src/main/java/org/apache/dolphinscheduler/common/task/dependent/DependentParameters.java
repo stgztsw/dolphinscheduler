@@ -23,7 +23,7 @@ import org.apache.dolphinscheduler.common.task.AbstractParameters;
 
 import java.util.ArrayList;
 import java.util.List;
-
+// update desc 依赖参数
 public class DependentParameters extends AbstractParameters {
 
     private List<DependentTaskModel> dependTaskList;

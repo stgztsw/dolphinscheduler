@@ -141,7 +141,7 @@ export default {
         state.timeout = processDefinitionJson.timeout
 
         state.tenantId = processDefinitionJson.tenantId
-        state.processType = processDefinitionJson.processType
+        state.processType = processDefinitionJson.processType// update 增加type识别标识
         resolve(res.data)
       }).catch(res => {
         reject(res)
@@ -215,7 +215,7 @@ export default {
         globalParams: state.globalParams,
         tasks: deleteDefinitionList(state.tasks),
         tenantId: state.tenantId,
-        processType: state.processType,
+        processType: state.processType,// update
         timeout: state.timeout
       }
       io.post(`projects/${state.projectName}/process/save`, {
@@ -240,7 +240,7 @@ export default {
         globalParams: state.globalParams,
         tasks: deleteDefinitionList(state.tasks),
         tenantId: state.tenantId,
-        processType: state.processType,
+        processType: state.processType,// update
         timeout: state.timeout
       }
       io.post(`projects/${state.projectName}/process/update`, {

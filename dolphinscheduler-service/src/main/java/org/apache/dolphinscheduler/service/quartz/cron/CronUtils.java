@@ -80,7 +80,7 @@ public class CronUtils {
    * @param cron cron
    * @return CycleEnum
    */
-  public static CycleEnum getMiniCycle(Cron cron) {
+  public static CycleEnum getMiniCycle(Cron cron) {// desc 创建定时任务的最小单位
     return min(cron).addCycle(hour(cron)).addCycle(day(cron)).addCycle(week(cron)).addCycle(month(cron)).getMiniCycle();
   }
   

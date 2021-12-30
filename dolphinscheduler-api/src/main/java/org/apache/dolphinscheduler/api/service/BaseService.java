@@ -19,17 +19,21 @@ package org.apache.dolphinscheduler.api.service;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.DependentViewRelation;
 import org.apache.dolphinscheduler.common.enums.UserType;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.HadoopUtils;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
+import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
+import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.User;
 
 import java.text.MessageFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+
+import static org.apache.dolphinscheduler.common.Constants.DATA_LIST;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_ASCEND;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_DESCEND;
 
 /**
  * base service
@@ -93,7 +97,54 @@ public class BaseService {
         } else {
             result.setMsg(status.getMsg());
         }
+    }
 
+    protected <T> void putResult(Map<String, Object> result, List<T> allOneProcessDependentsObject,
+                           List<T> descendProcessDependentsObject, Object... statusParams) {
+
+        if (isAllOneEmpty(allOneProcessDependentsObject)) {
+            putMsg(result, Status.QUERY_PROCESS_IS_NOT_DEPENDENCIES, statusParams);
+        } else {
+            putMsg(result, Status.SUCCESS, statusParams);
+            result.put(DATA_LIST,allOneProcessDependentsObject);
+        }
+    }
+
+    protected <T> void putResult(Map<String, Object> result, List<T> processDependentsObject,
+                                 DependentViewRelation dependentViewRelation, Object paramObject) {
+
+
+
+        if (processDependentsObject == null || processDependentsObject.isEmpty()) {
+            if (ONE_ASCEND == dependentViewRelation) {
+                if (paramObject instanceof ProcessInstance) {
+                    putMsg(result, Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD, ((ProcessInstance) paramObject).getId());
+                }else if (paramObject instanceof ProcessDefinition) {
+                    putMsg(result, Status.QUERY_DEFINITION_DEPENDENCIES_ASCEND_IS_FAILD, ((ProcessDefinition) paramObject).getId());
+                }
+            } else if (ONE_DESCEND == dependentViewRelation) {
+                if (paramObject instanceof ProcessInstance) {
+                    putMsg(result, Status.QUERY_PROCESS_DEPENDENCIES_DESCEND_IS_FAILD, ((ProcessInstance) paramObject).getId());
+                }else if (paramObject instanceof ProcessDefinition) {
+                    putMsg(result, Status.QUERY_DEFINITION_DEPENDENCIES_DESCEND_IS_FAILD, ((ProcessDefinition) paramObject).getId());
+                }
+            }
+        } else {
+            if (paramObject instanceof ProcessInstance) {
+                putMsg(result, Status.SUCCESS, ((ProcessInstance) paramObject).getId());
+            }else if (paramObject instanceof ProcessDefinition) {
+                putMsg(result, Status.SUCCESS, ((ProcessDefinition) paramObject).getId());
+            }
+            result.put(DATA_LIST,processDependentsObject);
+        }
+    }
+
+    private <T> boolean isAllOneEmpty(List<T> allOneProcessDependentsObject) {
+        return allOneProcessDependentsObject==null || allOneProcessDependentsObject.isEmpty();
+    }
+
+    private <T> boolean isDescendEmpty(List<T> descendProcessDependentsObject) {
+        return descendProcessDependentsObject!=null && !descendProcessDependentsObject.isEmpty();
     }
 
     /**

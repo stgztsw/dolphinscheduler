@@ -55,7 +55,7 @@ public class SubProcessTaskExecThread extends MasterBaseTaskExecThread {
                 return result;
             }
             setTaskInstanceState();
-            waitTaskQuit();
+            waitTaskQuit();// desc task 的父节点不是完成状态当前instance就等待
             subProcessInstance = processService.findSubProcessInstance(processInstance.getId(), taskInstance.getId());
 
             // at the end of the subflow , the task state is changed to the subflow state
@@ -140,7 +140,7 @@ public class SubProcessTaskExecThread extends MasterBaseTaskExecThread {
                 this.checkTimeoutFlag = !alertTimeout();
                 handleTimeoutFailed();
             }
-            updateParentProcessState();
+            updateParentProcessState();// desc 更新ProcessInstance 的状态 SLEEP_TIME_MILLIS一次判断 是否完成
             if (subProcessInstance.getState().typeIsFinished()){
                 break;
             }

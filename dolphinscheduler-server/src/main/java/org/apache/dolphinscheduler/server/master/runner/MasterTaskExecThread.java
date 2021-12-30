@@ -97,6 +97,7 @@ public class MasterTaskExecThread extends MasterBaseTaskExecThread {
         if(!this.taskInstance.getState().typeIsFinished()) {
             result = waitTaskQuit();
         }
+        // desc 这里设置结束时间 并更新processInstance
         taskInstance.setEndTime(new Date());
         processService.updateTaskInstance(taskInstance);
         logger.info("task :{} id:{}, process id:{}, exec thread completed ",
@@ -139,6 +140,7 @@ public class MasterTaskExecThread extends MasterBaseTaskExecThread {
                     this.checkTimeoutFlag = !alertTimeout();
                 }
                 // updateProcessInstance task instance
+                // desc 更新task和process instance的状态
                 taskInstance = processService.findTaskInstanceById(taskInstance.getId());
                 processInstance = processService.findProcessInstanceById(processInstance.getId());
                 Thread.sleep(Constants.SLEEP_TIME_MILLIS);

@@ -191,7 +191,7 @@ public class ProcessInstance {
      * @return
      */
     @TableField(exist = false)
-    private String duration;
+    private String duration;// update desc string->long
 
     /**
      * process instance priority
@@ -230,25 +230,25 @@ public class ProcessInstance {
      * 0 minute; 1 hour; 2 day; 3 week; 4 month; 5 year; 9 default;
      */
     @TableField("scheduler_interval")
-    private int schedulerInterval;
+    private int schedulerInterval;// update desc 调度周期
 
     /**
      * scheduler batch no
      */
     @TableField("scheduler_batch_no")
-    private int schedulerBatchNo;
+    private int schedulerBatchNo;// update desc 调度批次
 
     @TableField("process_type")
-    private ProcessType processType;
+    private ProcessType processType;// update desc 进程类型
 
     @TableField("dependent_scheduler_flag")
-    private boolean dependentSchedulerFlag;
+    private boolean dependentSchedulerFlag;// update desc 依赖标识
 
     /**
      * 周期实例
      */
     @TableField(exist = false)
-    private String interval;
+    private String interval; // update desc 周期实例
 
     @TableField("scheduler_start_id")
     private int schedulerStartId;
@@ -258,6 +258,12 @@ public class ProcessInstance {
 
     @TableField("rerun_scheduler_flag")
     private boolean rerunSchedulerFlag;
+
+    /**
+     * 显示上下游依赖的标记
+     */
+    @TableField(exist = false)
+    private Integer viewDependentFlag;
 
     public ProcessInstance(){
 
@@ -424,7 +430,7 @@ public class ProcessInstance {
 
     public void setScheduleTime(Date scheduleTime) {
         this.scheduleTime = scheduleTime;
-        setInterval();
+        setInterval();// update
     }
 
     public Date getCommandStartTime() {
@@ -691,6 +697,14 @@ public class ProcessInstance {
 
     public void setRerunSchedulerFlag(boolean rerunSchedulerFlag) {
         this.rerunSchedulerFlag = rerunSchedulerFlag;
+    }
+
+    public Integer getViewDependentFlag() {
+        return viewDependentFlag;
+    }
+
+    public void setViewDependentFlag(Integer viewDependentFlag) {
+        this.viewDependentFlag = viewDependentFlag;
     }
 
     @Override

@@ -171,7 +171,7 @@ public class MasterBaseTaskExecThread implements Callable<Boolean> {
                     }
                 }
                 if(submitDB && !submitTask){
-                    // dispatch task
+                    // dispatch task 真正的调度起始位置
                     submitTask = dispatchTask(task);
                 }
                 if(submitDB && submitTask){
@@ -222,7 +222,7 @@ public class MasterBaseTaskExecThread implements Callable<Boolean> {
                     processInstance.getId(),
                     taskInstance.getProcessInstancePriority().getCode(),
                     taskInstance.getId(),
-                    org.apache.dolphinscheduler.common.Constants.DEFAULT_WORKER_GROUP);
+                    org.apache.dolphinscheduler.common.Constants.DEFAULT_WORKER_GROUP);// desc 这里比较优先级？ 前端的HIGH MEDIUM等配置
             taskUpdateQueue.put(taskPriority);
             logger.info(String.format("master submit success, task : %s", taskInstance.getName()) );
             return true;

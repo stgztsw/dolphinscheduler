@@ -97,7 +97,7 @@ public class MasterServer implements IStoppable {
      *
      * @param args arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) {// desc run spring thread
         Thread.currentThread().setName(Constants.THREAD_NAME_MASTER_SERVER);
         new SpringApplicationBuilder(MasterServer.class).web(WebApplicationType.NONE).run(args);
     }
@@ -106,7 +106,7 @@ public class MasterServer implements IStoppable {
      * run master server
      */
     @PostConstruct
-    public void run() {
+    public void run() {// desc master 线程方法
         // init remoting server
         NettyServerConfig serverConfig = new NettyServerConfig();
         serverConfig.setListenPort(masterConfig.getListenPort());
@@ -121,7 +121,7 @@ public class MasterServer implements IStoppable {
         this.zkMasterClient.setStoppable(this);
 
         // scheduler start
-        this.masterSchedulerService.start();
+        this.masterSchedulerService.start();// run
 
         // start QuartzExecutors
         // what system should do if exception
@@ -190,6 +190,7 @@ public class MasterServer implements IStoppable {
 
     @Override
     public void stop(String cause) {
-        close(cause);
+        // todo 发版需要去掉注释
+        //close(cause);
     }
 }

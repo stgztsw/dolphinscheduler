@@ -59,7 +59,7 @@ public class ProcessScheduleJob implements Job {
      * @throws JobExecutionException if there is an exception while executing the job.
      */
     @Override
-    public void execute(JobExecutionContext context) throws JobExecutionException {
+    public void execute(JobExecutionContext context) throws JobExecutionException {// desc 调度器调度的定时任务执行的入口 生成定时的时候执行这个
 
         Assert.notNull(getProcessService(), "please call init() method first");
 
@@ -91,10 +91,11 @@ public class ProcessScheduleJob implements Job {
             logger.warn("process definition does not exist in db or offline，need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
             return;
         }
-        if (ProcessType.SCHEDULER != processDefinition.getProcessType()) {
-            logger.warn("process definition is not a scheduler process, need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
-            return;
-        }
+        // update jack 注释掉了这一部分逻辑 用于允许设置子节点定时
+//        if (ProcessType.SCHEDULER != processDefinition.getProcessType()) {
+//            logger.warn("process definition is not a scheduler process, need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
+//            return;
+//        }
         SchedulingBatch sb = getProcessService().getSchedulingBatch(schedule, scheduledFireTime, processDefinition.getId());
         Command command = new Command();
         command.setCommandType(CommandType.SCHEDULER);

@@ -337,7 +337,7 @@
       /**
        * Storage interface
        */
-      _save (sourceType) {
+      _save (sourceType) {// desc 点击dag保存的触发函数
         return new Promise((resolve, reject) => {
           this.spinnerLoading = true
           // Storage store

@@ -163,7 +163,7 @@ public class ExecutorService extends BaseService{
              */
             processDefinition.setReceivers(receivers);
             processDefinition.setReceiversCc(receiversCc);
-            processDefinitionMapper.updateById(processDefinition);
+            processDefinitionMapper.updateById(processDefinition);// desc definition表的更新
             putMsg(result, Status.SUCCESS);
         } else {
             putMsg(result, Status.START_PROCESS_INSTANCE_ERROR);
@@ -493,7 +493,7 @@ public class ExecutorService extends BaseService{
             throw new RuntimeException(String.format("processDefineId %d is not exists",processDefineId));
         }
 
-        String receivers = processDefinition.getReceivers();
+        String receivers = processDefinition.getReceivers();// question 这两个是啥东东
         String receiversCc = processDefinition.getReceiversCc();
         Map<String,String> dataMap = new HashMap<>();
         dataMap.put(Constants.RECEIVERS,receivers);
@@ -561,7 +561,7 @@ public class ExecutorService extends BaseService{
         command.setWorkerGroup(workerGroup);
 
         if (sb != null) {
-            command.setDependentSchedulerFlag(true);
+            command.setDependentSchedulerFlag(true);// desc 默认在这里就插入true
             command.setSchedulerInterval(sb.getSchedulerInterval());
             command.setSchedulerBatchNo(sb.getNextBatchNo());
             command.setScheduleTime(sb.getSchedulerTime());
@@ -578,7 +578,7 @@ public class ExecutorService extends BaseService{
         }
 
         // determine whether to complement
-        if(commandType == CommandType.COMPLEMENT_DATA){
+        if(commandType == CommandType.COMPLEMENT_DATA){// desc 补数
             runMode = (runMode == null) ? RunMode.RUN_MODE_SERIAL : runMode;
             if(null != start && null != end && !start.after(end)){
                 if(runMode == RunMode.RUN_MODE_SERIAL){
@@ -621,7 +621,7 @@ public class ExecutorService extends BaseService{
                 logger.error("there is not valid schedule date for the process definition: id:{},date:{}",
                         processDefineId, schedule);
             }
-        }else{
+        }else{// desc 非补数 直接通过参数创建
             command.setCommandParam(JSONUtils.toJson(cmdParam));
             return processService.createCommand(command);
         }
