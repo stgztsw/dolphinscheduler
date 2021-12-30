@@ -101,7 +101,7 @@ public class MasterSchedulerService extends Thread {
      * constructor of MasterSchedulerThread
      */
     @PostConstruct
-    public void init(){// desc 依赖注入时会运行这个方法 Constructor(构造方法) -> @Autowired(依赖注入) -> @PostConstruct(注释的方法)
+    public void init(){
         this.masterExecService = (ThreadPoolExecutor)ThreadUtils.newDaemonFixedThreadExecutor("Master-Exec-Thread", masterConfig.getMasterExecThreads());
         NettyClientConfig clientConfig = new NettyClientConfig();
         this.nettyRemotingClient = new NettyRemotingClient(clientConfig);
@@ -134,7 +134,7 @@ public class MasterSchedulerService extends Thread {
     @Override
     public void run() {
         logger.info("master scheduler started");
-        while (Stopper.isRunning()){// desc 非挂掉状态10s一次轮询
+        while (Stopper.isRunning()){
             try {
                 boolean runCheckFlag = OSUtils.checkResource(masterConfig.getMasterMaxCpuloadAvg(), masterConfig.getMasterReservedMemory());
                 if(!runCheckFlag) {
@@ -155,13 +155,13 @@ public class MasterSchedulerService extends Thread {
         try {
                     mutex = zkMasterClient.blockAcquireMutex();
 
-                    int activeCount = masterExecService.getActiveCount();// update desc 获取存活的线程
+                    int activeCount = masterExecService.getActiveCount();
                     // make sure to scan and delete command  table in one transaction
                     Command command = processService.findOneCommand();
                     if (command != null) {
                         logger.info("find one command: id: {}, type: {}", command.getId(),command.getCommandType());
 
-                        try{// update desc 异步消息处理
+                        try{
                             ProcessInstance processInstance = processService.handleCommand(logger,
                                     getLocalAddress(),
                                     this.masterConfig.getMasterExecThreads() - activeCount, command);
@@ -170,14 +170,14 @@ public class MasterSchedulerService extends Thread {
                                 Future<ProcessInstance> future;
                                 if (processInstance.getState() == ExecutionStatus.RUNNING_EXECUTION) {
                                     future = masterExecService.submit(
-                                            new MasterExecThread(// update desc 提交线程 到线程池
+                                            new MasterExecThread(
                                                     processInstance
                                                     , processService
                                                     , nettyRemotingClient
                                             ));
                                 } else {
                                     logger.debug("process={} is not in running status, add it to dependentProcessQueue", processInstance.getId());
-                                    future = CompletableFuture.completedFuture(processInstance);// update desc 创建一个异步线程并无运行
+                                    future = CompletableFuture.completedFuture(processInstance);
                                 }
                                 dependentProcessQueue.offer(future);
                             }
@@ -203,17 +203,17 @@ public class MasterSchedulerService extends Thread {
         private final int pageSize = 10;
 
         private long lastCheckTime = System.currentTimeMillis();
-        // desc 空
+
         private final TriConsumer<Command, ProcessInstance, ProcessInstance> nullConsumer =
                 (command, processInstance, parentProcessInstance)-> {};
-        // desc 恢复失败
+
         private final TriConsumer<Command, ProcessInstance, ProcessInstance> recoveryFailureConsumer = (
                 (command, processInstance, parentProcessInstance) -> {
             Map<String, String> cmdParam = this.convert2Map(command.getCommandParam());
             setProcessId(cmdParam, processInstance.getId());
             command.setCommandParam(map2String(cmdParam));
         });
-        // desc 重跑
+
         private final TriConsumer<Command, ProcessInstance, ProcessInstance> reRunConsumer = (
                 (command, processInstance, parentProcessInstance) -> {
             Map<String, String> cmdParam = this.convert2Map(command.getCommandParam());
@@ -232,7 +232,7 @@ public class MasterSchedulerService extends Thread {
         }
 
         @Override
-        public void run() {// desc 在依赖注入的时候就初始化了这个线程
+        public void run() {
             logger.info("master dependent scheduler started");
             while (true) {
                 try {
@@ -256,11 +256,11 @@ public class MasterSchedulerService extends Thread {
                         if (!future.isDone()) {
                             continue;
                         }
-                        // desc 提交过的processInstance
+
                         ProcessInstance parentProcessInstance = future.get();
                         logger.debug("parentProcessInstance={} processDefinitionId={} take from dependentProcessQueue",
                                 parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId());
-                        // desc 是否是依赖节点
+
                         if (!parentProcessInstance.isDependentSchedulerFlag()) {
                             logger.debug("parentProcessInstance={} DependentSchedulerFlag is false, " +
                                     "not need to fire the dependent process", parentProcessInstance.getProcessDefinitionId());
@@ -279,7 +279,7 @@ public class MasterSchedulerService extends Thread {
                                 continue;
                             }
                         }
-                        if (!parentProcessInstance.getState().typeIsSuccess()) {// desc 未成功从future中移除
+                        if (!parentProcessInstance.getState().typeIsSuccess()) {
                             logger.debug("parentProcessInstance={} is not success, not need to fire the dependent process",
                                     parentProcessInstance.getProcessDefinitionId());
                             futureIterator.remove();
@@ -336,7 +336,7 @@ public class MasterSchedulerService extends Thread {
         // 生成子节点的command
         private void schedulerProcess(ProcessInstance parentProcessInstance, List<ProcessDependent> processDependents) {
             /*---------------------------*/
-//            // update jack 定时的command
+//
 //            Command newCommand = processService.findOneCommand();
 //            ProcessInstance subProcessInstance = processService.constructProcessInstance(newCommand, getLocalAddress());
             /*---------------------------*/
@@ -426,7 +426,7 @@ public class MasterSchedulerService extends Thread {
             command.setProcessInstancePriority(parentProcessInstance.getProcessInstancePriority());
             command.setSchedulerInterval(schedulerInterval);
             command.setSchedulerBatchNo(batchNo);
-            command.setDependentSchedulerFlag(parentProcessInstance.isDependentSchedulerFlag());// update desc 依赖标识向下游传递
+            command.setDependentSchedulerFlag(parentProcessInstance.isDependentSchedulerFlag());
             command.setSchedulerRerunNo(parentProcessInstance.getSchedulerRerunNo());
             if (parentProcessInstance.getProcessType() == ProcessType.SCHEDULER) {
                 command.setSchedulerStartId(parentProcessInstance.getId());

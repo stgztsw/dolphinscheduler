@@ -230,25 +230,25 @@ public class ProcessInstance {
      * 0 minute; 1 hour; 2 day; 3 week; 4 month; 5 year; 9 default;
      */
     @TableField("scheduler_interval")
-    private int schedulerInterval;// update desc 调度周期
+    private int schedulerInterval;
 
     /**
      * scheduler batch no
      */
     @TableField("scheduler_batch_no")
-    private int schedulerBatchNo;// update desc 调度批次
+    private int schedulerBatchNo;
 
     @TableField("process_type")
-    private ProcessType processType;// update desc 进程类型
+    private ProcessType processType;
 
     @TableField("dependent_scheduler_flag")
-    private boolean dependentSchedulerFlag;// update desc 依赖标识
+    private boolean dependentSchedulerFlag;
 
     /**
      * 周期实例
      */
     @TableField(exist = false)
-    private String interval; // update desc 周期实例
+    private String interval;
 
     @TableField("scheduler_start_id")
     private int schedulerStartId;

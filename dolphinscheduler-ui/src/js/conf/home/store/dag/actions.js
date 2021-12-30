@@ -141,7 +141,7 @@ export default {
         state.timeout = processDefinitionJson.timeout
 
         state.tenantId = processDefinitionJson.tenantId
-        state.processType = processDefinitionJson.processType// update 增加type识别标识
+        state.processType = processDefinitionJson.processType
         resolve(res.data)
       }).catch(res => {
         reject(res)

@@ -85,7 +85,7 @@ public class DagHelper {
         }
         List<TaskNode> destTaskNodeList = new ArrayList<>();
         List<TaskNode> tmpTaskNodeList = new ArrayList<>();
-        // desc 有失败的task 且 是运行当前任务和依赖任务
+
         if (taskDependType == TaskDependType.TASK_POST
                 && CollectionUtils.isNotEmpty(recoveryNodeNameList)) {
             startNodeList = recoveryNodeNameList;

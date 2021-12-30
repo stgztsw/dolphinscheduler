@@ -115,7 +115,7 @@ public class ProcessService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ProcessInstance handleCommand(Logger logger, String host, int validThreadNum, Command command) {
-        ProcessInstance processInstance = constructProcessInstance(command, host);// update desc 构造实例
+        ProcessInstance processInstance = constructProcessInstance(command, host);
         //cannot construct process instance, return null;
         if(processInstance == null){
             logger.error("scan command, command parameter is error: {}", command);
@@ -128,9 +128,9 @@ public class ProcessService {
         }
         processInstance.setCommandType(command.getCommandType());
         processInstance.addHistoryCmd(command.getCommandType());
-        saveProcessInstance(processInstance);// desc 保存instance
-        this.setSubProcessParam(processInstance);// desc 设置instance子节点 依赖的更新
-        delCommandByid(command.getId());// desc 指令处理完删除这一条指令
+        saveProcessInstance(processInstance);
+        this.setSubProcessParam(processInstance);
+        delCommandByid(command.getId());
         return processInstance;
     }
 
@@ -364,7 +364,7 @@ public class ProcessService {
      * @param parentId parentId
      * @param ids ids
      */
-    public void recurseFindSubProcessId(int parentId, List<Integer> ids){// desc 通过递归遍历processDefinitionJson拿到subProcess的id放到ids里面
+    public void recurseFindSubProcessId(int parentId, List<Integer> ids){
         ProcessDefinition processDefinition = processDefineMapper.selectById(parentId);
         String processDefinitionJson = processDefinition.getProcessDefinitionJson();
 
@@ -377,7 +377,7 @@ public class ProcessService {
             for (TaskNode taskNode : taskNodeList){
                 String parameter = taskNode.getParams();
                 JSONObject parameterJson = JSONObject.parseObject(parameter);
-                if (parameterJson.getInteger(CMDPARAM_SUB_PROCESS_DEFINE_ID) != null){// desc processDefinitionId！=null 表示是subProcess
+                if (parameterJson.getInteger(CMDPARAM_SUB_PROCESS_DEFINE_ID) != null){
                     SubProcessParameters subProcessParam = JSON.parseObject(parameter, SubProcessParameters.class);
                     ids.add(subProcessParam.getProcessDefinitionId());
                     recurseFindSubProcessId(subProcessParam.getProcessDefinitionId(),ids);
@@ -466,7 +466,7 @@ public class ProcessService {
      */
     private ProcessInstance generateNewProcessInstance(ProcessDefinition processDefinition,
                                                        Command command,
-                                                       Map<String, String> cmdParam){// update desc 生成新的实例
+                                                       Map<String, String> cmdParam){
         ProcessInstance processInstance = new ProcessInstance(processDefinition);
         processInstance.setState(ExecutionStatus.RUNNING_EXECUTION);
         processInstance.setRecovery(Flag.NO);
@@ -511,7 +511,7 @@ public class ProcessService {
         processInstance.setSchedulerInterval(command.getSchedulerInterval());
         processInstance.setSchedulerBatchNo(command.getSchedulerBatchNo());
         processInstance.setProcessType(processDefinition.getProcessType());
-        processInstance.setDependentSchedulerFlag(command.isDependentSchedulerFlag());// desc 从command读isDependentSchedulerFlag字段的值
+        processInstance.setDependentSchedulerFlag(command.isDependentSchedulerFlag());
         processInstance.setSchedulerStartId(command.getSchedulerStartId());
         return processInstance;
     }
@@ -566,14 +566,14 @@ public class ProcessService {
      * @param host host
      * @return process instance
      */
-    public ProcessInstance constructProcessInstance(Command command, String host){ // update jack
+    public ProcessInstance constructProcessInstance(Command command, String host){
 
         ProcessInstance processInstance = null;
         CommandType commandType = command.getCommandType();
         Map<String, String> cmdParam = JSONUtils.toMap(command.getCommandParam());
 
         ProcessDefinition processDefinition = null;
-        // desc 获取当前需调度的definition
+
         if(command.getProcessDefinitionId() != 0){
             processDefinition = processDefineMapper.selectById(command.getProcessDefinitionId());
             if(processDefinition == null){
@@ -581,7 +581,7 @@ public class ProcessService {
                 return null;
             }
         }
-        // desc 首节点还是会走if 因为传进来的commandParam={},并不是null，之后在DependentScheduler生成的command 会进到下面生成新的，如果实在summitTask里面生成的还是会进到if
+
         if(cmdParam != null ){
             Integer processInstanceId = 0;
             // recover from failure or pause tasks
@@ -601,12 +601,12 @@ public class ProcessService {
                 String pId = cmdParam.get(Constants.CMDPARAM_RECOVERY_WAITTING_THREAD);
                 processInstanceId = Integer.parseInt(pId);
             }
-            if(processInstanceId ==0){// desc 手动设置的定时，没有commandParam 进到这个方法
+            if(processInstanceId ==0){
                 processInstance = generateNewProcessInstance(processDefinition, command, cmdParam);
             }else{
                 processInstance = this.findProcessInstanceDetailById(processInstanceId);
                 // Recalculate global parameters after rerun.
-                processInstance.setGlobalParams(ParameterUtils.curingGlobalParams(// update desc 重新构建全局参数
+                processInstance.setGlobalParams(ParameterUtils.curingGlobalParams(
                         processDefinition.getGlobalParamMap(),
                         processDefinition.getGlobalParamList(),
                         getCommandTypeIfComplement(processInstance, command),
@@ -630,7 +630,7 @@ public class ProcessService {
             }
         }else{
             // generate one new process instance
-            // desc 新new的一个实例 上一个processInstance的运行成功后
+
             processInstance = generateNewProcessInstance(processDefinition, command, cmdParam);
         }
 
@@ -643,15 +643,15 @@ public class ProcessService {
             processInstance.setScheduleTime(command.getScheduleTime());
         }
         processInstance.setHost(host);
-        processInstance.setSchedulerRerunNo(command.getSchedulerRerunNo());// desc 设置批次
+        processInstance.setSchedulerRerunNo(command.getSchedulerRerunNo());
         processInstance.setRerunSchedulerFlag(command.isRerunSchedulerFlag());
-        ExecutionStatus runStatus = ExecutionStatus.RUNNING_EXECUTION;// desc 设置运行状态
+        ExecutionStatus runStatus = ExecutionStatus.RUNNING_EXECUTION;
         int runTime = processInstance.getRunTimes();
         switch (commandType){
             case START_PROCESS:
                 break;
-            case START_FAILURE_TASK_PROCESS:// update desc 恢复故障，这个放到下面这个初始化的东西
-            case RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER:// update desc 找到失败任务并初始化这些任务
+            case START_FAILURE_TASK_PROCESS:
+            case RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER:
                 // find failed tasks and init these tasks
                 List<Integer> failedList = this.findTaskIdByInstanceState(processInstance.getId(), ExecutionStatus.FAILURE);
                 List<Integer> toleranceList = this.findTaskIdByInstanceState(processInstance.getId(), ExecutionStatus.NEED_FAULT_TOLERANCE);
@@ -726,7 +726,7 @@ public class ProcessService {
                     logger.error(msg);
                     throw new RuntimeException(msg);
                 }
-                initAllProcessInstanceFromScheduler(processInstance);//update desc 初始化失败的节点
+                initAllProcessInstanceFromScheduler(processInstance);
                 //只需要将调度节点后的失败停止节点的状态初始化，当前节点不需要执行，所以直接返回
                 return processInstance;
             case SCHEDULER:
@@ -811,7 +811,7 @@ public class ProcessService {
         if(paramMap.containsKey(CMDPARAM_SUB_PROCESS)
                 && CMDPARAM_EMPTY_SUB_PROCESS.equals(paramMap.get(CMDPARAM_SUB_PROCESS))){
             paramMap.remove(CMDPARAM_SUB_PROCESS);
-            // desc 这里把setWaitingThreadProcess =0 移除重置了 当前需要处理的instance的id 从command参数传来
+
             paramMap.put(CMDPARAM_SUB_PROCESS, String.valueOf(subProcessInstance.getId()));
             subProcessInstance.setCommandParam(JSONUtils.toJson(paramMap));
             subProcessInstance.setIsSubProcess(Flag.YES);
@@ -919,7 +919,7 @@ public class ProcessService {
         if (processMap != null) {
             return processMap;
         }
-        // desc 重跑直接返回
+
         if (parentInstance.getCommandType() == CommandType.REPEAT_RUNNING) {
             // update current task id to map
             processMap = findPreviousTaskProcessMap(parentInstance, parentTask);
@@ -978,7 +978,7 @@ public class ProcessService {
             // recover failover tolerance would not create a new command when the sub command already have been created
             return;
         }
-        // desc 创建父子任务实例映射关系表，同一实例只创建一次
+
         instanceMap = setProcessInstanceMap(parentProcessInstance, task);
         ProcessInstance childInstance = null;
         if (instanceMap.getProcessInstanceId() != 0) {
@@ -1029,7 +1029,7 @@ public class ProcessService {
         TaskNode taskNode = JSONUtils.parseObject(task.getTaskJson(), TaskNode.class);
         Map<String, String> subProcessParam = JSONUtils.toMap(taskNode.getParams());
         Integer childDefineId = Integer.parseInt(subProcessParam.get(Constants.CMDPARAM_SUB_PROCESS_DEFINE_ID));
-        // desc {"id":123,"parentProcessInstanceId":149,"parentTaskInstanceId":283,"processInstanceId":0}
+
         String processParam = getSubWorkFlowParam(instanceMap, parentProcessInstance);
 
         return new Command(

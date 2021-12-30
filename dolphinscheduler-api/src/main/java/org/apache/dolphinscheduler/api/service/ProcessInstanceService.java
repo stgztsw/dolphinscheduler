@@ -277,7 +277,7 @@ public class ProcessInstanceService extends BaseDAGService {
         processInstance.setSchedulerBatchNo(sb.getBatchNo());
         processInstance.setScheduleTime(sb.getSchedulerTime());
         processInstance.setProcessType(processDefinition.getProcessType());
-        processInstance.setDependentSchedulerFlag(true);// desc 从command读isDependentSchedulerFlag字段的值
+        processInstance.setDependentSchedulerFlag(true);
         processInstance.setViewDependentFlag(ONE_DESCEND==dependentViewRelation? ONE_DESCEND.getCode() : ONE_ASCEND.getCode());
 
         result.add(processInstance);
@@ -340,7 +340,7 @@ public class ProcessInstanceService extends BaseDAGService {
 
         List<ProcessInstance> processInstances = processInstanceList.getRecords();
 
-        for(ProcessInstance processInstance: processInstances){// update desc 从数据库中找到实例列表，插入的时候是从队列中插入
+        for(ProcessInstance processInstance: processInstances){
             processInstance.setDuration(DateUtils.format2Duration(processInstance.getStartTime(),processInstance.getEndTime()));
             User executor = usersService.queryUser(processInstance.getExecutorId());
             if (null != executor) {
