@@ -422,6 +422,12 @@ public class ExecutorService extends BaseService{
             command.setRerunSchedulerFlag(true);
         }
 
+        if (commandType.isRecover()) {
+            command.setDependentSchedulerType(DependentSchedulerType.RECOVER);
+        } else if (commandType.isRepeat()) {
+            command.setDependentSchedulerType(DependentSchedulerType.REPEAT);
+        }
+
         int create = processService.createCommand(command);
 
         if (create > 0) {
@@ -561,6 +567,7 @@ public class ExecutorService extends BaseService{
         command.setWorkerGroup(workerGroup);
 
         if (sb != null) {
+            command.setDependentSchedulerType(DependentSchedulerType.MANUAL_SCHEDULER);
             command.setDependentSchedulerFlag(true);
             command.setSchedulerInterval(sb.getSchedulerInterval());
             command.setSchedulerBatchNo(sb.getNextBatchNo());
@@ -627,17 +634,6 @@ public class ExecutorService extends BaseService{
         }
 
         return 0;
-    }
-
-    private void createSchedulerParam(Command command) {
-        Schedule schedule = schedulerService.getOneScheduler(command.getProcessDefinitionId());
-        int schedulerInterval = CronUtils.getSchedulerInterval(schedule.getCrontab());
-        List<DateInterval> dateIntervals = DependentUtils
-                .getDateIntervalListForDependent(new Date(), schedulerInterval);
-        int nextBatchNo = processService.getNextSchedulerBatchNo(command.getProcessDefinitionId(), dateIntervals);
-        command.setSchedulerBatchNo(nextBatchNo);
-        command.setDependentSchedulerFlag(true);
-        command.setSchedulerInterval(CronUtils.getSchedulerInterval(schedule.getCrontab()));
     }
 
     /**

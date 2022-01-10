@@ -71,6 +71,15 @@ public enum CommandType {
         return descp;
     }
 
+    public boolean isRecover() {
+        return this == RECOVER_TOLERANCE_FAULT_PROCESS || this == RECOVER_SUSPENDED_PROCESS || this == START_FAILURE_TASK_PROCESS || this == RECOVER_WAITTING_THREAD
+                || this == RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER || this == RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER;
+    }
+
+    public boolean isRepeat() {
+        return this == REPEAT_RUNNING || this == REPEAT_RUNNING_SCHEDULER;
+    }
+
     public static CommandType of(Integer status){
         for(CommandType cmdType : values()){
             if(cmdType.getCode() == status){

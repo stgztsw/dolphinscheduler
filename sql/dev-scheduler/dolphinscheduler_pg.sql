@@ -36,3 +36,9 @@ ALTER TABLE t_ds_process_instance ADD COLUMN scheduler_rerun_no varchar(64) DEFA
 ALTER TABLE t_ds_command ADD COLUMN rerun_scheduler_flag boolean default false;
 
 ALTER TABLE t_ds_process_instance ADD COLUMN rerun_scheduler_flag boolean default false;
+
+-- normal节点设置定时
+ALTER TABLE t_ds_command ADD COLUMN dependent_scheduler_type int default 0;
+ALTER TABLE t_ds_process_instance ADD COLUMN dependent_scheduler_type int default 0;
+-- 历史数据修正
+update t_ds_process_instance set dependent_scheduler_type = 1 where dependent_scheduler_flag = true

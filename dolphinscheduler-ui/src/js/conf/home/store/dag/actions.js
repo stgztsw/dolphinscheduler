@@ -196,6 +196,8 @@ export default {
 
         state.tenantId = processInstanceJson.tenantId
 
+        state.processType = processInstanceJson.processType
+
         // startup parameters
         state.startup = _.assign(state.startup, _.pick(res.data, ['commandType', 'failureStrategy', 'processInstancePriority', 'workerGroup', 'warningType', 'warningGroupId', 'receivers', 'receiversCc']))
         state.startup.commandParam = JSON.parse(res.data.commandParam)

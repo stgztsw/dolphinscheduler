@@ -175,6 +175,15 @@ public class ProcessDefinition {
     @TableField("process_type")
     private ProcessType processType;
 
+    @TableField(exist = false)
+    private Date scheduleStartTime;
+
+    @TableField(exist = false)
+    private Date scheduleEndTime;
+
+    @TableField(exist = false)
+    private String scheduleCrontab;
+
     public String getName() {
         return name;
     }
@@ -393,6 +402,30 @@ public class ProcessDefinition {
         this.processType = processType;
     }
 
+    public Date getScheduleStartTime() {
+        return scheduleStartTime;
+    }
+
+    public void setScheduleStartTime(Date scheduleStartTime) {
+        this.scheduleStartTime = scheduleStartTime;
+    }
+
+    public Date getScheduleEndTime() {
+        return scheduleEndTime;
+    }
+
+    public void setScheduleEndTime(Date scheduleEndTime) {
+        this.scheduleEndTime = scheduleEndTime;
+    }
+
+    public String getScheduleCrontab() {
+        return scheduleCrontab;
+    }
+
+    public void setScheduleCrontab(String scheduleCrontab) {
+        this.scheduleCrontab = scheduleCrontab;
+    }
+
     @Override
     public String toString() {
         return "ProcessDefinition{" +
@@ -422,6 +455,9 @@ public class ProcessDefinition {
                 ", modifyBy='" + modifyBy + '\'' +
                 ", resourceIds='" + resourceIds + '\'' +
                 ", processType='" + processType + '\'' +
+                ", scheduleStartTime='" + scheduleStartTime + '\'' +
+                ", scheduleEndTime='" + scheduleEndTime + '\'' +
+                ", scheduleCrontab='" + scheduleCrontab + '\'' +
                 '}';
     }
 

@@ -19,11 +19,11 @@ package org.apache.dolphinscheduler.service.quartz;
 
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.CommandType;
+import org.apache.dolphinscheduler.common.enums.DependentSchedulerType;
 import org.apache.dolphinscheduler.common.enums.ProcessType;
 import org.apache.dolphinscheduler.common.enums.ReleaseState;
-import org.apache.dolphinscheduler.dao.entity.Command;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
-import org.apache.dolphinscheduler.dao.entity.Schedule;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.dao.entity.*;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
@@ -38,8 +38,10 @@ import org.springframework.util.StringUtils;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_INFORMAL_SCHEDULER;
 import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_RECOVER_PROCESS_ID_STRING;
 
 /**
@@ -95,36 +97,43 @@ public class ProcessScheduleJob implements Job {
             logger.warn("process definition does not exist in db or offline，need not to create command, projectId:{}, processId:{}", projectId, scheduleId);
             return;
         }
-
-        int instanceId = 0;
-        boolean isSchedulerProcess = ProcessType.SCHEDULER == processDefinition.getProcessType();
-        SchedulingBatch sb = getProcessService().getSchedulingBatch(schedule, scheduledFireTime, processDefinition.getId());
-        if (ProcessType.NORMAL == processDefinition.getProcessType()) {
-            instanceId = getProcessService().createOrUpdateInformalProcessInstance(processDefinition, sb, null);
+        synchronized (ProcessScheduleJob.class) {
+            Command command = new Command();
+            SchedulingBatch sb = getProcessService().getSchedulingBatch(schedule, scheduledFireTime, processDefinition.getId());
+            if (processDefinition.getProcessType() == ProcessType.NORMAL) {
+                List<ProcessDependent> pd = getProcessService().findProcessDependentsByProcessId(processDefinition.getId());
+                if (!pd.isEmpty()) {
+                    List<ProcessInstance> parent = getProcessService().findProcessInstances(pd.stream().mapToInt(ProcessDependent::getDependentId).toArray(), sb);
+                    if (parent.isEmpty()) {
+                        getProcessService().generateInformalFakeProcessInstance(processDefinition, sb);
+                        return;
+                    }
+                    ProcessInstance processInstance = getProcessService().generateInformalProcessInstance(processDefinition, sb, parent.get(0));
+                    Map<String, String> cmdParam = new HashMap<>();
+                    cmdParam.put(CMDPARAM_RECOVER_PROCESS_ID_STRING, String.valueOf(processInstance.getId()));
+                    cmdParam.put(CMDPARAM_INFORMAL_SCHEDULER, CMDPARAM_INFORMAL_SCHEDULER);
+                    command.setCommandParam(JSONUtils.toJson(cmdParam));
+                }
+            }
+            command.setCommandType(CommandType.SCHEDULER);
+            command.setExecutorId(schedule.getUserId());
+            command.setFailureStrategy(schedule.getFailureStrategy());
+            command.setProcessDefinitionId(schedule.getProcessDefinitionId());
+            command.setScheduleTime(scheduledFireTime);
+            command.setStartTime(fireTime);
+            command.setWarningGroupId(schedule.getWarningGroupId());
+            String workerGroup = StringUtils.isEmpty(schedule.getWorkerGroup()) ? Constants.DEFAULT_WORKER_GROUP : schedule.getWorkerGroup();
+            command.setWorkerGroup(workerGroup);
+            command.setWarningType(schedule.getWarningType());
+            command.setProcessInstancePriority(schedule.getProcessInstancePriority());
+            command.setSchedulerInterval(sb.getSchedulerInterval());
+            command.setSchedulerBatchNo(sb.getNextBatchNo());
+            command.setDependentSchedulerType(DependentSchedulerType.SCHEDULER);
+            if (processDefinition.getProcessType() == ProcessType.SCHEDULER) {
+                command.setDependentSchedulerFlag(true);
+            }
+            getProcessService().createCommand(command);
         }
-        if (!isSchedulerProcess && instanceId != 0) {
-            return;
-        }
-        Command command = new Command();
-        command.setCommandType(CommandType.SCHEDULER);
-        command.setExecutorId(schedule.getUserId());
-        command.setFailureStrategy(schedule.getFailureStrategy());
-        command.setProcessDefinitionId(schedule.getProcessDefinitionId());
-        command.setScheduleTime(scheduledFireTime);
-        command.setStartTime(fireTime);
-        command.setWarningGroupId(schedule.getWarningGroupId());
-        String workerGroup = StringUtils.isEmpty(schedule.getWorkerGroup()) ? Constants.DEFAULT_WORKER_GROUP : schedule.getWorkerGroup();
-        command.setWorkerGroup(workerGroup);
-        command.setWarningType(schedule.getWarningType());
-        command.setProcessInstancePriority(schedule.getProcessInstancePriority());
-        command.setSchedulerInterval(sb.getSchedulerInterval());
-        command.setSchedulerBatchNo(sb.getNextBatchNo());
-        command.setDependentSchedulerFlag(true);
-        if (instanceId != 0) {
-            command.setCommandParam(String.format("{\"%s\":%d}",
-                    CMDPARAM_RECOVER_PROCESS_ID_STRING, instanceId));
-        }
-        getProcessService().createCommand(command);
     }
 
 

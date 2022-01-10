@@ -42,7 +42,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
@@ -91,8 +93,6 @@ public class ProcessService {
     @Autowired
     private ResourceMapper resourceMapper;
 
-
-
     @Autowired
     private ErrorCommandMapper errorCommandMapper;
 
@@ -104,6 +104,8 @@ public class ProcessService {
 
     @Autowired
     private ProcessDependentMapper processDependentMapper;
+
+    private ReentrantLock lock = new ReentrantLock();
 
     /**
      * handle Command (construct ProcessInstance from Command) , wrapped in transaction
@@ -277,6 +279,10 @@ public class ProcessService {
      */
     public ProcessDefinition findProcessDefineById(int processDefinitionId) {
         return processDefineMapper.selectById(processDefinitionId);
+    }
+
+    public ProcessDefinition findDefineSchedulerById(int processDefinitionId) {
+        return processDefineMapper.findDefineSchedulerById(processDefinitionId);
     }
 
     /**
@@ -511,61 +517,92 @@ public class ProcessService {
         processInstance.setSchedulerInterval(command.getSchedulerInterval());
         processInstance.setSchedulerBatchNo(command.getSchedulerBatchNo());
         processInstance.setProcessType(processDefinition.getProcessType());
+        processInstance.setDependentSchedulerType(command.getDependentSchedulerType());
         processInstance.setDependentSchedulerFlag(command.isDependentSchedulerFlag());
         processInstance.setSchedulerStartId(command.getSchedulerStartId());
         return processInstance;
     }
 
-    private ProcessInstance generateNewInformalProcessInstance(ProcessDefinition processDefinition, SchedulingBatch sb, ProcessInstance parent){
-        ProcessInstance processInstance = new ProcessInstance(processDefinition);
+    public ProcessInstance generateInformalFakeProcessInstance(ProcessDefinition processDefinition, SchedulingBatch sb){
+        lock.lock();
+        try {
+            ProcessInstance processInstance = new ProcessInstance(processDefinition);
+            generateInformalCommonInfo(processInstance, processDefinition);
+            generateInformalSbInfo(processInstance, sb);
+            processInstanceMapper.insert(processInstance);
+            return processInstance;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public ProcessInstance generateInformalProcessInstance(ProcessDefinition processDefinition, SchedulingBatch sb, ProcessInstance parent){
+        lock.lock();
+        try {
+            ProcessInstance processInstance = new ProcessInstance(processDefinition);
+            generateInformalCommonInfo(processInstance, processDefinition);
+            generateInformalSbInfo(processInstance, sb);
+            inheritParentInfo(processInstance, parent);
+            processInstanceMapper.insert(processInstance);
+            return processInstance;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void generateInformalCommonInfo(ProcessInstance processInstance, ProcessDefinition processDefinition) {
         processInstance.setProcessType(processDefinition.getProcessType());
         processInstance.setProcessInstanceJson(processDefinition.getProcessDefinitionJson());
         processInstance.setConnects(processDefinition.getConnects());
         processInstance.setLocations(processDefinition.getLocations());
-        processInstance.setState(ExecutionStatus.INFORMAL);
+        processInstance.setState(ExecutionStatus.INFORMAL_FAKE);
         processInstance.setRecovery(Flag.NO);
         processInstance.setProcessDefinitionId(processDefinition.getId());
         processInstance.setIsSubProcess(Flag.NO);
         processInstance.setTimeout(processDefinition.getTimeout());
         processInstance.setTenantId(processDefinition.getTenantId());
-        if (sb != null) {
-            processInstance.setScheduleTime(sb.getSchedulerTime());
-            processInstance.setSchedulerInterval(sb.getSchedulerInterval());
-            processInstance.setSchedulerBatchNo(sb.getNextBatchNo());
-        } else if (parent != null) {
-            processInstance.setSchedulerStartId(parent.getSchedulerStartId());
-            processInstance.setProcessInstancePriority(parent.getProcessInstancePriority());
-            processInstance.setDependentSchedulerFlag(parent.isDependentSchedulerFlag());
-            processInstance.setExecutorId(parent.getExecutorId());
-            processInstance.setFailureStrategy(parent.getFailureStrategy());
-            processInstance.setCommandType(parent.getCommandType());
-            processInstance.setWarningGroupId(parent.getWarningGroupId());
-            processInstance.setWorkerGroup(parent.getWorkerGroup());
-            processInstance.setWarningType(parent.getWarningType());
-        }
-        processInstanceMapper.insert(processInstance);
-        return processInstance;
     }
 
-    private ProcessInstance updateInformalProcessInstance(ProcessInstance processInstance, SchedulingBatch sb, ProcessInstance parent) {
-        if (sb != null) {
-            processInstance.setScheduleTime(sb.getSchedulerTime());
-            processInstance.setSchedulerInterval(sb.getSchedulerInterval());
-            processInstance.setSchedulerBatchNo(sb.getNextBatchNo());
-        }else if (parent != null) {
-            processInstance.setSchedulerStartId(parent.getSchedulerStartId());
-            processInstance.setProcessInstancePriority(parent.getProcessInstancePriority());
-            processInstance.setDependentSchedulerFlag(parent.isDependentSchedulerFlag());
-            processInstance.setSchedulerBatchNo(parent.getSchedulerBatchNo());
-            processInstance.setExecutorId(parent.getExecutorId());
-            processInstance.setFailureStrategy(parent.getFailureStrategy());
-            processInstance.setCommandType(parent.getCommandType());
-            processInstance.setWarningGroupId(parent.getWarningGroupId());
-            processInstance.setWorkerGroup(parent.getWorkerGroup());
-            processInstance.setWarningType(parent.getWarningType());
+    private void generateInformalSbInfo(ProcessInstance processInstance, SchedulingBatch sb) {
+        processInstance.setScheduleTime(sb.getSchedulerTime());
+        processInstance.setSchedulerInterval(sb.getSchedulerInterval());
+        processInstance.setSchedulerBatchNo(sb.getNextBatchNo());
+    }
+
+    private void inheritParentInfo(ProcessInstance processInstance, ProcessInstance parent) {
+        processInstance.setSchedulerStartId(parent.getSchedulerStartId());
+        processInstance.setProcessInstancePriority(parent.getProcessInstancePriority());
+        processInstance.setDependentSchedulerType(parent.getDependentSchedulerType());
+        processInstance.setDependentSchedulerFlag(parent.isDependentSchedulerFlag());
+        processInstance.setSchedulerBatchNo(parent.getSchedulerBatchNo());
+        processInstance.setExecutorId(parent.getExecutorId());
+        processInstance.setFailureStrategy(parent.getFailureStrategy());
+        processInstance.setCommandType(parent.getCommandType());
+        processInstance.setWarningGroupId(parent.getWarningGroupId());
+        processInstance.setWorkerGroup(parent.getWorkerGroup());
+        processInstance.setWarningType(parent.getWarningType());
+    }
+
+    public boolean findAndUpdateInformalProcessInstance(int processId, SchedulingBatch sb, ProcessInstance parent) {
+        lock.lock();
+        try {
+            int[] states = new int[]{ExecutionStatus.INFORMAL_FAKE.getCode()};
+            ProcessInstance processInstance = findProcessInstanceByProcessIdInInterval(sb, processId,states, null, null, false);
+            if (processInstance != null) {
+                //说明normal节点任务已经触发，但是没有parent可以继承，所以创建了fake processInstance，这边需要继承属性，更新任务状态，并且创建command
+                inheritParentInfo(processInstance, parent);
+                processInstance.setState(ExecutionStatus.INFORMAL);
+                processInstanceMapper.updateById(processInstance);
+                return true;
+            }
+            //没有状态为INFORMAL_FAKE的processInstance为下面两种场合，都不需要做特殊的处理
+            //场合1：不考虑状态没有对应的processInstance，说明normal节点的定时还未触发，这边不需要创建command，有ProcessScheduleJob创建command，拉起任务
+            //场合2：有状态不为INFORMAL_FAKE的processInstance,说明normal节点任务已经触发，已经找到可以继承属性的parent创建建了完整的informal processInstance，并且已经创建了command
+            return false;
+        } finally {
+            lock.unlock();
         }
-        processInstanceMapper.updateById(processInstance);
-        return processInstance;
+
     }
 
     /**
@@ -618,7 +655,7 @@ public class ProcessService {
      * @param host host
      * @return process instance
      */
-    private ProcessInstance constructProcessInstance(Command command, String host){
+    private ProcessInstance  constructProcessInstance(Command command, String host){
 
         ProcessInstance processInstance = null;
         CommandType commandType = command.getCommandType();
@@ -695,6 +732,7 @@ public class ProcessService {
         processInstance.setHost(host);
         processInstance.setSchedulerRerunNo(command.getSchedulerRerunNo());
         processInstance.setRerunSchedulerFlag(command.isRerunSchedulerFlag());
+        processInstance.setDependentSchedulerType(command.getDependentSchedulerType());
         ExecutionStatus runStatus = ExecutionStatus.RUNNING_EXECUTION;
         int runTime = processInstance.getRunTimes();
         switch (commandType){
@@ -780,6 +818,14 @@ public class ProcessService {
                 //只需要将调度节点后的失败停止节点的状态初始化，当前节点不需要执行，所以直接返回
                 return processInstance;
             case SCHEDULER:
+            case MANUAL_SCHEDULER:
+                if (cmdParam != null && cmdParam.containsKey(CMDPARAM_INFORMAL_SCHEDULER)) {
+                    processInstance.setStartTime(new Date());
+                    processInstance.setEndTime(null);
+                    processInstance.setRunTimes(runTime +1);
+                    processInstance.setCommandStartTime(command.getStartTime());
+                    processInstance.setTaskDependType(command.getTaskDependType());
+                }
                 break;
             default:
                 break;
@@ -1633,6 +1679,7 @@ public class ProcessService {
         cmd.setCommandParam(String.format("{\"%s\":%d}", Constants.CMDPARAM_RECOVER_PROCESS_ID_STRING, processInstance.getId()));
         cmd.setExecutorId(processInstance.getExecutorId());
         cmd.setCommandType(CommandType.RECOVER_TOLERANCE_FAULT_PROCESS);
+        cmd.setDependentSchedulerType(DependentSchedulerType.RECOVER);
         cmd.setDependentSchedulerFlag(processInstance.isDependentSchedulerFlag());
         createCommand(cmd);
     }
@@ -2012,8 +2059,19 @@ public class ProcessService {
         return processDependentMapper.queryByDependentId(dependentId);
     }
 
+    public List<ProcessDependent> findProcessDependentsByProcessId(int processId) {
+        return processDependentMapper.queryByProcessId(processId);
+    }
+
+    public List<ProcessInstance> findProcessInstances(int[] processIds, SchedulingBatch sb) {
+        int[] schedulerTypes = new int[]{DependentSchedulerType.SCHEDULER.ordinal()};
+        return processInstanceMapper.querySchedulerProcessInstances(0, processIds, 0, sb.getStartTime(),
+                sb.getEndTime(), null, null, sb.getNextBatchNo(), schedulerTypes, true);
+    }
+
     /**
-     * find the process by dependent id in paging
+     * find the process by dependent i
+     * d in paging
      * @param page page
      * @param dependentId dependentId
      * @return processDependents
@@ -2027,17 +2085,9 @@ public class ProcessService {
                 null, sb.getBatchNo()).size()>0;
     }
 
-    public ProcessInstance findProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes) {
-        List<ProcessInstance> processInstances = processInstanceMapper
-                .findProcessInstanceByProcessIdInInterval(processId, sb.getStartTime(), sb.getEndTime(), states, commandTypes,sb.getBatchNo());
-        if (processInstances.isEmpty()) {
-            return null;
-        }else if (processInstances.size() == 1) {
-            return processInstances.get(0);
-        }else {
-            processInstances.sort((o1, o2) -> !DateUtils.compare(o1.getScheduleTime(), o2.getScheduleTime()) ? -1 : 1);
-            return processInstances.get(0);
-        }
+    public ProcessInstance findProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes, int[] dependentSchedulerType, boolean dependentSchedulerFlag) {
+        return processInstanceMapper
+                .findProcessInstanceByProcessIdInInterval(processId, sb.getStartTime(), sb.getEndTime(), states, commandTypes,sb.getBatchNo(), dependentSchedulerType, dependentSchedulerFlag);
     }
 
     public Integer getNextSchedulerBatchNo(int processId, List<DateInterval> dateIntervals) {
@@ -2069,26 +2119,24 @@ public class ProcessService {
                 ExecutionStatus.WAITTING_THREAD.ordinal(), ExecutionStatus.WAITTING_DEPEND.ordinal()};
         IPage<Command> iPageCommand = new Page<>(1,1);
         Page<Command> pageCommand = commandMapper.querySchedulerCommandListPaging(iPageCommand, 0, schedulerStartId,
-                sb.getStartTime(), sb.getEndTime(), null, sb.getBatchNo());
+                sb.getStartTime(), sb.getEndTime(), null, sb.getNextBatchNo());
         if (!pageCommand.getRecords().isEmpty()) {
             return true;
         }
         IPage<ProcessInstance> iPageInstance = new Page<>(1,1);
-        Page<ProcessInstance> pageInstance = processInstanceMapper.querySchedulerProcessInstances(iPageInstance, 0,
-                schedulerStartId, sb.getStartTime(), sb.getEndTime(), states, null, sb.getBatchNo(), true);
+        Page<ProcessInstance> pageInstance = processInstanceMapper.querySchedulerProcessInstances(iPageInstance, 0, null,
+                schedulerStartId, sb.getStartTime(), sb.getEndTime(), states, null, sb.getNextBatchNo(), null, true);
         return !pageInstance.getRecords().isEmpty();
     }
 
-    synchronized public int createOrUpdateInformalProcessInstance(ProcessDefinition processDefinition, SchedulingBatch sb, ProcessInstance parent) {
-        ProcessInstance processInstance = processInstanceMapper.findInformalProcessInstanceByProcessId(processDefinition.getId(), sb.getStartTime(), sb.getEndTime(), sb.getBatchNo());
-        if (processInstance == null) {
-            generateNewInformalProcessInstance(processDefinition, sb, parent);
-            return 0;
-        } else {
-            updateInformalProcessInstance(processInstance, sb, parent);
-            //need to fire command
-            return processInstance.getId();
+    public boolean hasValidateFireDate(Date start, Date end, String crontab) {
+        CronExpression expression;
+        try {
+            expression = CronUtils.parse2CronExpression(crontab);
+        } catch (ParseException e) {
+            return false;
         }
+        return CronUtils.getNextFireDate(start, end, expression) != null;
     }
 
 }
