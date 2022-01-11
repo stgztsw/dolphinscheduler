@@ -173,7 +173,9 @@ public class MasterSchedulerService extends Thread {
                                 } else {
                                     future = CompletableFuture.completedFuture(processInstance);
                                 }
-                                dependentProcessQueue.offer(future);
+                                if (!isSubProcess(command)) {
+                                    dependentProcessQueue.offer(future);
+                                }
                                 logger.info("instanceId={} definitionId={} is added to dependentProcessQueue", processInstance.getId(), processInstance.getProcessDefinitionId());
                             }
                         }catch (Exception e){
@@ -188,6 +190,14 @@ public class MasterSchedulerService extends Thread {
                 zkMasterClient.releaseMutex(mutex);
             }
         }
+
+    private boolean isSubProcess(Command command) {
+        Map<String, String> cmdParam = JSONUtils.toMap(command.getCommandParam());
+        if (cmdParam == null) {
+            return false;
+        }
+        return cmdParam.containsKey(Constants.CMDPARAM_SUB_PROCESS);
+    }
 
     private String getLocalAddress() {
         return NetUtils.getAddr(masterConfig.getListenPort());

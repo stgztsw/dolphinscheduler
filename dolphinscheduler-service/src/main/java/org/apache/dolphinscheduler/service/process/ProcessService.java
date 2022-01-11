@@ -2115,7 +2115,6 @@ public class ProcessService {
 
     public boolean currentSchedulingBatchIsRunning(SchedulingBatch sb, int schedulerStartId) {
         int[] states = new int[]{ExecutionStatus.SUBMITTED_SUCCESS.ordinal(), ExecutionStatus.RUNNING_EXECUTION.ordinal(),
-                ExecutionStatus.READY_PAUSE.ordinal(), ExecutionStatus.READY_STOP.ordinal(),
                 ExecutionStatus.WAITTING_THREAD.ordinal(), ExecutionStatus.WAITTING_DEPEND.ordinal()};
         IPage<Command> iPageCommand = new Page<>(1,1);
         Page<Command> pageCommand = commandMapper.querySchedulerCommandListPaging(iPageCommand, 0, schedulerStartId,
