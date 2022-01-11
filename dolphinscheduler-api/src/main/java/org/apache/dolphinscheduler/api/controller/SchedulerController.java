@@ -234,7 +234,7 @@ public class SchedulerController extends BaseController {
                                           @RequestParam Integer processDefinitionId,
                                           @RequestParam(value = "searchVal", required = false) String searchVal,
                                           @RequestParam("pageNo") Integer pageNo,
-                                          @RequestParam("pageSize") Integer pageSize) {// desc 查询定时的list
+                                          @RequestParam("pageSize") Integer pageSize) {
         logger.info("login user {}, query schedule, project name: {}, process definition id: {}",
                 loginUser.getUserName(), projectName, processDefinitionId);
         searchVal = ParameterUtils.handleEscapes(searchVal);

@@ -179,21 +179,21 @@ public class DependentExecute {
      * @return ProcessInstance
      */
     private ProcessInstance findLastProcessInterval(int definitionId, DateInterval dateInterval) {
-        // desc 查最后在跑的Process
+
         ProcessInstance runningProcess = processService.findLastRunningProcess(definitionId, dateInterval.getStartTime(),
                 dateInterval.getEndTime(), currentProcessBatchNo);
         if(runningProcess != null){
             return runningProcess;
         }
-        // desc 查找上次以进程间隔调度的Process
+
         ProcessInstance lastSchedulerProcess = processService.findLastSchedulerProcessInterval(
                 definitionId, dateInterval, currentProcessBatchNo
         );
-        // desc 查找上次手动启动的Process
+
         ProcessInstance lastManualProcess = processService.findLastManualProcessInterval(
                 definitionId, dateInterval, currentProcessBatchNo
         );
-        // question 手动和依赖调度只有一个存在 如果都不是就是什么？
+
         if(lastManualProcess ==null){
             return lastSchedulerProcess;
         }
@@ -262,7 +262,7 @@ public class DependentExecute {
         for(DependentItem dependentItem : dependItemList){
             DependResult dependResult = getDependResultForItem(dependentItem, currentTime);
             if(dependResult != DependResult.WAITING){
-                // desc (1-ALL-day-today-0,SUCCESS)
+
                 dependResultMap.put(dependentItem.getKey(), dependResult);
             }
             dependResultList.add(dependResult);

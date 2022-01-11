@@ -187,9 +187,9 @@ public class ProcessDefinitionService extends BaseDAGService {
         processDefine.setCreateTime(now);
         processDefine.setUpdateTime(now);
         processDefine.setFlag(Flag.YES);
-        processDefine.setProcessType(processData.getProcessType());// update 设置Process类型
+        processDefine.setProcessType(processData.getProcessType());
         processDefineMapper.insert(processDefine);
-        processDependentService.createProcessDependent(processDefine);// update 创建程序依赖
+        processDependentService.createProcessDependent(processDefine);
         putMsg(result, Status.SUCCESS);
         result.put(PROCESSDEFINITIONID,processDefine.getId());
         return result;
@@ -486,7 +486,7 @@ public class ProcessDefinitionService extends BaseDAGService {
             return result;
         }
 
-        if (processDefine.getReleaseState() == ReleaseState.ONLINE) {// desc 上线状态不能重编辑
+        if (processDefine.getReleaseState() == ReleaseState.ONLINE) {
             // online can not permit edit
             putMsg(result, Status.PROCESS_DEFINE_NOT_ALLOWED_EDIT, processDefine.getName());
             return result;
@@ -616,7 +616,7 @@ public class ProcessDefinitionService extends BaseDAGService {
                 return result;
             }
         }
-        if (processDependentService.hasProcessDependent(processDefinitionId)) {// update 是否有依赖关系
+        if (processDependentService.hasProcessDependent(processDefinitionId)) {
             logger.warn("process {} can not be deleted, because this process is dependent " +
                     "by others process", processDefinitionId);
             putMsg(result, Status.DELETE_PROCESS_IS_DEPENDENT);
@@ -662,7 +662,7 @@ public class ProcessDefinitionService extends BaseDAGService {
 
         ProcessDefinition processDefinition = processDefineMapper.selectById(id);
 
-        switch (state) {// desc state 前端传过来的
+        switch (state) {
             case ONLINE:
                 // To check resources whether they are already cancel authorized or deleted
                 String resourceIds = processDefinition.getResourceIds();
@@ -679,7 +679,7 @@ public class ProcessDefinitionService extends BaseDAGService {
                 }
 
                 processDefinition.setReleaseState(state);
-                processDefineMapper.updateById(processDefinition);// desc 更新definition的ReleaseState的状态
+                processDefineMapper.updateById(processDefinition);
                 break;
             case OFFLINE:
                 processDefinition.setReleaseState(state);
@@ -1249,7 +1249,7 @@ public class ProcessDefinitionService extends BaseDAGService {
             }
 
             // check has cycle
-            if (graphHasCycle(taskNodes)) {// question 什么是 has
+            if (graphHasCycle(taskNodes)) {
                 logger.error("process DAG has cycle");
                 putMsg(result, Status.PROCESS_NODE_HAS_CYCLE);
                 return result;

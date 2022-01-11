@@ -54,7 +54,7 @@ public class QuartzExecutors {
   /**
    * read write lock
    */
-  private final ReadWriteLock lock = new ReentrantReadWriteLock();// desc 可重入读写锁
+  private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
   /**
    * A Scheduler maintains a registry of org.quartz.JobDetail and Trigger.
@@ -200,7 +200,7 @@ public class QuartzExecutors {
           jobDetail.getJobDataMap().putAll(jobDataMap);
         }
       } else {
-        jobDetail = newJob(clazz).withIdentity(jobKey).build();// desc 不存在就创建一个clazz对象
+        jobDetail = newJob(clazz).withIdentity(jobKey).build();
 
         if (jobDataMap != null) {
           jobDetail.getJobDataMap().putAll(jobDataMap);
@@ -229,7 +229,7 @@ public class QuartzExecutors {
           CronTrigger oldCronTrigger = (CronTrigger) scheduler.getTrigger(triggerKey);
           String oldCronExpression = oldCronTrigger.getCronExpression();
 
-          if (!StringUtils.equalsIgnoreCase(cronExpression,oldCronExpression)) {// desc 新旧的cron不同时进行更新cron
+          if (!StringUtils.equalsIgnoreCase(cronExpression,oldCronExpression)) {
             // reschedule job trigger
             scheduler.rescheduleJob(triggerKey, cronTrigger);
             logger.info("reschedule job trigger, triggerName: {}, triggerGroupName: {}, cronExpression: {}, startDate: {}, endDate: {}",

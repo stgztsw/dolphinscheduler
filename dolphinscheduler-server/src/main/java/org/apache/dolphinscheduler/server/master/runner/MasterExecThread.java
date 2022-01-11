@@ -156,7 +156,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
         this.masterConfig = SpringApplicationContext.getBean(MasterConfig.class);
         int masterTaskExecNum = masterConfig.getMasterExecTaskNum();
         this.taskExecService = ThreadUtils.newDaemonFixedThreadExecutor("Master-Task-Exec-Thread",
-                masterTaskExecNum);// update desc 创建master守护线程 调用call
+                masterTaskExecNum);
         this.nettyRemotingClient = nettyRemotingClient;
     }
 
@@ -176,10 +176,10 @@ public class MasterExecThread implements Callable<ProcessInstance> {
         try {
             if (processInstance.isComplementData() &&  Flag.NO == processInstance.getIsSubProcess()){
                 // sub process complement data
-                executeComplementProcess();// desc 补数
+                executeComplementProcess();
             }else{
                 // execute flow
-                executeProcess();// desc 执行flow
+                executeProcess();
             }
             return processInstance;
         }catch (Exception e){
@@ -198,7 +198,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
      * execute process
      * @throws Exception exception
      */
-    private void executeProcess() throws Exception {// desc 主执行方法
+    private void executeProcess() throws Exception {
         prepareProcess();
         runProcess();
         endProcess();
@@ -351,7 +351,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
             return;
         }
         // generate process dag
-        dag = DagHelper.buildDagGraph(processDag);// desc 此处生成有向无环图
+        dag = DagHelper.buildDagGraph(processDag);
     }
 
     /**
@@ -367,9 +367,9 @@ public class MasterExecThread implements Callable<ProcessInstance> {
         List<TaskInstance> taskInstanceList = processService.findValidTaskListByProcessId(processInstance.getId());
         for(TaskInstance task : taskInstanceList){
             if(task.isTaskComplete()){
-                completeTaskList.put(task.getName(), task);// desc 已完成task list
+                completeTaskList.put(task.getName(), task);
             }
-            if(task.isConditionsTask() || DagHelper.haveConditionsAfterNode(task.getName(), dag)){// desc 条件task 跳过
+            if(task.isConditionsTask() || DagHelper.haveConditionsAfterNode(task.getName(), dag)){
                 continue;
             }
             if(task.getState().typeIsFailure() && !task.taskCanRetry()){
@@ -394,8 +394,8 @@ public class MasterExecThread implements Callable<ProcessInstance> {
         }else {
             abstractExecThread = new MasterTaskExecThread(taskInstance);
         }
-        Future<Boolean> future = taskExecService.submit(abstractExecThread);// desc 线程提交
-        activeTaskNode.putIfAbsent(abstractExecThread, future);// desc 原子put
+        Future<Boolean> future = taskExecService.submit(abstractExecThread);
+        activeTaskNode.putIfAbsent(abstractExecThread, future);
         return abstractExecThread.getTaskInstance();
     }
 
@@ -423,7 +423,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
      */
     private TaskInstance createTaskInstance(ProcessInstance processInstance, String nodeName,
                                             TaskNode taskNode) {
-        // desc 遍历找taskName是否存在 并将taskNode属性传给taskInstance
+
         TaskInstance taskInstance = findTaskIfExists(nodeName);
         if(taskInstance == null){
             taskInstance = new TaskInstance();
@@ -482,7 +482,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
      * @param parentNodeName parent node name
      */
     private void submitPostNode(String parentNodeName){
-        Set<String> submitTaskNodeList = DagHelper.parsePostNodes(parentNodeName, skipTaskNodeList, dag, completeTaskList);// desc 递归中找到正确的依赖关系和是否允许执行
+        Set<String> submitTaskNodeList = DagHelper.parsePostNodes(parentNodeName, skipTaskNodeList, dag, completeTaskList);
         List<TaskInstance> taskInstances = new ArrayList<>();
         for(String taskNode : submitTaskNodeList){
             taskInstances.add(createTaskInstance(processInstance, taskNode,
@@ -497,10 +497,10 @@ public class MasterExecThread implements Callable<ProcessInstance> {
                 logger.info("task {} has already run success", task.getName());
                 continue;
             }
-            if(task.getState().typeIsPause() || task.getState().typeIsCancel()){// desc task类型是stop或kill
+            if(task.getState().typeIsPause() || task.getState().typeIsCancel()){
                 logger.info("task {} stopped, the state is {}", task.getName(), task.getState());
             }else{
-                addTaskToStandByList(task);// desc 加到readyToSubmitTaskQueue队列里面
+                addTaskToStandByList(task);
             }
         }
     }
@@ -517,7 +517,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
             return DependResult.SUCCESS;
         }
         TaskNode taskNode = dag.getNode(taskName);
-        List<String> depNameList = taskNode.getDepList();// desc 依赖的taskNode名
+        List<String> depNameList = taskNode.getDepList();
         for(String depsNode : depNameList ){
             if(!dag.containsNode(depsNode)
                     || skipTaskNodeList.containsKey(depsNode)
@@ -529,14 +529,14 @@ public class MasterExecThread implements Callable<ProcessInstance> {
                 return DependResult.WAITING;
             }
             ExecutionStatus depTaskState = completeTaskList.get(depsNode).getState();
-            if(depTaskState.typeIsPause() || depTaskState.typeIsCancel()){// desc 暂停和取消状态
+            if(depTaskState.typeIsPause() || depTaskState.typeIsCancel()){
                 return DependResult.NON_EXEC;
             }
             // ignore task state if current task is condition
-            if(taskNode.isConditionsTask()){// desc 条件task
+            if(taskNode.isConditionsTask()){
                 continue;
             }
-            if(!dependTaskSuccess(depsNode, taskName)){// desc 未成功task
+            if(!dependTaskSuccess(depsNode, taskName)){
                 return DependResult.FAILED;
             }
         }
@@ -842,7 +842,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
      */
     private void runProcess(){
         // submit start node
-        submitPostNode(null);// update desc 提交下一个node 放到 队列里面
+        submitPostNode(null);
         boolean sendTimeWarning = false;
         while(!processInstance.isProcessInstanceStop() && Stopper.isRunning()){
 
@@ -870,34 +870,34 @@ public class MasterExecThread implements Callable<ProcessInstance> {
                 }
 
                 // node monitor thread complete
-                if(task.getState().typeIsFinished()){// desc 完成状态移除出存活task map
+                if(task.getState().typeIsFinished()){
                     activeTaskNode.remove(entry.getKey());
                 }
 
                 logger.info("task :{}, id:{} complete, state is {} ",
                         task.getName(), task.getId(), task.getState());
                 // node success , post node submit
-                if(task.getState() == ExecutionStatus.SUCCESS){// desc 成功状态 放到成功队列 后会根据状态是否完成判断deptask是否跑完
+                if(task.getState() == ExecutionStatus.SUCCESS){
                     completeTaskList.put(task.getName(), task);
                     submitPostNode(task.getName());
                     continue;
                 }
                 // node fails, retry first, and then execute the failure process
                 if(task.getState().typeIsFailure()){
-                    if(task.getState() == ExecutionStatus.NEED_FAULT_TOLERANCE){// desc 失败的task 放到待移除队列
+                    if(task.getState() == ExecutionStatus.NEED_FAULT_TOLERANCE){
                         this.recoverToleranceFaultTaskList.add(task);
                     }
-                    if(task.taskCanRetry()){// desc 可重试的task 重放到准备队列
+                    if(task.taskCanRetry()){
                         addTaskToStandByList(task);
-                    }else{// desc 放到完成队列
-                        completeTaskList.put(task.getName(), task);// desc 失败状态 但也是task完成了  后会根据状态是否完成判断deptask是否跑完
+                    }else{
+                        completeTaskList.put(task.getName(), task);
                         if( task.isConditionsTask()
-                            || DagHelper.haveConditionsAfterNode(task.getName(), dag)) {// desc 父节点后是否有condition
-                            submitPostNode(task.getName());// desc 放到准备队列
+                            || DagHelper.haveConditionsAfterNode(task.getName(), dag)) {
+                            submitPostNode(task.getName());
                         }else{
-                            errorTaskList.put(task.getName(), task);// desc 失败状态 非条件和允许重试 放到异常队列
+                            errorTaskList.put(task.getName(), task);
                             if(processInstance.getFailureStrategy() == FailureStrategy.END){
-                                killTheOtherTasks();// desc end kill
+                                killTheOtherTasks();
                             }
                         }
                     }
@@ -908,7 +908,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
             }
             // send alert
             if(CollectionUtils.isNotEmpty(this.recoverToleranceFaultTaskList)){
-                alertManager.sendAlertWorkerToleranceFault(processInstance, recoverToleranceFaultTaskList);// desc 发送报警
+                alertManager.sendAlertWorkerToleranceFault(processInstance, recoverToleranceFaultTaskList);
                 this.recoverToleranceFaultTaskList.clear();
             }
             // updateProcessInstance completed task status
@@ -925,14 +925,14 @@ public class MasterExecThread implements Callable<ProcessInstance> {
                 }
             }
             if(canSubmitTaskToQueue()){
-                submitStandByTask();// desc 资源足够时 放入待提交队列
+                submitStandByTask();
             }
             try {
                 Thread.sleep(Constants.SLEEP_TIME_MILLIS);
             } catch (InterruptedException e) {
                 logger.error(e.getMessage(),e);
             }
-            updateProcessInstanceState();// desc 更新processInstance的状态
+            updateProcessInstanceState();
         }
 
         logger.info("process:{} end, state :{}", processInstance.getId(), processInstance.getState());
@@ -958,7 +958,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
      * whether can submit task to queue
      * @return boolean
      */
-    private boolean canSubmitTaskToQueue() {// desc check cpu和内存
+    private boolean canSubmitTaskToQueue() {
         return OSUtils.checkResource(masterConfig.getMasterMaxCpuloadAvg(), masterConfig.getMasterReservedMemory());
     }
 
@@ -1019,10 +1019,10 @@ public class MasterExecThread implements Callable<ProcessInstance> {
             int length = readyToSubmitTaskQueue.size();
             for (int i=0;i<length;i++) {
                 TaskInstance task = readyToSubmitTaskQueue.peek();
-                DependResult dependResult = getDependResultForTask(task);// desc 判断依赖节点是否全完成
+                DependResult dependResult = getDependResultForTask(task);
                 if(DependResult.SUCCESS == dependResult){
                     if(retryTaskIntervalOverTime(task)){
-                        submitTaskExec(task);// desc 全完成开始提交
+                        submitTaskExec(task);
                         removeTaskFromStandbyList(task);
                     }
                 }else if(DependResult.FAILED == dependResult){

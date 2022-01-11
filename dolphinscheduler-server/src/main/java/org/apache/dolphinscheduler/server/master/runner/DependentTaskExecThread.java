@@ -158,7 +158,7 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
                     cancelTaskInstance();
                     break;
                 }
-                // desc 刷新 dependence
+
                 if ( allDependentTaskFinish() || taskInstance.getState().typeIsFinished()){
                     break;
                 }

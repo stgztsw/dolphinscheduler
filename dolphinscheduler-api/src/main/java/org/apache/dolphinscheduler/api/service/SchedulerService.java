@@ -120,7 +120,7 @@ public class SchedulerService extends BaseService {
 
         // check work flow define release state
         ProcessDefinition processDefinition = processService.findProcessDefineById(processDefineId);
-        result = executorService.checkProcessDefinitionValid(processDefinition, processDefineId);// desc 检查definition定义是否有效
+        result = executorService.checkProcessDefinitionValid(processDefinition, processDefineId);
         if (result.get(Constants.STATUS) != Status.SUCCESS) {
             return result;
         }
@@ -140,7 +140,7 @@ public class SchedulerService extends BaseService {
         }
         scheduleObj.setStartTime(scheduleParam.getStartTime());
         scheduleObj.setEndTime(scheduleParam.getEndTime());
-        if (!org.quartz.CronExpression.isValidExpression(scheduleParam.getCrontab())) {// desc 不是有效的crontab表达式
+        if (!org.quartz.CronExpression.isValidExpression(scheduleParam.getCrontab())) {
             logger.error(scheduleParam.getCrontab() + " verify failure");
 
             putMsg(result, Status.REQUEST_PARAMS_NOT_VALID_ERROR, scheduleParam.getCrontab());
@@ -157,7 +157,7 @@ public class SchedulerService extends BaseService {
         scheduleObj.setReleaseState(ReleaseState.OFFLINE);
         scheduleObj.setProcessInstancePriority(processInstancePriority);
         scheduleObj.setWorkerGroup(workerGroup);
-        scheduleMapper.insert(scheduleObj);// desc 真正插入schedule
+        scheduleMapper.insert(scheduleObj);
 
         /**
          * updateProcessInstance receivers and cc by process definition id
@@ -308,14 +308,14 @@ public class SchedulerService extends BaseService {
         }
 
         // check schedule exists
-        Schedule scheduleObj = scheduleMapper.selectById(id);// desc 查schedule表拿到定时cron
+        Schedule scheduleObj = scheduleMapper.selectById(id);
 
         if (scheduleObj == null) {
             putMsg(result, Status.SCHEDULE_CRON_NOT_EXISTS, id);
             return result;
         }
         // check schedule release state
-        if(scheduleObj.getReleaseState() == scheduleStatus){// desc cron的状态和当前状态是否一致，一致表示已经上线了定时任务
+        if(scheduleObj.getReleaseState() == scheduleStatus){
             logger.info("schedule release is already {},needn't to change schedule id: {} from {} to {}",
                     scheduleObj.getReleaseState(), scheduleObj.getId(), scheduleObj.getReleaseState(), scheduleStatus);
             putMsg(result, Status.SCHEDULE_CRON_REALEASE_NEED_NOT_CHANGE, scheduleStatus);
@@ -329,7 +329,7 @@ public class SchedulerService extends BaseService {
 
         if(scheduleStatus == ReleaseState.ONLINE){
             // check process definition release state
-            if(processDefinition.getReleaseState() != ReleaseState.ONLINE){// desc 排除definition非上线的状态
+            if(processDefinition.getReleaseState() != ReleaseState.ONLINE){
                 ProcessDefinition definition = processDefinitionMapper.selectById(scheduleObj.getProcessDefinitionId());
                 logger.info("not release process definition id: {} , name : {}",
                         processDefinition.getId(), processDefinition.getName());
@@ -338,13 +338,13 @@ public class SchedulerService extends BaseService {
             }
             // check sub process definition release state
             List<Integer> subProcessDefineIds = new ArrayList<>();
-            processService.recurseFindSubProcessId(scheduleObj.getProcessDefinitionId(), subProcessDefineIds);// desc 拿到所有 subprocess的id放到subProcessDefineIds
+            processService.recurseFindSubProcessId(scheduleObj.getProcessDefinitionId(), subProcessDefineIds);
             Integer[] idArray = subProcessDefineIds.toArray(new Integer[subProcessDefineIds.size()]);
             if (subProcessDefineIds.size() > 0){// 拿到subprocess 的 ProcessDefinition对象列表
                 List<ProcessDefinition> subProcessDefinitionList =
                         processDefinitionMapper.queryDefinitionListByIdList(idArray);
                 if (subProcessDefinitionList != null && subProcessDefinitionList.size() > 0){
-                    for (ProcessDefinition subProcessDefinition : subProcessDefinitionList){// desc definition非上线状态return
+                    for (ProcessDefinition subProcessDefinition : subProcessDefinitionList){
                         /**
                          * if there is no online process, exit directly
                          */
@@ -377,12 +377,12 @@ public class SchedulerService extends BaseService {
             switch (scheduleStatus) {
                 case ONLINE: {
                     logger.info("Call master client set schedule online, project id: {}, flow id: {},host: {}", project.getId(), processDefinition.getId(), masterServers);
-                    setSchedule(project.getId(), id);// desc 真正上线的处理逻辑
+                    setSchedule(project.getId(), id);
                     break;
                 }
                 case OFFLINE: {
                     logger.info("Call master client set schedule offline, project id: {}, flow id: {},host: {}", project.getId(), processDefinition.getId(), masterServers);
-                    deleteSchedule(project.getId(), id);// desc 真正下线的处理逻辑
+                    deleteSchedule(project.getId(), id);
                     break;
                 }
                 default: {
@@ -423,7 +423,7 @@ public class SchedulerService extends BaseService {
         if (!hasProjectAndPerm) {
             return result;
         }
-        // desc 拿到定时的Definition
+
         ProcessDefinition processDefinition = processService.findProcessDefineById(processDefineId);
         if (processDefinition == null) {
             putMsg(result, Status.PROCESS_DEFINE_NOT_EXIST, processDefineId);
@@ -491,11 +491,11 @@ public class SchedulerService extends BaseService {
         Date startDate = schedule.getStartTime();
         Date endDate = schedule.getEndTime();
 
-        String jobName = QuartzExecutors.buildJobName(scheduleId);// desc quartz job 名
-        String jobGroupName = QuartzExecutors.buildJobGroupName(projectId);// desc quartz job group 名
+        String jobName = QuartzExecutors.buildJobName(scheduleId);
+        String jobGroupName = QuartzExecutors.buildJobGroupName(projectId);
 
         Map<String, Object> dataMap = QuartzExecutors.buildDataMap(projectId, scheduleId, schedule);
-        // desc 提交 job 生成ProcessScheduleJob对象
+
         QuartzExecutors.getInstance().addJob(ProcessScheduleJob.class, jobName, jobGroupName, startDate, endDate,
                 schedule.getCrontab(), dataMap);
 
