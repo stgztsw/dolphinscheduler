@@ -171,10 +171,10 @@ public class MasterSchedulerService extends Thread {
                                                     , nettyRemotingClient
                                             ));
                                 } else {
-                                    logger.debug("process={} is not in running status, add it to dependentProcessQueue", processInstance.getId());
                                     future = CompletableFuture.completedFuture(processInstance);
                                 }
                                 dependentProcessQueue.offer(future);
+                                logger.info("instanceId={} definitionId={} is added to dependentProcessQueue", processInstance.getId(), processInstance.getProcessDefinitionId());
                             }
                         }catch (Exception e){
                             logger.error("scan command error ", e);
@@ -252,7 +252,6 @@ public class MasterSchedulerService extends Thread {
             while (true) {
                 try {
                     if (dependentProcessQueue.isEmpty()) {
-                        logger.debug("dependentProcessQueue is empty, no dependent process need to be fired");
                         Thread.sleep(Constants.SLEEP_TIME_MILLIS_10S);
                         continue;
                     }
@@ -263,29 +262,29 @@ public class MasterSchedulerService extends Thread {
                             continue;
                         }
                         ProcessInstance parentProcessInstance = future.get();
-                        logger.debug("parentProcessInstance={} processDefinitionId={} take from dependentProcessQueue",
+                        logger.info("instanceId={} definitionId={} whose execution thread is complete, take it from dependentProcessQueue",
                                 parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId());
                         if (!parentProcessInstance.isDependentSchedulerFlag()) {
-                            logger.debug("parentProcessInstance={} DependentSchedulerFlag is false, " +
-                                    "not need to fire the dependent process", parentProcessInstance.getProcessDefinitionId());
                             futureIterator.remove();
+                            logger.info("instanceId={} definitionId={} whose DependentSchedulerFlag is false, " +
+                                    "no need to fire the dependent process", parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId());
                             continue;
                         }
                         if (!parentProcessInstance.getState().typeIsFinished()) {
                             //future已经完成，虽然任务没有完成，但其实任务状态不会再被执行线程改变，所以这边需要检查数据库内的状态
                             parentProcessInstance = processService.findProcessInstanceDetailById(parentProcessInstance.getId());
                             if (!parentProcessInstance.getState().typeIsFinished()) {
-                                logger.info("future is complete, but parentProcessInstance={} status={} is still not finished, transfer it to abnormalProcessQueue",
-                                        parentProcessInstance.getId(), parentProcessInstance.getState().getDescp());
                                 abnormalProcessQueue.offer(parentProcessInstance.getId());
                                 futureIterator.remove();
+                                logger.error("instanceId={} definitionId={} whose execution thread is complete, but status={} is still not finished, transfer it to abnormalProcessQueue",
+                                        parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId(), parentProcessInstance.getState().getDescp());
                                 continue;
                             }
                         }
                         if (!parentProcessInstance.getState().typeIsSuccess()) {
-                            logger.debug("parentProcessInstance={} is not success, not need to fire the dependent process",
-                                    parentProcessInstance.getProcessDefinitionId());
                             futureIterator.remove();
+                            logger.info("instanceId={} definitionId={} whose status={} is not success, no need to fire the dependent process",
+                                    parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId(), parentProcessInstance.getState().getDescp());
                             continue;
                         }
                         int pageNo = 1;
@@ -296,7 +295,8 @@ public class MasterSchedulerService extends Thread {
                             page = processService.queryByDependentIdListPaging(iPage,parentProcessInstance.getProcessDefinitionId());
                             List<ProcessDependent> processDependents = page.getRecords();
                             if (page.getTotal() == 0) {
-                                logger.debug("process={} has no dependent process", parentProcessInstance.getProcessDefinitionId());
+                                logger.info("instanceId={} definitionId={} whose status={} is success has no dependent process need to be fire",
+                                        parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId(), parentProcessInstance.getState().getDescp());
                                 break;
                             }
                             schedulerProcess(parentProcessInstance, processDependents);
@@ -314,16 +314,16 @@ public class MasterSchedulerService extends Thread {
                             ProcessInstance abnormalProcessInstance = processService.findProcessInstanceDetailById(iterator.next());
                             if (!abnormalProcessInstance.getState().typeIsFinished()) {
                                 if (DateUtils.differSec(new Date(), abnormalProcessInstance.getStartTime()) > 86400) {
-                                    logger.info("abnormalProcessInstance={} status={} running time > 24h, remove it from abnormalProcessQueue",
-                                            abnormalProcessInstance.getId(), abnormalProcessInstance.getState().getDescp());
                                     futureIterator.remove();
+                                    logger.info("in abnormalProcessQueue instanceId={} definitionId={} whose status={} running more than 24h, discard it from abnormalProcessQueue",
+                                            abnormalProcessInstance.getId(),  abnormalProcessInstance.getProcessDefinitionId(), abnormalProcessInstance.getState().getDescp());
                                     continue;
                                 }
                             }
-                            logger.info("abnormalProcessInstance={} status={} is complete, transfer it to dependentProcessQueue",
-                                    abnormalProcessInstance.getId(), abnormalProcessInstance.getState().getDescp());
                             dependentProcessQueue.offer(CompletableFuture.completedFuture(abnormalProcessInstance));
                             iterator.remove();
+                            logger.info("in abnormalProcessQueue instanceId={} definitionId={} whose status={} is complete, transfer it to dependentProcessQueue",
+                                    abnormalProcessInstance.getId(),  abnormalProcessInstance.getProcessDefinitionId(), abnormalProcessInstance.getState().getDescp());
                         }
                         lastCheckTime = System.currentTimeMillis();
                     }
@@ -335,21 +335,22 @@ public class MasterSchedulerService extends Thread {
 
         private void schedulerProcess(ProcessInstance parentProcessInstance, List<ProcessDependent> processDependents) {
             for (ProcessDependent processDependent : processDependents) {
+                logger.info("definitionId={} is need to be fired by parentInstanceId={} parentDefinitionId={}",
+                        processDependent.getProcessId(), parentProcessInstance.getId(), parentProcessInstance.getProcessDefinitionId());
                 ProcessDefinition processDefinition = processService
                         .findDefineSchedulerById(processDependent.getProcessId());
                 if (processDefinition == null) {
-                    logger.error("ProcessDependent which dependentId={} processId={} is not exist", processDependent.getDependentId(), processDependent.getProcessId());
+                    logger.error("definitionId={} is not exist", processDependent.getProcessId());
                     continue;
                 }
                 if (ReleaseState.OFFLINE == processDefinition.getReleaseState()) {
-                    logger.debug("ProcessDependent which dependentId={} processId={} is offline, no need to fire it",
-                            processDependent.getDependentId(), processDependent.getProcessId());
+                    logger.info("definitionId={} is offline, no need to fire it", processDefinition.getId());
                     continue;
                 }
                 SchedulingBatch sb = new SchedulingBatch(parentProcessInstance);
                 if (processService.dependentProcessIsFired(sb, processDefinition.getId())) {
-                    logger.debug("ProcessDependent which dependentId={} processId={} has been fired in command queue",
-                            processDependent.getDependentId(), processDependent.getProcessId());
+                    logger.info("definitionId={} has been fired in command queue; SchedulingBatch info: startTime={} endTime={} batchNO={}",
+                            processDefinition.getId(), sb.getStartTime(), sb.getEndTime(), sb.getBatchNo());
                     continue;
                 }
                 boolean hasValidateFireDate = false;
@@ -360,6 +361,7 @@ public class MasterSchedulerService extends Thread {
                 //上游节点为定时调度并且当前normal节点设置了调度时间
                 if (parentProcessInstance.getDependentSchedulerType() == DependentSchedulerType.SCHEDULER && hasValidateFireDate) {
                     if (!processService.findAndUpdateInformalProcessInstance(processDefinition.getId(), sb, parentProcessInstance)) {
+                        logger.info("definitionId={} has crontab timing, the state is not the INFORMAL_FAKE, need do nothing", processDefinition.getId());
                         continue;
                     }
                 }
@@ -367,7 +369,6 @@ public class MasterSchedulerService extends Thread {
                 ProcessInstance processInstance= processService
                         .findProcessInstanceByProcessIdInInterval(sb, processDefinition.getId(),null, null, null, true);
                 initOlderProperty(processInstance);
-                Command command;
                 if (processInstance != null) {
                     if (parentProcessInstance.isRerunSchedulerFlag()) {
                         if (!parentProcessInstance.getSchedulerRerunNo().equals(processInstance.getSchedulerRerunNo())) {
@@ -376,25 +377,21 @@ public class MasterSchedulerService extends Thread {
                         }
                         continue;
                     } else if (!processInstance.getState().typeIsFinished() && ExecutionStatus.INITED != processInstance.getState() && !processInstance.getState().typeIsInformal()) {
-                        logger.debug("ProcessDependent which dependentId={} processId={} has existed processInstance={} in running now",
-                                processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId());
+                        logger.info("definitionId={} has existed instance={} in running now, no need to be fired", processDefinition.getId(), processInstance.getId());
                         continue;
                     }else if (ExecutionStatus.SUCCESS == processInstance.getState()) {
-                        logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={}, and it's state is success, " +
-                                "no need to submit to executor, and add it to dependentProcessQueue",
-                                processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId());
                         dependentProcessQueue.offer(CompletableFuture.completedFuture(processInstance));
+                        logger.info("definitionId={} has existed instance={}. the state is success, no need to be fired, and add it to dependentProcessQueue",
+                                processDefinition.getId(), processInstance.getId());
                         continue;
                     }
                     if (processInstance.getState() == ExecutionStatus.INFORMAL) {
-                        logger.debug("processInstance={} is exist, and in informal state, do informal execution", processInstance.getId());
-                        command = generateCommand(parentProcessInstance, processDefinition, processInstance, informalConsumer);
+                        logger.info("definitionId={} has existed instance={}, the state is informal, do informal execution", processDefinition.getId(), processInstance.getId());
+                        generateCommand(parentProcessInstance, processDefinition, processInstance, informalConsumer);
                     } else {
-                        logger.debug("processInstance={} is exist, and not in success state, do START_FAILURE_TASK_PROCESS", processInstance.getId());
-                        command = generateCommand(parentProcessInstance, processDefinition, processInstance, recoveryFailureConsumer);
+                        logger.info("definitionId={} has existed instance={}, the state is success, do START_FAILURE_TASK_PROCESS", processDefinition.getId(), processInstance.getId());
+                        generateCommand(parentProcessInstance, processDefinition, processInstance, recoveryFailureConsumer);
                     }
-                    logger.debug("ProcessDependent which dependentId={} processId={} has exist processInstance={}, need to be fired in {} mode",
-                            processDependent.getDependentId(), processDependent.getProcessId(), processInstance.getId(), command.getCommandType());
                 } else {
                     generateCommand(parentProcessInstance, processDefinition, null, SchedulerConsumer);
                 }
@@ -437,8 +434,8 @@ public class MasterSchedulerService extends Thread {
             command.setRerunSchedulerFlag(parentProcessInstance.isRerunSchedulerFlag());
             consumer.accept(command, processInstance, parentProcessInstance);
             processService.createCommand(command);
-            logger.info("ProcessDependent which dependentId={} processId={} fired in {} mode",
-                    parentProcessInstance.getProcessDefinitionId(), processDefinition.getId(), command.getCommandType());
+            logger.info("definitionId={} fired in {} mode",
+                    processDefinition.getId(), parentProcessInstance.getDependentSchedulerType());
             return command;
         }
 
