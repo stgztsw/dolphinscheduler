@@ -108,5 +108,9 @@ export default {
   isDetails: false,
   startup: {
 
-  }
+  },
+  // id state list
+  idListState: [],
+  // depend object state list
+  dependList: []
 }

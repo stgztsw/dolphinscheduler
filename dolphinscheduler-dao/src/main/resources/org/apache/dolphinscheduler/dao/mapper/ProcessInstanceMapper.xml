@@ -258,4 +258,275 @@
         and scheduler_batch_no = #{batchNo}
         and dependent_scheduler_flag = true
     </select>
+    <select id="findLastBatchDependByProcessIdInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
+        select
+        ifnull(ins.id,0) as procesId,
+        ifnull(ins.process_definition_id,def_all.id) as definitionId,
+        ifnull(ins.name,def_all.name) as name,
+        ifnull(ins.state,null) as state
+        from
+        -- 找出当前processId的所有的父节点def id
+        (select def.id,def.name from
+        (
+        select id, dependent_id, process_id, create_time, update_time
+        from t_ds_process_dependent
+        where process_id = #{processId}
+        order by process_id asc
+        ) dep
+        left join (select * from t_ds_process_definition) def
+        on dep.dependent_id = def.id
+        where def.release_state != 0) def_all
+        -- left join instance 根据 processId, id ,name ,definitionId ,start_time 这几个Instance的字段必要
+        left join
+        (select * from t_ds_process_instance) ins on def_all.id = ins.process_definition_id
+        -- 在调度周期内
+        and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+        and scheduler_batch_no = #{batchNo}
+        and ins.dependent_scheduler_flag = true
+    </select>
+    <select id="findLastBatchDependByDependentIdInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
+        select
+            ifnull(ins.id,0) as procesId,
+            ifnull(ins.process_definition_id,def_all.id) as definitionId,
+            ifnull(ins.name,def_all.name) as name,
+            ifnull(ins.state,null) as state
+        from
+            -- 找出当前processId的所有的父节点def id
+            (select def.id,def.name from
+                (
+                    select id, dependent_id, process_id, create_time, update_time
+                    from t_ds_process_dependent
+                    where dependent_id = #{processId}
+                    order by process_id asc
+                ) dep
+                    left join (select * from t_ds_process_definition) def
+                              on dep.process_id = def.id
+             where def.release_state != 0) def_all
+                -- left join instance 根据 processId, id ,name ,definitionId ,start_time 这几个Instance的字段必要
+                left join
+                (select * from t_ds_process_instance) ins on def_all.id = ins.process_definition_id
+                -- 在调度周期内
+                and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+                and scheduler_batch_no = #{batchNo}
+                and ins.dependent_scheduler_flag = true
+    </select>
+    <select id="findLastBatchDependByProcessInstanceInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
+        select
+            ifnull(ins.id,0) as procesId,
+            ifnull(ins.process_definition_id,def_all.id) as definitionId,
+            ifnull(ins.name,def_all.name) as name,
+            ifnull(ins.state,null) as state,
+            'parent' dependType
+        from
+            -- 找出当前processId的所有的父节点def id
+            (select def.id,def.name from
+                (
+                    select id, dependent_id, process_id, create_time, update_time
+                    from t_ds_process_dependent
+                    where process_id = #{processId}
+                    order by process_id asc
+                ) dep
+                    left join (select * from t_ds_process_definition) def
+                              on dep.dependent_id = def.id
+             where def.release_state != 0) def_all
+                -- left join instance 根据 processId, id ,name ,definitionId ,start_time 这几个Instance的字段必要
+                left join
+                (select * from t_ds_process_instance) ins on def_all.id = ins.process_definition_id
+                -- 在调度周期内
+                and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+                and scheduler_batch_no = #{batchNo}
+                and ins.dependent_scheduler_flag = true
+        union all
+        select
+            ifnull(ins.id,0) as procesId,
+            ifnull(ins.process_definition_id,def_all.id) as definitionId,
+            ifnull(ins.name,def_all.name) as name,
+            ifnull(ins.state,null) as state,
+            'child' dependType
+        from
+            -- 找出当前processId的所有的父节点def id
+            (select def.id,def.name from
+                (
+                    select id, dependent_id, process_id, create_time, update_time
+                    from t_ds_process_dependent
+                    where dependent_id = #{processId}
+                    order by process_id asc
+                ) dep
+                    left join (select * from t_ds_process_definition) def
+                              on dep.process_id = def.id
+             where def.release_state != 0) def_all
+                -- left join instance 根据 processId, id ,name ,definitionId ,start_time 这几个Instance的字段必要
+                left join
+                (select * from t_ds_process_instance) ins on def_all.id = ins.process_definition_id
+                -- 在调度周期内
+                and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+                and scheduler_batch_no = #{batchNo}
+                and ins.dependent_scheduler_flag = true
+    </select>
+    <select id="findLastBatchDependByProcessDefinitionInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
+        select
+            null as procesId,
+            def_all.id as definitionId,
+            def_all.name as name,
+            null as state,
+            'parent' dependType
+        from
+            -- 找出当前processId的所有的父节点def id
+            (select def.id,def.name from
+                (
+                    select id, dependent_id, process_id, create_time, update_time
+                    from t_ds_process_dependent
+                    where process_id = #{processId}
+                    order by process_id asc
+                ) dep
+                    left join (select * from t_ds_process_definition) def
+                              on dep.dependent_id = def.id
+             where def.release_state != 0) def_all
+        union all
+        select
+            null as procesId,
+            def_all.id as definitionId,
+            def_all.name as name,
+            null as state,
+            'child' dependType
+        from
+            -- 找出当前processId的所有的父节点def id
+            (select def.id,def.name from
+                (
+                    select id, dependent_id, process_id, create_time, update_time
+                    from t_ds_process_dependent
+                    where dependent_id = #{processId}
+                    order by process_id asc
+                ) dep
+                    left join (select * from t_ds_process_definition) def
+                              on dep.process_id = def.id
+             where def.release_state != 0) def_all
+    </select>
+
+<!--    <resultMap id="var" type="java.util.HashMap"/>-->
+<!--    <resultMap id="processInstance" type="org.apache.dolphinscheduler.dao.entity.ProcessInstance"/>-->
+<!--    <select id="findLastBatchProcessInstanceByProcessIdInIntervalList" resultType="var,processInstance">-->
+<!--        select @rn:=0, @id:=0;-->
+<!--        select-->
+<!--        res.id, res.name, res.process_definition_id, res.state, res.recovery, res.start_time, res.end_time, res.run_times, res.host, res.command_type, res.command_param, res.task_depend_type, res.max_try_times, res.failure_strategy, res.warning_type, res.warning_group_id, res.schedule_time, res.command_start_time, res.global_params, res.process_instance_json, res.flag, res.update_time, res.is_sub_process, res.executor_id, res.locations, res.connects, res.history_cmd, res.dependence_schedule_times, res.process_instance_priority, res.worker_group, res.timeout, res.tenant_id, res.scheduler_interval, res.scheduler_batch_no, res.process_type, res.dependent_scheduler_flag, res.scheduler_start_id, res.scheduler_rerun_no, res.rerun_scheduler_flag-->
+<!--        from (-->
+<!--        select-->
+<!--        @rn:= case when @id = ins.process_definition_id then @rn + 1 else 1 end as rn,-->
+<!--        @id:= ins.process_definition_id as df_id,-->
+<!--        ins.*-->
+<!--        from-->
+<!--        (-->
+<!--        select a.*,b.*-->
+<!--        from-->
+<!--        (select * from-->
+<!--        t_ds_process_instance-->
+<!--        where process_definition_id in (-->
+<!--        select def.id from-->
+<!--        (-->
+<!--        select id, dependent_id, process_id, create_time, update_time-->
+<!--        from t_ds_process_dependent-->
+<!--        where process_id = #{processId}-->
+<!--        order by process_id asc-->
+<!--        ) dep-->
+<!--        left join (select * from t_ds_process_definition) def-->
+<!--        on dep.dependent_id = def.id-->
+<!--        where def.release_state != 0-->
+<!--        )-->
+<!--        and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}-->
+<!--        and scheduler_batch_no = #{batchNo}-->
+<!--        and dependent_scheduler_flag = true-->
+<!--        order by process_definition_id,start_time desc) a,-->
+
+<!--        (select @rn=0, @id=0) b-->
+<!--        ) ins ) res-->
+<!--        where res.rn = 1-->
+
+<!--        union all-->
+
+<!--        select-->
+<!--        ifnull( null_ins.id, 0) as id,-->
+<!--        ifnull( null_ins.name,null_id.name) as name,-->
+<!--        ifnull( null_ins.process_definition_id,null_id.id) as process_definition_id,-->
+<!--        null_ins.state,-->
+<!--        null_ins.recovery,-->
+<!--        ifnull( null_ins.start_time,'9999-99-99 00:00:00') start_time,-->
+<!--        null_ins.end_time,-->
+<!--        null_ins.run_times,-->
+<!--        null_ins.host,-->
+<!--        null_ins.command_type,-->
+<!--        null_ins.command_param,-->
+<!--        null_ins.task_depend_type,-->
+<!--        null_ins.max_try_times,-->
+<!--        null_ins.failure_strategy,-->
+<!--        null_ins.warning_type,-->
+<!--        null_ins.warning_group_id,-->
+<!--        null_ins.schedule_time,-->
+<!--        null_ins.command_start_time,-->
+<!--        null_ins.global_params,-->
+<!--        null_ins.process_instance_json,-->
+<!--        null_ins.flag,-->
+<!--        null_ins.update_time,-->
+<!--        null_ins.is_sub_process,-->
+<!--        null_ins.executor_id,-->
+<!--        null_ins.locations,-->
+<!--        null_ins.connects,-->
+<!--        null_ins.history_cmd,-->
+<!--        null_ins.dependence_schedule_times,-->
+<!--        null_ins.process_instance_priority,-->
+<!--        null_ins.worker_group,-->
+<!--        null_ins.timeout,-->
+<!--        null_ins.tenant_id,-->
+<!--        null_ins.scheduler_interval,-->
+<!--        null_ins.scheduler_batch_no,-->
+<!--        null_ins.process_type,-->
+<!--        null_ins.dependent_scheduler_flag,-->
+<!--        null_ins.scheduler_start_id,-->
+<!--        null_ins.scheduler_rerun_no,-->
+<!--        null_ins.rerun_scheduler_flag from-->
+<!--        (-->
+<!--        select def_all.* from-->
+<!--        &#45;&#45; 查询出dependent 所有的 definitionId 的值-->
+<!--        (-->
+<!--        select def.id,def.name from-->
+<!--        (-->
+<!--        select id, dependent_id, process_id, create_time, update_time-->
+<!--        from t_ds_process_dependent-->
+<!--        where process_id = #{processId}-->
+<!--        order by process_id asc-->
+<!--        ) dep-->
+<!--        left join (select * from t_ds_process_definition) def-->
+<!--        on dep.dependent_id = def.id-->
+<!--        where def.release_state != 0-->
+<!--        ) def_all-->
+<!--        left join-->
+<!--        &#45;&#45; 根据definitionId 查询出所有存在实例的 processInstance-->
+<!--        (-->
+<!--        select process_definition_id from-->
+<!--        &#45;&#45; 			select * from-->
+<!--        t_ds_process_instance-->
+<!--        where process_definition_id in (-->
+<!--        select def.id from-->
+<!--        (-->
+<!--        select id, dependent_id, process_id, create_time, update_time-->
+<!--        from t_ds_process_dependent-->
+<!--        where process_id = 14-->
+<!--        order by process_id asc-->
+<!--        ) dep-->
+<!--        left join (select * from t_ds_process_definition) def-->
+<!--        on dep.dependent_id = def.id-->
+<!--        where def.release_state != 0-->
+<!--        )-->
+<!--        and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}-->
+<!--        and scheduler_batch_no = #{batchNo}-->
+<!--        and dependent_scheduler_flag = true-->
+<!--        group by process_definition_id-->
+<!--        ) ins_all-->
+<!--        on def_all.id = ins_all.process_definition_id-->
+<!--        where ins_all.process_definition_id is null-->
+<!--        ) null_id-->
+<!--        left join-->
+<!--        (select * from t_ds_process_instance where schedule_time> '9999-99-99 99:99:99') null_ins-->
+<!--        on null_id.id = null_ins.id-->
+<!--    </select>-->
+
 </mapper>

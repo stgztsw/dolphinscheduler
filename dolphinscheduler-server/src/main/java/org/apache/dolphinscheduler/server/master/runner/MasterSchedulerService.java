@@ -18,7 +18,6 @@ package org.apache.dolphinscheduler.server.master.runner;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.apache.commons.cli.CommandLine;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.dolphinscheduler.common.Constants;
@@ -197,7 +196,7 @@ public class MasterSchedulerService extends Thread {
     private String getLocalAddress() {
         return NetUtils.getAddr(masterConfig.getListenPort());
     }
-    
+
     class DependentScheduler extends Thread{
 
         private final int pageSize = 10;
@@ -241,15 +240,6 @@ public class MasterSchedulerService extends Thread {
                         Thread.sleep(Constants.SLEEP_TIME_MILLIS_10S);
                         continue;
                     }
-                    dependentProcessQueue.stream().forEach(x-> {
-                        try {
-                            logger.debug(x.get().toString()+ "\n\n");
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        } catch (ExecutionException e) {
-                            e.printStackTrace();
-                        }
-                    });
                     Iterator<Future<ProcessInstance>> futureIterator = dependentProcessQueue.iterator();
                     while (futureIterator.hasNext()) {
                         Future<ProcessInstance> future = futureIterator.next();
@@ -335,11 +325,6 @@ public class MasterSchedulerService extends Thread {
         }
         // 生成子节点的command
         private void schedulerProcess(ProcessInstance parentProcessInstance, List<ProcessDependent> processDependents) {
-            /*---------------------------*/
-//            // update jack 定时的command
-//            Command newCommand = processService.findOneCommand();
-//            ProcessInstance subProcessInstance = processService.constructProcessInstance(newCommand, getLocalAddress());
-            /*---------------------------*/
             for (ProcessDependent processDependent : processDependents) {
                 ProcessDefinition processDefinition = processService
                         .findProcessDefineById(processDependent.getProcessId());
@@ -396,15 +381,6 @@ public class MasterSchedulerService extends Thread {
             }
             processInstance.setRerunSchedulerFlag(false);
         }
-
-//        private Command updateCommand(ProcessInstance parentProcessInstance,
-//                                      ProcessInstance processInstance, CommandType commandType,Command command
-//                                      TriConsumer<Command, ProcessInstance, ProcessInstance> consumer) {
-//            Date schedulerTime = parentProcessInstance.getScheduleTime();
-//            int schedulerInterval = parentProcessInstance.getSchedulerInterval();
-//            int batchNo = parentProcessInstance.getSchedulerBatchNo();
-//            command
-//        }
 
         private Command generateCommand(ProcessInstance parentProcessInstance, ProcessDefinition processDefinition,
                                         ProcessInstance processInstance, CommandType commandType,

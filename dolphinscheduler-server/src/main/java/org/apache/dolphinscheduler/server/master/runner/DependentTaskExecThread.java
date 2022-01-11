@@ -81,9 +81,6 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
                                 "because process is not in scheduler mode", processInstance.getId(), taskInstance.getName());
                 return true;
             }
-//            if (!"DEPENDENT".equals(this.taskInstance.getTaskType()){
-//
-//            }
             this.taskInstance = submit();
             logger = LoggerFactory.getLogger(LoggerUtils.buildTaskId(LoggerUtils.TASK_LOGGER_INFO_PREFIX,
                     taskInstance.getProcessDefinitionId(),

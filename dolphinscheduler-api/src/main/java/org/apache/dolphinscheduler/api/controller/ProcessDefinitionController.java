@@ -298,11 +298,6 @@ public class ProcessDefinitionController extends BaseController {
         return returnDataListPaging(result);
     }
 
-//    public Result createDefinitionWorkDir(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser
-//                                          ) {
-//
-//    }
-
     /**
      * encapsulation treeview structure
      *
@@ -502,23 +497,6 @@ public class ProcessDefinitionController extends BaseController {
     }
 
 
-//    @ApiOperation(value = "queryProcessDefinitionDependentsById", notes= "QUERY_PROCESS_DEFINITION_DEPENDENTS_BY_ID_NOTES")
-//    @ApiImplicitParams({
-//            @ApiImplicitParam(name = "processId", value = "PROCESS_DEFINITION_ID", required = true, dataType = "Int", example = "100")
-//    })
-//    @GetMapping(value = "/select-dependent-by-id")
-//    @ResponseStatus(HttpStatus.OK)
-//    @ApiException(QUERY_DATAIL_OF_PROCESS_DEFINITION_ERROR)
-//    public Result queryProcessDefinitionDependentsById(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-//                                             @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName,
-//                                             @RequestParam("processId") Integer processId
-//    ) {
-//        logger.info("query detail of process definition, login user:{}, project name:{}, process definition id:{}",
-//                loginUser.getUserName(), projectName, processId);
-//        Map<String, Object> result = processDefinitionService.queryProcessDefinitionDependentById(loginUser, projectName, processId);
-//        return returnDataList(result);
-//    }
-
     @ApiOperation(value = "queryProcessDefinitionOneLayerDependentsById", notes= "QUERY_PROCESS_DEFINITION_DEPENDENTS_BY_ID_NOTES")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "processId", value = "PROCESS_DEFINITION_ID", required = true, dataType = "Int", example = "100"),
@@ -533,7 +511,7 @@ public class ProcessDefinitionController extends BaseController {
                                                                @RequestParam("dependentViewRelation") DependentViewRelation dependentViewRelation
 
     ) {
-        logger.info("query detail of process definition, login user:{}, project name:{}, process definition id:{}",
+        logger.info("query detail dependents of process definition, login user:{}, project name:{}, process definition id:{}",
                 loginUser.getUserName(), projectName, processId);
         Map<String, Object> result = processDefinitionService.queryProcessDefinitionOneLayerDependentById(loginUser, projectName, processId, dependentViewRelation);
         return returnDataList(result);

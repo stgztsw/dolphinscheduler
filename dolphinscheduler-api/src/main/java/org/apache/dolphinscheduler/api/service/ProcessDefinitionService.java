@@ -19,8 +19,7 @@ package org.apache.dolphinscheduler.api.service;
 
 import static org.apache.dolphinscheduler.common.Constants.CMDPARAM_SUB_PROCESS_DEFINE_ID;
 import static org.apache.dolphinscheduler.common.Constants.DATA_LIST;
-import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_ASCEND;
-import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_DESCEND;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.*;
 
 import org.apache.dolphinscheduler.api.dto.ProcessMeta;
 import org.apache.dolphinscheduler.api.dto.treeview.Instance;
@@ -47,6 +46,7 @@ import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
 import org.apache.dolphinscheduler.common.utils.TaskParametersUtils;
 import org.apache.dolphinscheduler.dao.entity.*;
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependTreeViewVo;
 import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
@@ -74,9 +74,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.PUT;
 
-import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -332,7 +330,7 @@ public class ProcessDefinitionService extends BaseDAGService {
         }
         ProcessDefinition processDefinition = processDefineMapper.selectById(processId);
 
-        getDependentViewProcessDefinitions(result,processDefinition);
+        queryDependentTreeViewList(result,processDefinition);
         return null;
     }
 
@@ -347,11 +345,19 @@ public class ProcessDefinitionService extends BaseDAGService {
         ProcessDefinition processDefinition = processDefineMapper.selectById(processId);
         switch (dependentViewRelation) {
             case ONE_ASCEND:
-                List<ProcessDefinition> ascendProcessDependents = queryDependentsByProcessDefinition(processDefinition, ONE_ASCEND);
+                DependTreeViewVo ascendProcessDependents = queryDependentsByProcessDefinition(processDefinition, ONE_ASCEND);
+                if (ascendProcessDependents.getParents().isEmpty()) {
+                    putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processDefinition.getId());
+                    return result;
+                }
                 putResult(result,ascendProcessDependents,ONE_ASCEND,processDefinition);
                 break;
             case ONE_DESCEND:
-                List<ProcessDefinition> descendProcessDependents = queryDependentsByProcessDefinition(processDefinition, ONE_DESCEND);
+                DependTreeViewVo descendProcessDependents = queryDependentsByProcessDefinition(processDefinition, ONE_DESCEND);
+                if (descendProcessDependents.getParents().isEmpty()) {
+                    putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processDefinition.getId());
+                    return result;
+                }
                 putResult(result,descendProcessDependents,ONE_DESCEND,processDefinition);
                 break;
             case ONE_ALL:
@@ -364,74 +370,46 @@ public class ProcessDefinitionService extends BaseDAGService {
         return result;
     }
 
-    private void getDependentViewProcessDefinitions(Map<String, Object> result, ProcessDefinition processDefinition) {
+    private void queryDependentTreeViewList(Map<String, Object> result, ProcessDefinition processDefinition) {
 
-        List<ProcessDefinition> ascendProcessDependentDefinitions = queryDependentsByProcessDefinition(processDefinition, ONE_ASCEND);
+        DependTreeViewVo processDependents = queryDependentsByProcessDefinition(processDefinition, ONE_ALL);
 
-        if (ascendProcessDependentDefinitions==null || ascendProcessDependentDefinitions.isEmpty()){
-            putMsg(result,Status.QUERY_DEFINITION_DEPENDENCIES_ASCEND_IS_FAILD,processDefinition.getId());
+        if (processDependents.getParents().isEmpty()) {
+            putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processDefinition.getId());
             return;
         }
-
-        List<ProcessDefinition> descendProcessDependentDefinitions = queryDependentsByProcessDefinition(processDefinition, ONE_DESCEND);
-        ascendProcessDependentDefinitions.addAll(descendProcessDependentDefinitions);
-
-        putResult(result,ascendProcessDependentDefinitions,descendProcessDependentDefinitions,processDefinition.getId(),ProcessDefinition.class);
+        putResult(result,processDependents,processDefinition.getId());
     }
 
-    public List<ProcessDefinition> queryDependentsByProcessDefinition(ProcessDefinition processDefinition,
+    public DependTreeViewVo queryDependentsByProcessDefinition(ProcessDefinition processDefinition,
                                                                   DependentViewRelation dependentViewRelation){
-        List<ProcessDefinition> dataList = new ArrayList<>();
-
         // 查询所有的当层dependent
-        int pageNo = 1;
-        IPage<ProcessDependent> iPage;
-        Page<ProcessDependent> page;
-        int pageSize = 10;
-        List<ProcessDependent> processDependents = new ArrayList<>();
-        do {
-            iPage = new Page<>(pageNo++,pageSize);
-            if (ONE_DESCEND==dependentViewRelation) {
-                page = processService.queryByDependentIdListPaging(iPage, processDefinition.getId());
-            } else {
-                page = processService.queryByProcessIdListPaging(iPage, processDefinition.getId());
-                if (page==null || page.getRecords().isEmpty()){
-                    logger.info("processDefinition {} is the first node, don't allow the query",processDefinition.getId());
-                    return dataList;
-                }
-            }
-            List<ProcessDependent> processDependentsPage = page.getRecords();
-            processDependents.addAll(processDependentsPage);
-            if (page.getTotal() == 0) {
-                logger.debug("process={} has no dependent process", processDefinition.getId());
-                break;
-            }
-        } while (page.hasNext());
-
-        for (ProcessDependent processDependent : processDependents) {
-            int id = ONE_DESCEND == dependentViewRelation ? processDependent.getProcessId() : processDependent.getDependentId();
-            ProcessDefinition depProcessDefinition = processService
-                    .findProcessDefineById(id);
-
-            if (ReleaseState.OFFLINE == depProcessDefinition.getReleaseState()) {
-                logger.debug("ProcessDependent which dependentId={} processId={} is offline, no need to query it",
-                        processDependent.getDependentId(), processDependent.getProcessId());
-                continue;
-            }
-
-            if (depProcessDefinition==null) {
-                logger.info("query definition dependents faild definitionId {}",id);
-            }else {
-                addDependentsProcessDefinition(depProcessDefinition, dataList, dependentViewRelation);
-            }
+        DependTreeViewVo dependTreeView = newDependTreeView(processDefinition,dependentViewRelation);
+        if (ONE_DESCEND==dependentViewRelation) {
+            processService.queryChildDepends(null, processDefinition.getId(),dependTreeView);
+        } else if (ONE_ASCEND==dependentViewRelation) {
+            processService.queryParentDepends(null, processDefinition.getId(),dependTreeView);
+        } else {
+            processService.queryOneLayerDepends(null, processDefinition.getId(), dependTreeView);
         }
-        return dataList;
+        if (dependTreeView.getParents()==null){
+            logger.info("processInstance {} is the first node, don't allow the query",processDefinition.getId());
+            return null;
+        }
+//        if (processInstances.size() == 0) {
+//            logger.debug("process={} has no dependent process", processInstance.getProcessDefinitionId());
+//        }
+        return dependTreeView;
     }
 
-    private void addDependentsProcessDefinition(ProcessDefinition depProcessDefinition, List<ProcessDefinition> result, DependentViewRelation dependentViewRelation){
-
-        depProcessDefinition.setViewDependentFlag(ONE_DESCEND==dependentViewRelation? ONE_DESCEND.getCode() : ONE_ASCEND.getCode());
-        result.add(depProcessDefinition);
+    private DependTreeViewVo newDependTreeView(ProcessDefinition processDefinition, DependentViewRelation dependentViewRelation) {
+        return new DependTreeViewVo(
+                null,
+                processDefinition.getId(),
+                DependViewType.PROCESS_INSTANCE.getCode(),
+                processDefinition.getName(),
+                null,
+                dependentViewRelation);
     }
 
     /**

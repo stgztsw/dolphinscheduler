@@ -181,7 +181,6 @@ public class MasterExecThread implements Callable<ProcessInstance> {
                 // execute flow
                 executeProcess();// desc 执行flow
             }
-            System.out.println(processInstance);// print
             return processInstance;
         }catch (Exception e){
             logger.error("master exec thread exception", e);

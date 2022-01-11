@@ -21,6 +21,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cronutils.model.Cron;
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependTreeViewVo;
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.*;
@@ -1988,6 +1990,13 @@ public class ProcessService {
         return processDependentMapper.queryByProcessIdListPaging(page, processId);
     }
 
+//    public List<ProcessInstance> queryByDependentIdList(int processId) {
+//        return processDependentMapper.queryByDependentIdList(processId);
+//    }
+//    public List<ProcessInstance> queryByProcessIdList(int processId) {
+//        return processDependentMapper.queryByProcessIdList(processId);
+//    }
+
     public boolean dependentProcessIsFired(SchedulingBatch sb , int processId) {
         return commandMapper.findCommandByProcessIdInInterval(processId, sb.getStartTime(), sb.getEndTime(),
                 null, sb.getBatchNo()).size()>0;
@@ -2066,4 +2075,48 @@ public class ProcessService {
         return !pageInstance.getRecords().isEmpty();
     }
 
+
+    public void queryParentDepends(SchedulingBatch sb, int processId, DependTreeViewVo dependTreeView) {
+//        List<DependsVo> parentsList = processInstanceMapper.findLastBatchDependByProcessIdInIntervalList(
+//                processId, sb.getLastStartTime(), sb.getLastEndTime(), sb.getBatchNo());
+//        if (parentsList!=null && !parentsList.isEmpty()) {
+//            dependTreeView.setParents(parentsList);
+//        }
+        queryOneLayerDepends(sb,processId,dependTreeView);
+    }
+
+    public void queryChildDepends(SchedulingBatch sb, int processId, DependTreeViewVo dependTreeView) {
+//        List<DependsVo> childsList = processInstanceMapper.findLastBatchDependByDependentIdInIntervalList(
+//                processId, sb.getLastStartTime(), sb.getLastEndTime(), sb.getBatchNo());
+//        if (childsList!=null && !childsList.isEmpty()) {
+//            dependTreeView.setChilds(childsList);
+//        }
+        queryOneLayerDepends(sb,processId,dependTreeView);
+    }
+
+    public void queryOneLayerDepends(SchedulingBatch sb, int processId, DependTreeViewVo dependTreeView) {
+        List<DependsVo> dependsList = null;
+        if (sb!=null) {
+            dependsList = processInstanceMapper.findLastBatchDependByProcessInstanceInIntervalList(
+                    processId, sb.getLastStartTime(), sb.getLastEndTime(), sb.getBatchNo());
+        } else {
+            dependsList = processInstanceMapper.findLastBatchDependByProcessDefinitionInIntervalList(processId);
+        }
+        setDepends(dependsList,dependTreeView);
+    }
+
+    private void setDepends(List<DependsVo> dependsList, DependTreeViewVo dependTreeView) {
+        ArrayList<DependsVo> parents = new ArrayList<>();
+        ArrayList<DependsVo> childs = new ArrayList<>();
+        dependsList.stream()
+            .forEach((e) -> {
+                if ("parent".equals(e.getDependType())){
+                    parents.add(e);
+                } else if ("child".equals(e.getDependType())){
+                    childs.add(e);
+                }
+            });
+        dependTreeView.setParents(parents);
+        dependTreeView.setChilds(childs);
+    }
 }

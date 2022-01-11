@@ -16,6 +16,7 @@
  */
 package org.apache.dolphinscheduler.dao.mapper;
 
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.ExecuteStatusCount;
@@ -24,7 +25,9 @@ import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -272,4 +275,26 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
             @Param("states") int[] stateArray,
             @Param("commandTypes") int[] commandTypes,
             @Param("batchNo") int batchNo);
+
+    List<DependsVo> findLastBatchDependByProcessIdInIntervalList(
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime")Date endTime,
+            @Param("batchNo")int batchNo);
+
+    List<DependsVo> findLastBatchDependByDependentIdInIntervalList(
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime")Date endTime,
+            @Param("batchNo")int batchNo);
+
+    List<DependsVo> findLastBatchDependByProcessInstanceInIntervalList(
+            @Param("processId") int processId,
+            @Param("startTime") Date startTime,
+            @Param("endTime")Date endTime,
+            @Param("batchNo")int batchNo);
+
+    List<DependsVo> findLastBatchDependByProcessDefinitionInIntervalList(
+            @Param("processId") int processId
+    );
 }

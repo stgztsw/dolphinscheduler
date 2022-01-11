@@ -213,23 +213,6 @@ public class ProcessInstanceController extends BaseController {
      * @param processInstanceId
      * @return
      */
-//    @ApiOperation(value = "queryProcessInstanceDependentById", notes = "QUERY_PROCESS_INSTANCE_DEPENDENT_BY_ID_NOTES")
-//    @ApiImplicitParams({
-//            @ApiImplicitParam(name = "processInstanceId", value = "PROCESS_INSTANCE_ID", dataType = "Int", example = "100")
-//    })
-//    @GetMapping(value = "/select-dependent-by-id")
-//    @ResponseStatus(HttpStatus.OK)
-//    @ApiException(QUERY_PROCESS_INSTANCE_BY_ID_ERROR)
-//    public Result queryProcessInstanceDependentById(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-//                                           @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName,
-//                                           @RequestParam("processInstanceId") Integer processInstanceId
-//    ) {
-//        logger.info("query process instance detail by id, login user:{},project name:{}, process instance id:{}",
-//                loginUser.getUserName(), projectName, processInstanceId);
-//        Map<String, Object> result = processInstanceService.queryProcessInstanceDependentById(loginUser, projectName, processInstanceId);
-//        return returnDataList(result);
-//    }
-
     @ApiOperation(value = "queryProcessInstanceOneLayerDependentById", notes = "QUERY_PROCESS_INSTANCE_DEPENDENT_BY_ID_NOTES")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "processInstanceId", value = "PROCESS_INSTANCE_ID", dataType = "Int", example = "100"),

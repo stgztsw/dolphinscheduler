@@ -262,8 +262,8 @@ public class ProcessInstance {
     /**
      * 显示上下游依赖的标记
      */
-    @TableField(exist = false)
-    private Integer viewDependentFlag;
+//    @TableField(exist = false)
+//    private Integer viewDependentFlag;
 
     public ProcessInstance(){
 

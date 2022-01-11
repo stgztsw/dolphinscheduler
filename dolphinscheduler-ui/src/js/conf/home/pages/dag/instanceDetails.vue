@@ -18,7 +18,7 @@
   <div class="home-main index-model">
     <m-variable></m-variable>
     <m-starting-param></m-starting-param>
-    <m-dag v-if="!isLoading" :type="'instance'"></m-dag>
+    <m-dag v-if="!isLoading" :type="'instance'" :id="$route.params.id"></m-dag>
     <m-spin :is-spin="isLoading"></m-spin>
   </div>
 </template>
@@ -50,17 +50,17 @@
        */
       init () {
         this.isLoading = true
-        // Initialization parameters
+        // Initialization parameters 初始化参数，从状态读
         this.resetParams()
         // Promise Get node needs data
         Promise.all([
-          // Process instance details
+          // Process instance details 获取instance对象参数
           this.getInstancedetail(this.$route.params.id),
-          // get process definition
+          // get process definition 获取definition列表
           this.getProcessList(),
-          // get project
+          // get project 获取project列表
           this.getProjectList(),
-          // get resources
+          // get resources 获取资源列表
           this.getResourcesList(),
           // get jar
           this.getResourcesListJar(),

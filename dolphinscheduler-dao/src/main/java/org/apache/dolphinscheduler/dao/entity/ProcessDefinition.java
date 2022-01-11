@@ -178,8 +178,8 @@ public class ProcessDefinition {
     /**
      * update jack 显示上下游依赖的标记
      */
-    @TableField(exist = false)
-    private Integer viewDependentFlag;
+//    @TableField(exist = false)
+//    private Integer viewDependentFlag;
 
     /**
      * update jack definition work dir path
