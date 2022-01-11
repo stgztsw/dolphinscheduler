@@ -317,8 +317,8 @@ public class MasterSchedulerService extends Thread {
                                     futureIterator.remove();
                                     logger.info("in abnormalProcessQueue instanceId={} definitionId={} whose status={} running more than 24h, discard it from abnormalProcessQueue",
                                             abnormalProcessInstance.getId(),  abnormalProcessInstance.getProcessDefinitionId(), abnormalProcessInstance.getState().getDescp());
-                                    continue;
                                 }
+                                continue;
                             }
                             dependentProcessQueue.offer(CompletableFuture.completedFuture(abnormalProcessInstance));
                             iterator.remove();
