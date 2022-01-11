@@ -119,6 +119,14 @@ public class CronUtils {
     return dateList;
   }
 
+  public static Date getNextFireDate(Date startTime, Date endTime, CronExpression cronExpression) {
+    startTime = cronExpression.getNextValidTimeAfter(startTime);
+    if (startTime.after(endTime)) {
+      return null;
+    }
+    return startTime;
+  }
+
   /**
    * gets expect scheduled times for a period of time based on self dependency
    * @param startTime startTime

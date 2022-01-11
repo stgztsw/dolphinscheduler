@@ -127,6 +127,9 @@ public class Command {
     @TableField("scheduler_batch_no")
     private int schedulerBatchNo;
 
+    @TableField("dependent_scheduler_type")
+    private DependentSchedulerType dependentSchedulerType;
+
     @TableField("dependent_scheduler_flag")
     private boolean dependentSchedulerFlag;
 
@@ -309,6 +312,14 @@ public class Command {
         this.schedulerBatchNo = schedulerBatchNo;
     }
 
+    public DependentSchedulerType getDependentSchedulerType() {
+        return dependentSchedulerType;
+    }
+
+    public void setDependentSchedulerType(DependentSchedulerType dependentSchedulerType) {
+        this.dependentSchedulerType = dependentSchedulerType;
+    }
+
     public boolean isDependentSchedulerFlag() {
         return dependentSchedulerFlag;
     }
@@ -433,10 +444,11 @@ public class Command {
                 ", workerGroup='" + workerGroup + '\'' +
                 ", schedulerInterval='" + schedulerInterval + '\'' +
                 ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
-                ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
+                ", dependentSchedulerType='" + dependentSchedulerType + '\'' +
                 ", schedulerStartId='" + schedulerStartId + '\'' +
                 ", schedulerRerunNo='" + schedulerRerunNo + '\'' +
                 ", rerunSchedulerFlag='" + rerunSchedulerFlag + '\'' +
+                ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
                 '}';
     }
 }

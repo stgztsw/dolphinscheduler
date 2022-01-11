@@ -175,17 +175,14 @@ public class ProcessDefinition {
     @TableField("process_type")
     private ProcessType processType;
 
-    /**
-     * update jack 显示上下游依赖的标记
-     */
-//    @TableField(exist = false)
-//    private Integer viewDependentFlag;
+    @TableField(exist = false)
+    private Date scheduleStartTime;
 
-    /**
-     * update jack definition work dir path
-     */
-//    @TableField("work_path_dir")
-//    private String workPathDir;
+    @TableField(exist = false)
+    private Date scheduleEndTime;
+
+    @TableField(exist = false)
+    private String scheduleCrontab;
 
     public String getName() {
         return name;
@@ -405,12 +402,28 @@ public class ProcessDefinition {
         this.processType = processType;
     }
 
-    public Integer getViewDependentFlag() {
-        return viewDependentFlag;
+    public Date getScheduleStartTime() {
+        return scheduleStartTime;
     }
 
-    public void setViewDependentFlag(Integer viewDependentFlag) {
-        this.viewDependentFlag = viewDependentFlag;
+    public void setScheduleStartTime(Date scheduleStartTime) {
+        this.scheduleStartTime = scheduleStartTime;
+    }
+
+    public Date getScheduleEndTime() {
+        return scheduleEndTime;
+    }
+
+    public void setScheduleEndTime(Date scheduleEndTime) {
+        this.scheduleEndTime = scheduleEndTime;
+    }
+
+    public String getScheduleCrontab() {
+        return scheduleCrontab;
+    }
+
+    public void setScheduleCrontab(String scheduleCrontab) {
+        this.scheduleCrontab = scheduleCrontab;
     }
 
     @Override
@@ -442,6 +455,9 @@ public class ProcessDefinition {
                 ", modifyBy='" + modifyBy + '\'' +
                 ", resourceIds='" + resourceIds + '\'' +
                 ", processType='" + processType + '\'' +
+                ", scheduleStartTime='" + scheduleStartTime + '\'' +
+                ", scheduleEndTime='" + scheduleEndTime + '\'' +
+                ", scheduleCrontab='" + scheduleCrontab + '\'' +
                 '}';
     }
 

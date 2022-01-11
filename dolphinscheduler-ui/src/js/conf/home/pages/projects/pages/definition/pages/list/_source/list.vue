@@ -88,16 +88,12 @@
           </td>
           <td style="z-index: inherit;">
             <x-button type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Edit')" @click="_edit(item)" :disabled="item.releaseState === 'ONLINE'"  icon="ans-icon-edit"><!--{{$t('编辑')}}--></x-button>
-<!--            <x-button v-if="item.processType !== 'SCHEDULER'" type="success" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Start')" @click="_start(item)" :disabled="item.releaseState !== 'ONLINE'"  icon="ans-icon-play">&lt;!&ndash;{{$t('启动')}}&ndash;&gt;</x-button>-->
-<!--            <x-button v-if="item.processType === 'SCHEDULER'" type="error" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Manual Scheduler')" @click="_start(item)" :disabled="item.releaseState !== 'ONLINE'" icon="ans-icon-play">&lt;!&ndash;{{$t('手动调度')}}&ndash;&gt;</x-button>-->
-<!--            <x-button v-if="item.processType === 'SCHEDULER'" type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Timing')" @click="_timing(item)" :disabled="item.processType !== 'SCHEDULER' || item.releaseState !== 'ONLINE' || item.scheduleReleaseState !== null"  icon="ans-icon-timer">&lt;!&ndash;{{$t('定时')}}&ndash;&gt;</x-button>-->
-            <x-button type="success" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Start')" @click="_start(item)" :disabled="item.releaseState !== 'ONLINE'"  icon="ans-icon-play"><!--{{$t('启动')}}--></x-button>
+            <x-button v-if="item.processType !== 'SCHEDULER'" type="success" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Start')" @click="_start(item)" :disabled="item.releaseState !== 'ONLINE'"  icon="ans-icon-play"><!--{{$t('启动')}}--></x-button>
+            <x-button v-if="item.processType === 'SCHEDULER'" type="error" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Manual Scheduler')" @click="_start(item)" :disabled="item.releaseState !== 'ONLINE'" icon="ans-icon-play"><!--{{$t('手动调度')}}--></x-button>
             <x-button type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Timing')" @click="_timing(item)" :disabled="item.releaseState !== 'ONLINE' || item.scheduleReleaseState !== null"  icon="ans-icon-timer"><!--{{$t('定时')}}--></x-button>
-
             <x-button type="warning" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('online')" @click="_poponline(item)" v-if="item.releaseState === 'OFFLINE'"  icon="ans-icon-upward"><!--{{$t('下线')}}--></x-button>
             <x-button type="error" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('offline')" @click="_downline(item)" v-if="item.releaseState === 'ONLINE'"  icon="ans-icon-downward"><!--{{$t('上线')}}--></x-button>
             <x-button type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Copy Workflow')" @click="_copyProcess(item)" :disabled="item.releaseState === 'ONLINE'"  icon="ans-icon-copy"><!--{{$t('复制')}}--></x-button>
-<!--            <x-button v-if="item.processType === 'SCHEDULER'" type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Cron Manage')" @click="_timingManage(item)" :disabled="item.processType !== 'SCHEDULER' || item.releaseState !== 'ONLINE'"  icon="ans-icon-datetime">&lt;!&ndash;{{$t('定时管理')}}&ndash;&gt;</x-button>-->
             <x-button type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Cron Manage')" @click="_timingManage(item)" :disabled="item.releaseState !== 'ONLINE'"  icon="ans-icon-datetime"><!--{{$t('定时管理')}}--></x-button>
             <x-poptip
               :ref="'poptip-delete-' + $index"

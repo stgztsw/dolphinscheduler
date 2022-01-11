@@ -241,6 +241,9 @@ public class ProcessInstance {
     @TableField("process_type")
     private ProcessType processType;
 
+    @TableField("dependent_scheduler_type")
+    private DependentSchedulerType dependentSchedulerType;
+
     @TableField("dependent_scheduler_flag")
     private boolean dependentSchedulerFlag;
 
@@ -655,6 +658,14 @@ public class ProcessInstance {
         setInterval();
     }
 
+    public DependentSchedulerType getDependentSchedulerType() {
+        return dependentSchedulerType;
+    }
+
+    public void setDependentSchedulerType(DependentSchedulerType dependentSchedulerType) {
+        this.dependentSchedulerType = dependentSchedulerType;
+    }
+
     public String getInterval() {
         return interval;
     }
@@ -749,11 +760,12 @@ public class ProcessInstance {
                 ", schedulerInterval='" + schedulerInterval + '\'' +
                 ", schedulerBatchNo='" + schedulerBatchNo + '\'' +
                 ", processType='" + processType + '\'' +
-                ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
+                ", dependentSchedulerType='" + dependentSchedulerType + '\'' +
                 ", interval='" + interval + '\'' +
                 ", schedulerStartId='" + schedulerStartId + '\'' +
                 ", schedulerRerunNo='" + schedulerRerunNo + '\'' +
                 ", rerunSchedulerFlag='" + rerunSchedulerFlag + '\'' +
+                ", dependentSchedulerFlag='" + dependentSchedulerFlag + '\'' +
                 '}';
     }
 

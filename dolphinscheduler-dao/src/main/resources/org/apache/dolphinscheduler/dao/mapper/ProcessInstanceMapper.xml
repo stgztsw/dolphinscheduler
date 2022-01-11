@@ -69,8 +69,8 @@
         select instance.id, instance.process_definition_id, instance.command_type, instance.executor_id,
         instance.name, instance.state, instance.schedule_time, instance.start_time, instance.end_time,
         instance.run_times, instance.recovery, instance.host, instance.scheduler_interval, instance.scheduler_batch_no,
-        instance.process_type, instance.dependent_scheduler_flag, instance.scheduler_start_id, instance.scheduler_rerun_no,
-        instance.rerun_scheduler_flag
+        instance.process_type, instance.dependent_scheduler_type, instance.scheduler_start_id, instance.scheduler_rerun_no,
+        instance.rerun_scheduler_flag, instance.dependent_scheduler_flag
         from t_ds_process_instance instance
         join t_ds_process_definition define ON instance.process_definition_id = define.id
         where instance.is_sub_process=0
@@ -84,12 +84,17 @@
         <if test="startTime != null ">
             and instance.start_time > #{startTime} and instance.start_time <![CDATA[ <=]]> #{endTime}
         </if>
-        <if test="states != null and states != ''">
-            and instance.state in
-            <foreach collection="states" index="index" item="i" open="(" separator="," close=")">
-                #{i}
-            </foreach>
-        </if>
+        <choose>
+            <when test="states != null and states != ''">
+                and instance.state in
+                <foreach collection="states" index="index" item="i" open="(" separator="," close=")">
+                    #{i}
+                </foreach>
+            </when>
+            <otherwise>
+                and (instance.state != 98 and instance.state != 99)
+            </otherwise>
+        </choose>
         <if test="host != null and host != ''">
             and instance.host like concat('%', #{host}, '%')
         </if>
@@ -131,6 +136,7 @@
         join t_ds_project p on p.id=d.project_id
         where 1 = 1
         and t.is_sub_process = 0
+        and (t.state != 98 and t.state != 99)
         <if test="startTime != null and endTime != null">
             and  t.start_time <![CDATA[ >= ]]> #{startTime} and t.start_time <![CDATA[ <= ]]> #{endTime}
         </if>
@@ -152,6 +158,7 @@
         select *
         from t_ds_process_instance
         where process_definition_id=#{processDefinitionId}
+        and (state != 98 and state != 99)
         <if test="startTime!=null and endTime != null ">
             and schedule_time <![CDATA[ >= ]]> #{startTime} and  schedule_time <![CDATA[ <= ]]> #{endTime}
         </if>
@@ -164,12 +171,17 @@
         select *
         from t_ds_process_instance
         where 1=1
-        <if test="states !=null and states.length != 0">
-            and state in
-            <foreach collection="states" item="i" index="index" open="(" separator="," close=")">
-                #{i}
-            </foreach>
-        </if>
+        <choose>
+            <when test="states !=null and states.length != 0">
+                and state in
+                <foreach collection="states" item="i" index="index" open="(" separator="," close=")">
+                    #{i}
+                </foreach>
+            </when>
+            <otherwise>
+                and (state != 98 and state != 99)
+            </otherwise>
+        </choose>
         <if test="startTime!=null and endTime != null ">
             and process_definition_id=#{processDefinitionId}
             and (schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
@@ -185,6 +197,7 @@
         from t_ds_process_instance
         where process_definition_id=#{processDefinitionId}
         and schedule_time is null
+        and (state != 98 and state != 99)
         <if test="startTime!=null and endTime != null ">
             and start_time <![CDATA[ >= ]]> #{startTime} and start_time <![CDATA[ <= ]]> #{endTime}
         </if>
@@ -211,7 +224,15 @@
             </if>
           and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
           and scheduler_batch_no = #{batchNo}
-          and dependent_scheduler_flag = true
+            <if test="dependentSchedulerTypes != null and dependentSchedulerTypes.length != 0">
+                and dependent_scheduler_type in
+                <foreach collection="dependentSchedulerTypes" item="i" index="index" open="(" separator="," close=")">
+                    #{i}
+                </foreach>
+            </if>
+            <if test="dependentSchedulerFlag">
+                and dependent_scheduler_flag = #{dependentSchedulerFlag}
+            </if>
     </select>
     <select id="getCurrentSchedulerBatchNo" resultType="java.lang.Integer">
         select max(scheduler_batch_no) from t_ds_process_instance
@@ -232,31 +253,50 @@
         and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
         and scheduler_batch_no = #{batchNo}
     </update>
-    <select id="querySchedulerProcessInstanceListPaging" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
+    <select id="querySchedulerProcessInstances" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
         select *
         from t_ds_process_instance
         where 1=1
         <if test="processId != 0">
             and process_definition_id = #{processId}
         </if>
-        <if test="schedulerStartId != 0">
-            and scheduler_start_id = #{schedulerStartId}
-        </if>
-        <if test="states !=null and states.length != 0">
-            and state in
-            <foreach collection="states" item="i" index="index" open="(" separator="," close=")">
+        <if test="processIds !=null and processIds.length != 0">
+            and process_definition_id in
+            <foreach collection="processIds" item="i" index="index" open="(" separator="," close=")">
                 #{i}
             </foreach>
         </if>
+        <if test="schedulerStartId != 0">
+            and scheduler_start_id = #{schedulerStartId}
+        </if>
+        <choose>
+            <when test="states !=null and states.length != 0">
+                and state in
+                <foreach collection="states" item="i" index="index" open="(" separator="," close=")">
+                    #{i}
+                </foreach>
+            </when>
+            <otherwise>
+                and (state != 98 and state != 99)
+            </otherwise>
+        </choose>
         <if test="commandTypes != null and commandTypes.length != 0">
             and command_type in
             <foreach collection="commandTypes" item="i" index="index" open="(" separator="," close=")">
                 #{i}
             </foreach>
         </if>
+        <if test="dependentSchedulerTypes != null and dependentSchedulerTypes.length != 0">
+            and dependent_scheduler_type in
+            <foreach collection="dependentSchedulerTypes" item="i" index="index" open="(" separator="," close=")">
+                #{i}
+            </foreach>
+        </if>
+        <if test="dependentSchedulerFlag">
+            and dependent_scheduler_flag = #{dependentSchedulerFlag}
+        </if>
         and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
         and scheduler_batch_no = #{batchNo}
-        and dependent_scheduler_flag = true
     </select>
     <select id="findLastBatchDependByProcessIdInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
         select

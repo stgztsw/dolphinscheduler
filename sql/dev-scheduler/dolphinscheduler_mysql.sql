@@ -50,3 +50,12 @@ alter table t_ds_command
 
 alter table t_ds_process_instance
     add rerun_scheduler_flag tinyint default 0 null comment 'rerun scheduler flag';
+
+-- normal节点设置定时
+alter table t_ds_process_instance
+    add dependent_scheduler_type tinyint default 0 null comment 'dependent scheduler type';
+
+alter table t_ds_command
+    add dependent_scheduler_type tinyint default 0 null comment 'dependent scheduler type';
+-- 历史数据修正
+update t_ds_process_instance set dependent_scheduler_type = 1 where dependent_scheduler_flag = true

@@ -448,6 +448,8 @@ public final class Constants {
 
     public static final String CMDPARAM_RERUN_SCHEDULER = "rerunScheduler";
 
+    public static final String CMDPARAM_INFORMAL_SCHEDULER = "informal";
+
     /**
      * complement data start date
      */

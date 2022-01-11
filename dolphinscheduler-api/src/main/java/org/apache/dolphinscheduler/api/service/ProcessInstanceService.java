@@ -92,10 +92,11 @@ public class ProcessInstanceService extends BaseDAGService {
     @Autowired
     LoggerService loggerService;
 
-
-
     @Autowired
     UsersService usersService;
+
+    @Autowired
+    ProcessDependentService processDependentService;
 
     /**
      * query process instance by id
@@ -445,6 +446,7 @@ public class ProcessInstanceService extends BaseDAGService {
      * @return update result code
      * @throws ParseException parse exception for json parse
      */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> updateProcessInstance(User loginUser, String projectName, Integer processInstanceId,
                                                      String processInstanceJson, String scheduleTime, Boolean syncDefine,
                                                      Flag flag, String locations, String connects) throws ParseException {
@@ -517,6 +519,9 @@ public class ProcessInstanceService extends BaseDAGService {
             processDefinition.setConnects(connects);
             processDefinition.setTimeout(timeout);
             updateDefine = processDefineMapper.updateById(processDefinition);
+            if (updateDefine > 0) {
+                processDependentService.updateProcessDependent(processDefinition);
+            }
         }
         if (update > 0 && updateDefine > 0) {
             putMsg(result, Status.SUCCESS);

@@ -216,13 +216,15 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      * @param batchNo batchNo
      * @return ProcessInstance list
      */
-    List<ProcessInstance> findProcessInstanceByProcessIdInInterval(
+    ProcessInstance findProcessInstanceByProcessIdInInterval(
             @Param("processId") int processId,
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime,
             @Param("states") int[] stateArray,
             @Param("commandTypes") int[] commandTypes,
-            @Param("batchNo") int batchNo);
+            @Param("batchNo") int batchNo,
+            @Param("dependentSchedulerTypes") int[] dependentSchedulerTypes,
+            @Param("dependentSchedulerFlag") boolean dependentSchedulerFlag);
 
     /**
      * get the current batchNo by processId in interval
@@ -258,6 +260,7 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      * find the ProcessInstance by processId in interval
      * @param page page
      * @param processId processId
+     * @param processIds processIds
      * @param schedulerStartId schedulerStartId
      * @param startTime startTime
      * @param endTime endTime
@@ -266,15 +269,31 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      * @param batchNo batchNo
      * @return ProcessInstance page
      */
-    Page<ProcessInstance> querySchedulerProcessInstanceListPaging(
+    Page<ProcessInstance> querySchedulerProcessInstances(
             IPage<ProcessInstance> page,
             @Param("processId") int processId,
+            @Param("processIds") int[] processIds,
             @Param("schedulerStartId") int schedulerStartId,
             @Param("startTime") Date startTime,
             @Param("endTime") Date endTime,
             @Param("states") int[] stateArray,
             @Param("commandTypes") int[] commandTypes,
-            @Param("batchNo") int batchNo);
+            @Param("batchNo") int batchNo,
+            @Param("dependentSchedulerTypes") int[] dependentSchedulerTypes,
+            @Param("dependentSchedulerFlag") boolean dependentSchedulerFlag);
+
+    List<ProcessInstance> querySchedulerProcessInstances(
+            @Param("processId") int processId,
+            @Param("processIds") int[] processIds,
+            @Param("schedulerStartId") int schedulerStartId,
+            @Param("startTime") Date startTime,
+            @Param("endTime") Date endTime,
+            @Param("states") int[] stateArray,
+            @Param("commandTypes") int[] commandTypes,
+            @Param("batchNo") int batchNo,
+            @Param("dependentSchedulerTypes") int[] dependentSchedulerTypes,
+            @Param("dependentSchedulerFlag") boolean dependentSchedulerFlag);
+
 
     List<DependsVo> findLastBatchDependByProcessIdInIntervalList(
             @Param("processId") int processId,
