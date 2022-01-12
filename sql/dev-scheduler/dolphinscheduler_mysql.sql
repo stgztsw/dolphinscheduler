@@ -1,13 +1,13 @@
 CREATE TABLE t_ds_process_dependent (
-    `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
-    `dependent_id` int(11) NOT NULL COMMENT 'dependent process id',
-    `process_id` int(11) NOT NULL COMMENT 'process id',
-    `create_time` datetime DEFAULT NULL COMMENT 'create time',
-    `update_time` datetime DEFAULT NULL COMMENT 'update time',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `t_ds_process_dependent_id_process_id_IDX` (`dependent_id`,`process_id`) USING BTREE,
-    KEY `t_ds_process_dependent_dependent_id_IDX` (`dependent_id`) USING BTREE,
-    KEY `t_ds_process_dependent_process_id_IDX` (`process_id`) USING BTREE
+                                        `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'key',
+                                        `dependent_id` int(11) NOT NULL COMMENT 'dependent process id',
+                                        `process_id` int(11) NOT NULL COMMENT 'process id',
+                                        `create_time` datetime DEFAULT NULL COMMENT 'create time',
+                                        `update_time` datetime DEFAULT NULL COMMENT 'update time',
+                                        PRIMARY KEY (`id`),
+                                        UNIQUE KEY `t_ds_process_dependent_id_process_id_IDX` (`dependent_id`,`process_id`) USING BTREE,
+                                        KEY `t_ds_process_dependent_dependent_id_IDX` (`dependent_id`) USING BTREE,
+                                        KEY `t_ds_process_dependent_process_id_IDX` (`process_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 alter table t_ds_command

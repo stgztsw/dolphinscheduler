@@ -2132,6 +2132,20 @@ public class ProcessService {
         }
     }
 
+    /**
+     * update jack 查找调度批次时间间隔中当前processInstance实例最近启动的的时间间隔 实例
+     * @param sb
+     * @param processId
+     * @param states
+     * @param commandTypes
+     * @return
+     */
+    public ProcessInstance findLastBatchProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes, int[] dependentSchedulerType, boolean dependentSchedulerFlag) {
+        ProcessInstance processInstance = processInstanceMapper
+                .findProcessInstanceByProcessIdInInterval(processId, sb.getLastStartTime(), sb.getLastEndTime(), states, commandTypes,sb.getBatchNo(), dependentSchedulerType,dependentSchedulerFlag);
+        return processInstance;
+    }
+
     public Integer getNextSchedulerBatchNo(int processId, List<DateInterval> dateIntervals) {
         Integer batchNo = getCurrentSchedulerBatchNo(processId, dateIntervals);
         return batchNo+1;
