@@ -2120,16 +2120,9 @@ public class ProcessService {
      * @return
      */
     public ProcessInstance findLastBatchProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes) {
-        List<ProcessInstance> processInstances = processInstanceMapper
-                .findProcessInstanceByProcessIdInInterval(processId, sb.getLastStartTime(), sb.getLastEndTime(), states, commandTypes,sb.getBatchNo());
-        if (processInstances.isEmpty()) {
-            return null;
-        }else if (processInstances.size() == 1) {
-            return processInstances.get(0);
-        }else {
-            processInstances.sort((o1, o2) -> !DateUtils.compare(o1.getScheduleTime(), o2.getScheduleTime()) ? 1 : -1);
-            return processInstances.get(0);
-        }
+        ProcessInstance processInstance = processInstanceMapper
+                .findProcessInstanceByProcessIdInInterval(processId, sb.getLastStartTime(), sb.getLastEndTime(), states, commandTypes,sb.getBatchNo(),null,true);
+        return processInstance;
     }
 
     /**
@@ -2171,7 +2164,6 @@ public class ProcessService {
 
     public boolean currentSchedulingBatchIsRunning(SchedulingBatch sb, int schedulerStartId) {
         int[] states = new int[]{ExecutionStatus.SUBMITTED_SUCCESS.ordinal(), ExecutionStatus.RUNNING_EXECUTION.ordinal(),
-                ExecutionStatus.READY_PAUSE.ordinal(), ExecutionStatus.READY_STOP.ordinal(),
                 ExecutionStatus.WAITTING_THREAD.ordinal(), ExecutionStatus.WAITTING_DEPEND.ordinal()};
         IPage<Command> iPageCommand = new Page<>(1,1);
         Page<Command> pageCommand = commandMapper.querySchedulerCommandListPaging(iPageCommand, 0, schedulerStartId,

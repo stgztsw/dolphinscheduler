@@ -110,7 +110,7 @@
     </select>
 
     <select id="findDefineSchedulerById" resultType="org.apache.dolphinscheduler.dao.entity.ProcessDefinition">
-        select p_f.*, s.start_time as scheduleStartTime, s.end_time as scheduleEndTime, s.crontab as scheduleCrontab
+        select p_f.*, s.start_time as scheduleStartTime, s.end_time as scheduleEndTime, s.crontab as scheduleCrontab, s.release_state as scheduleReleaseState
         from t_ds_process_definition p_f
         left join t_ds_schedules s on p_f.id = s.process_definition_id
         where p_f.id = #{processId}

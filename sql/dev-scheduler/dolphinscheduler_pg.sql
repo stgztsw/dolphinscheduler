@@ -41,4 +41,4 @@ ALTER TABLE t_ds_process_instance ADD COLUMN rerun_scheduler_flag boolean defaul
 ALTER TABLE t_ds_command ADD COLUMN dependent_scheduler_type int default 0;
 ALTER TABLE t_ds_process_instance ADD COLUMN dependent_scheduler_type int default 0;
 -- 历史数据修正
-update t_ds_process_instance set dependent_scheduler_type = 1 where dependent_scheduler_flag = true
+update t_ds_process_instance set dependent_scheduler_type = 1 where dependent_scheduler_flag = true;
