@@ -121,7 +121,7 @@ public class MasterServer implements IStoppable {
         this.zkMasterClient.setStoppable(this);
 
         // scheduler start
-        this.masterSchedulerService.start();// run
+        this.masterSchedulerService.start();
 
         // start QuartzExecutors
         // what system should do if exception

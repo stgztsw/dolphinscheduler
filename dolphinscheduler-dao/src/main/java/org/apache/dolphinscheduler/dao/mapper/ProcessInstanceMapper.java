@@ -25,9 +25,7 @@ import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;

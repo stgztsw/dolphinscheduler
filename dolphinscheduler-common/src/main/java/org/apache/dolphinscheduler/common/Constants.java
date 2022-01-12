@@ -1032,5 +1032,4 @@ public final class Constants {
     public static final boolean DOCKER_MODE = StringUtils.isNotEmpty(System.getenv("DOCKER"));
     public static final boolean KUBERNETES_MODE = StringUtils.isNotEmpty(System.getenv("KUBERNETES_SERVICE_HOST")) && StringUtils.isNotEmpty(System.getenv("KUBERNETES_SERVICE_PORT"));
 
-
 }

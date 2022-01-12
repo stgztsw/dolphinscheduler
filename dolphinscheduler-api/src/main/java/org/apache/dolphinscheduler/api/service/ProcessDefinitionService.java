@@ -525,13 +525,13 @@ public class ProcessDefinitionService extends BaseDAGService {
         processDefine.setGlobalParamList(globalParamsList);
         processDefine.setUpdateTime(now);
         processDefine.setFlag(Flag.YES);
-        processDefine.setProcessType(processData.getProcessType());// update
+        processDefine.setProcessType(processData.getProcessType());
         if (processDefineMapper.updateById(processDefine) > 0) {
             putMsg(result, Status.SUCCESS);
         } else {
             putMsg(result, Status.UPDATE_PROCESS_DEFINITION_ERROR);
         }
-        processDependentService.updateProcessDependent(processDefine);// update
+        processDependentService.updateProcessDependent(processDefine);
         return result;
     }
 

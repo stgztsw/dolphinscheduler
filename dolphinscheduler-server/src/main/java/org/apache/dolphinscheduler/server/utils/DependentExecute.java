@@ -173,7 +173,9 @@ public class DependentExecute {
     }
 
     /**
-
+     * find the last one process instance that :
+     * 1. manual run and finish between the interval
+     * 2. schedule run and schedule time between the interval
      * @param definitionId  definition id
      * @param dateInterval  date interval
      * @return ProcessInstance
@@ -262,7 +264,6 @@ public class DependentExecute {
         for(DependentItem dependentItem : dependItemList){
             DependResult dependResult = getDependResultForItem(dependentItem, currentTime);
             if(dependResult != DependResult.WAITING){
-
                 dependResultMap.put(dependentItem.getKey(), dependResult);
             }
             dependResultList.add(dependResult);

@@ -97,7 +97,6 @@ public class MasterTaskExecThread extends MasterBaseTaskExecThread {
         if(!this.taskInstance.getState().typeIsFinished()) {
             result = waitTaskQuit();
         }
-
         taskInstance.setEndTime(new Date());
         processService.updateTaskInstance(taskInstance);
         logger.info("task :{} id:{}, process id:{}, exec thread completed ",
@@ -140,7 +139,6 @@ public class MasterTaskExecThread extends MasterBaseTaskExecThread {
                     this.checkTimeoutFlag = !alertTimeout();
                 }
                 // updateProcessInstance task instance
-
                 taskInstance = processService.findTaskInstanceById(taskInstance.getId());
                 processInstance = processService.findProcessInstanceById(processInstance.getId());
                 Thread.sleep(Constants.SLEEP_TIME_MILLIS);

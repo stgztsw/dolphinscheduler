@@ -85,7 +85,6 @@ public class DagHelper {
         }
         List<TaskNode> destTaskNodeList = new ArrayList<>();
         List<TaskNode> tmpTaskNodeList = new ArrayList<>();
-
         if (taskDependType == TaskDependType.TASK_POST
                 && CollectionUtils.isNotEmpty(recoveryNodeNameList)) {
             startNodeList = recoveryNodeNameList;
