@@ -35,12 +35,20 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 
 import 'bootstrap/dist/js/bootstrap.min.js'
 import 'canvg/dist/browser/canvg.min.js'
+import { Button, Dialog, Table, Tree, TableColumn } from 'element-ui';
+import 'element-ui/lib/theme-chalk/index.css';
 
 // Component internationalization
 const useOpt = i18n.globalScope.LOCALE === 'en_US' ? { locale: en_US } : {}
 
 // Vue.use(ans)
 Vue.use(ans, useOpt)
+
+Vue.use(Button)
+Vue.use(Dialog)
+Vue.use(Table)
+Vue.use(Tree)
+Vue.use(TableColumn)
 
 sync(store, router)
 

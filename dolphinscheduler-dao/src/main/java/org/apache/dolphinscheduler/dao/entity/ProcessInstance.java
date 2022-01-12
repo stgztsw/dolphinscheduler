@@ -710,13 +710,6 @@ public class ProcessInstance {
         this.rerunSchedulerFlag = rerunSchedulerFlag;
     }
 
-    public Integer getViewDependentFlag() {
-        return viewDependentFlag;
-    }
-
-    public void setViewDependentFlag(Integer viewDependentFlag) {
-        this.viewDependentFlag = viewDependentFlag;
-    }
 
     @Override
     public String toString() {

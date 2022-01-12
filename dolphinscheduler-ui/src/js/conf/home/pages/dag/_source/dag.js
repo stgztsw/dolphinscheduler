@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 import Vue from 'vue'
-//导入组件库
-import ElementUI from 'element-ui' ;
-//导入组件相关样式
-import 'element-ui/lib/theme-chalk/index.css';
-//配置vue 插件s
-Vue.use(ElementUI);
 let v = new Vue()
 import _ from 'lodash'
 import i18n from '@/module/i18n'

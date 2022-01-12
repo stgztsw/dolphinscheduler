@@ -300,10 +300,10 @@
     </select>
     <select id="findLastBatchDependByProcessIdInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
         select
-        ifnull(ins.id,0) as procesId,
-        ifnull(ins.process_definition_id,def_all.id) as definitionId,
-        ifnull(ins.name,def_all.name) as name,
-        ifnull(ins.state,null) as state
+            COALESCE(ins.id,0) as procesId,
+            COALESCE(ins.process_definition_id,def_all.id) as definitionId,
+            COALESCE(ins.name,def_all.name) as name,
+            COALESCE(ins.state,null) as state
         from
         -- 找出当前processId的所有的父节点def id
         (select def.id,def.name from
@@ -326,10 +326,10 @@
     </select>
     <select id="findLastBatchDependByDependentIdInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
         select
-            ifnull(ins.id,0) as procesId,
-            ifnull(ins.process_definition_id,def_all.id) as definitionId,
-            ifnull(ins.name,def_all.name) as name,
-            ifnull(ins.state,null) as state
+            COALESCE(ins.id,0) as procesId,
+            COALESCE(ins.process_definition_id,def_all.id) as definitionId,
+            COALESCE(ins.name,def_all.name) as name,
+            COALESCE(ins.state,null) as state
         from
             -- 找出当前processId的所有的父节点def id
             (select def.id,def.name from
@@ -352,10 +352,10 @@
     </select>
     <select id="findLastBatchDependByProcessInstanceInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
         select
-            ifnull(ins.id,0) as procesId,
-            ifnull(ins.process_definition_id,def_all.id) as definitionId,
-            ifnull(ins.name,def_all.name) as name,
-            ifnull(ins.state,null) as state,
+            COALESCE(ins.id,0) as procesId,
+            COALESCE(ins.process_definition_id,def_all.id) as definitionId,
+            COALESCE(ins.name,def_all.name) as name,
+            COALESCE(ins.state,null) as state,
             'parent' dependType
         from
             -- 找出当前processId的所有的父节点def id
@@ -378,10 +378,10 @@
                 and ins.dependent_scheduler_flag = true
         union all
         select
-            ifnull(ins.id,0) as procesId,
-            ifnull(ins.process_definition_id,def_all.id) as definitionId,
-            ifnull(ins.name,def_all.name) as name,
-            ifnull(ins.state,null) as state,
+            COALESCE(ins.id,0) as procesId,
+            COALESCE(ins.process_definition_id,def_all.id) as definitionId,
+            COALESCE(ins.name,def_all.name) as name,
+            COALESCE(ins.state,null) as state,
             'child' dependType
         from
             -- 找出当前processId的所有的父节点def id
