@@ -426,6 +426,11 @@ public class ProcessDefinition {
         this.scheduleCrontab = scheduleCrontab;
     }
 
+    public boolean hasValidateFireDate() {
+        return getScheduleStartTime() != null && getScheduleEndTime() != null && getScheduleReleaseState() != null
+                && getScheduleReleaseState() == ReleaseState.ONLINE && !getScheduleCrontab().isEmpty();
+    }
+
     @Override
     public String toString() {
         return "ProcessDefinition{" +
