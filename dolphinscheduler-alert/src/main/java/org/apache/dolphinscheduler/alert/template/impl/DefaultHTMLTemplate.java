@@ -35,6 +35,8 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
     public static final Logger logger = LoggerFactory.getLogger(DefaultHTMLTemplate.class);
 
+    private static  List<HashMap<String, Object>> msgTableMap = new ArrayList<>();
+
 
     @Override
     public String getMessageFromTemplate(String content, ShowType showType,boolean showAll) {
@@ -44,6 +46,8 @@ public class DefaultHTMLTemplate implements AlertTemplate {
                 return getTableTypeMessage(content,showAll);
             case TEXT:
                 return getTextTypeMessage(content,showAll);
+            case MSGTABKE:
+                return getMsgTableTypeMessage(content,showAll);
             default:
                 throw new IllegalArgumentException(String.format("not support showType: %s in DefaultHTMLTemplate",showType));
         }
@@ -80,7 +84,9 @@ public class DefaultHTMLTemplate implements AlertTemplate {
                 while (iterator.hasNext()){
 
                     Map.Entry<String, Object> entry = iterator.next();
+                    // 表头
                     t.append(Constants.TH).append(entry.getKey()).append(Constants.TH_END);
+                    // rows
                     cs.append(Constants.TD).append(String.valueOf(entry.getValue())).append(Constants.TD_END);
 
                 }
@@ -128,6 +134,68 @@ public class DefaultHTMLTemplate implements AlertTemplate {
         }
 
         return content;
+    }
+
+    private String getMsgTableTypeMessage(String content,boolean showAll){
+
+        if (StringUtils.isNotEmpty(content)) {
+            List<Map<String, Object>> list;
+            try {
+                // 拆分出 text 和 table
+                pushElementInHtmlMap(content);
+                // 遍历生成 html 代码
+
+            } catch (Exception e) {
+                logger.error("json format exception", e);
+                return null;
+            }
+
+            StringBuilder contents = new StringBuilder(100);
+            for (HashMap<String, Object> map: msgTableMap){
+                Iterator<Map.Entry<String, Object>> iter = map.entrySet().iterator();
+                for (String s : map.keySet()) {
+                    
+                }
+
+//                contents.append(Constants.H4).append(str).append(Constants.H4_END);
+            }
+
+            return getMessageFromHtmlTemplate(null,contents.toString());
+        }
+        return "";
+    }
+
+    private String pushElementInHtmlMap(String content) {
+        /**
+         * 约定好的格式：
+         *    文字用[text:]标记
+         *    表格用[table:]标记
+         *    中间用,分割
+         */
+        HashMap<String, Object> map = new HashMap<>();
+        int startIdx = (content.startsWith("[text:"))? 6 : 7;
+        String endStr = "],";
+        int endIdx = content.indexOf(endStr);
+        if (content.indexOf(endStr)==-1){
+            endIdx = content.indexOf("]");
+        }
+        String obj = content.substring(startIdx, endIdx);
+        if (content.startsWith("[text:")) {
+            map.put("text",obj);
+            msgTableMap.add(map);
+            if (content.length()==endIdx+1){
+                return "";
+            }
+            return pushElementInHtmlMap(content.substring(endIdx + endStr.length(), content.length()));
+        }else if (content.startsWith("[table:")) {
+            map.put("table",obj);
+            msgTableMap.add(map);
+            if (content.length()==endIdx+1){
+                return "";
+            }
+            return pushElementInHtmlMap(content.substring(endIdx + endStr.length(), content.length()));
+        }
+        return "";
     }
 
     /**

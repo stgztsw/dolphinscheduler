@@ -123,6 +123,14 @@ public class Constants {
 
     public static final String TR_END = "</tr>";
 
+    public static final String H4 = "<h4>";
+
+    public static final String H4_END = "</h4>";
+
+    public static final String H5 = "<h5>";
+
+    public static final String H5_END = "</h5>";
+
     public static final String TITLE = "title";
 
     public static final String CONTENT = "content";

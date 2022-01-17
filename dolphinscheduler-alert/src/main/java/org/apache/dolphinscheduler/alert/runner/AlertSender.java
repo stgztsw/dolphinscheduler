@@ -81,6 +81,7 @@ public class AlertSender {
             alertInfo.addProp("receivers", receviersList);
 
             AlertPlugin emailPlugin = pluginManager.findOne(Constants.PLUGIN_DEFAULT_EMAIL);
+            System.out.println(emailPlugin);
             retMaps = emailPlugin.process(alertInfo);
 
             if (retMaps == null) {

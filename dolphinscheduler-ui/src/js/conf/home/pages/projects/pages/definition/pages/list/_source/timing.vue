@@ -44,8 +44,10 @@
 
       <div class="cont">
         <template>
+          <!-- crontab的指令操作弹出框 -->
           <x-poptip :ref="'poptip'" placement="bottom-start">
             <div class="crontab-box">
+              <!-- 原始显示的文字 -->
               <v-crontab v-model="crontab" :locale="i18n"></v-crontab>
             </div>
             <template slot="reference">
@@ -162,6 +164,7 @@
   import mEmail from './email.vue'
   import store from '@/conf/home/store'
   import { warningTypeList } from './util'
+  // vCrontab 引入定时的设置框，其中引入了second的组件
   import { vCrontab } from '@/module/components/crontab/index'
   import { formatDate } from '@/module/filter/filter'
   import mPriority from '@/module/components/priority/priority'
@@ -426,10 +429,10 @@
     }
   }
   .x-date-packer-panel .x-date-packer-day .lattice label.bg-hover {
-    background: #00BFFF!important; 
+    background: #00BFFF!important;
     margin-top: -4px;
   }
   .x-date-packer-panel .x-date-packer-day .lattice em:hover {
-    background: #0098e1!important; 
+    background: #0098e1!important;
   }
 </style>

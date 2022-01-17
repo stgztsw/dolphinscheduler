@@ -110,7 +110,7 @@ public class MailUtils {
 
         receivers.removeIf(StringUtils::isEmpty);
 
-        if (showType.equals(ShowType.TABLE.getDescp()) || showType.equals(ShowType.TEXT.getDescp())) {
+        if (showType.equals(ShowType.TABLE.getDescp()) || showType.equals(ShowType.TEXT.getDescp()) || showType.equals(ShowType.MSGTABKE.getDescp())) {
             // send email
             HtmlEmail email = new HtmlEmail();
 
@@ -134,6 +134,7 @@ public class MailUtils {
                 }
                 // sender mail
                 return getStringObjectMap(title, content, showType, retMap, email);
+
             } catch (Exception e) {
                 handleException(receivers, retMap, e);
             }
@@ -152,7 +153,6 @@ public class MailUtils {
             }
         }
         return retMap;
-
     }
 
     /**
@@ -172,6 +172,15 @@ public class MailUtils {
      */
     private static String htmlTable(String content){
         return htmlTable(content,true);
+    }
+
+    /**
+     * html msg & table content
+     * @param content
+     * @return
+     */
+    private static String htmlMsgTable(String content) {
+        return alertTemplate.getMessageFromTemplate(content,ShowType.MSGTABKE,true);
     }
 
     /**
@@ -315,6 +324,8 @@ public class MailUtils {
             email.setMsg(htmlTable(content));
         } else if (showType.equals(ShowType.TEXT.getDescp())) {
             email.setMsg(htmlText(content));
+        } else if (showType.equals(ShowType.MSGTABKE.getDescp())) {
+            email.setMsg(htmlMsgTable(content));
         }
 
         // send

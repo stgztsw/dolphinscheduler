@@ -25,13 +25,15 @@ public enum ShowType {
     /**
      * 0 TABLE;
      * 1 TEXT;
-     * 2 attachment;
+     * 2 attachment; 附件
      * 3 TABLE+attachment;
+     * 4 MSG+TABLE; 文字+table
      */
     TABLE(0, "table"),
     TEXT(1, "text"),
     ATTACHMENT(2, "attachment"),
-    TABLEATTACHMENT(3, "table attachment");
+    TABLEATTACHMENT(3, "table attachment"),
+    MSGTABKE(4, "msg table");
 
 
     ShowType(int code, String descp){

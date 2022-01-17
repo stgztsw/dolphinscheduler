@@ -81,6 +81,7 @@
     </div>
     <div class="clearfix list">
       <div class="text">
+        <!-- 通知组 -->
         {{$t('Notification group')}}
       </div>
       <div class="cont">
@@ -103,6 +104,7 @@
     </div>
     <div class="clearfix list">
       <div class="text">
+        <!-- 收件人 -->
         {{$t('Recipient')}}
       </div>
       <div class="cont" style="width: 688px;">
@@ -111,6 +113,7 @@
     </div>
     <div class="clearfix list">
       <div class="text">
+        <!-- 抄送人 -->
         {{$t('Cc')}}
       </div>
       <div class="cont" style="width: 688px;">
@@ -242,6 +245,11 @@
           this.spinnerLoading = false
         })
       },
+      /**
+       * 获取报警组，在start组件加载完成后调用这个方法
+       * @returns {Promise<unknown>}
+       * @private
+       */
       _getNotifyGroupList () {
         return new Promise((resolve, reject) => {
           let notifyGroupListS = _.cloneDeep(this.store.state.dag.notifyGroupListS) || []
