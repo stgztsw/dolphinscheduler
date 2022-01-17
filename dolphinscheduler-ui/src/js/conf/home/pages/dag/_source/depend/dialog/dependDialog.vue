@@ -11,11 +11,46 @@
           <x-button type="primary" v-html="currentStr" size="small" shape="Plugin" long>Default</x-button>
         </div>
         <div>
-          <h5>上一层依赖：</h5>
+          <br/>
+          <el-row type="flex" class="row-bg" justify="start" gutter="10">
+            <el-col :span="3">
+              <h5>上一层依赖：</h5>
+            </el-col>
+            <el-col :span="2">
+              <h5 >依赖状态：</h5>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('parent')" :value="totalObj.get('parent').num" class="item" type="primary">
+                <el-button size="small" @click="onTotal('parent')">总数</el-button>
+              </el-badge>
+            </el-col>
+
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('parent')" :value="successObj.get('parent').num" class="item" type="success">
+                <el-button size="small" @click="onSuccess('parent')">成功数</el-button>
+              </el-badge>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('parent')" :value="faildObj.get('parent').num" class="item" type="danger">
+                <el-button size="small" @click="onFaild('parent')">失败数</el-button>
+              </el-badge>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('parent')" :value="execObj.get('parent').num" class="item" type="info">
+                <el-button size="small" @click="onExec('parent')">运行中数</el-button>
+              </el-badge>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="waitObj.get('parent')" :value="waitObj.get('parent').num" class="item" type="info">
+                <el-button size="small" @click="onWait('parent')">待运行数</el-button>
+              </el-badge>
+            </el-col>
+          </el-row>
           <el-table
             :data="parentStrArray"
             style="width: 100%"
             :row-style="{height: '30px'}"
+            :row-class-name="drow"
             tooltip-effect="dark"
             max-height="300"
             highlight-current-row="true"
@@ -70,7 +105,41 @@
           <br/>
         </div>
         <div>
-          <h5>下一层依赖：</h5>
+          <el-row>
+            <el-col :span="3">
+              <h5>下一层依赖：</h5>
+            </el-col>
+            <el-col :span="2">
+              <h5 >依赖状态：</h5>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('child')" :value="totalObj.get('child').num" class="item" type="primary">
+                <el-button size="small" @click="onTotal('child')">总数</el-button>
+              </el-badge>
+            </el-col>
+
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('child')" :value="successObj.get('child').num" class="item" type="success">
+                <el-button size="small" @click="onSuccess('child')">成功数</el-button>
+              </el-badge>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('child')" :value="faildObj.get('child').num" class="item" type="danger">
+                <el-button size="small" @click="onFaild('child')">失败数</el-button>
+              </el-badge>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="execObj.get('child')" :value="execObj.get('child').num" class="item" type="info">
+                <el-button size="small" @click="onExec('child')">运行中数</el-button>
+              </el-badge>
+            </el-col>
+            <el-col :span="2" :offset="1">
+              <el-badge v-if="waitObj.get('child')" :value="waitObj.get('child').num" class="item" type="info">
+                <el-button size="small" @click="onWait('child')">待运行数</el-button>
+              </el-badge>
+            </el-col>
+          </el-row>
+
           <el-table
             :data="childStrArray"
             style="width: 100%"
@@ -151,14 +220,17 @@
     props: {
       id:{
         type: Number,
-        default: ''
+        default: 0
       },
       relation:{
         type: String,
         default: 'ONE_ALL'
       },
       sendVal: false,
-      value: {},
+      value: {
+        type: Boolean,
+        default: false
+      },
       // 类型包括 defalut 默认， danger 危险， confirm 确认，
       type:{
         type: String,
@@ -203,14 +275,54 @@
           { label: 'ID', prop: 'processId' },
           { label: '依赖类型', prop: 'dependType'}
         ],
-        isInstance: false
+        isInstance: false,
+        isEarliestParent: false,
+        successNum: 5,
+        totalObj: new Map(),
+        successObj: new Map(),
+        faildObj: new Map(),
+        execObj: new Map(),
+        waitObj: new Map(),
+
       }
     },
     methods:{
       ...mapMutations('dag', ['setIdListState','setDependList']),
-      ...mapActions('dag', ['getDependView',"getDependObject"]),
-      getColumnId(processId,definitionId){
-        return this.workType==="instance"?processId:definitionId
+      ...mapActions('dag', ['getDependView',"getDependObject","getProcessDetails","getInstancedetail"]),
+      onTotal(flag){
+        if (flag==="parent"){
+          this.parentStrArray = this.totalObj.get("parent").list
+        }else if (flag==="child") {
+          this.childStrArray = this.totalObj.get("child").list
+        }
+      },
+      onSuccess(flag){
+        if (flag==="parent"){
+          this.parentStrArray = this.successObj.get("parent").list
+        }else if (flag==="child") {
+          this.childStrArray = this.successObj.get("child").list
+        }
+      },
+      onFaild(flag){
+        if (flag==="parent"){
+          this.parentStrArray = this.faildObj.get("parent").list
+        }else if (flag==="child") {
+          this.childStrArray = this.faildObj.get("child").list
+        }
+      },
+      onExec(flag){
+        if (flag==="parent"){
+          this.parentStrArray = this.execObj.get("parent").list
+        }else if (flag==="child") {
+          this.childStrArray = this.execObj.get("child").list
+        }
+      },
+      onWait(flag){
+        if (flag==="parent"){
+          this.parentStrArray = this.waitObj.get("parent").list
+        }else if (flag==="child") {
+          this.childStrArray = this.waitObj.get("child").list
+        }
       },
       clickData(){
         console.log("点击了当前行")
@@ -242,6 +354,7 @@
         this.$emit('cancel');
         this.closeMask();
         this.sendVal = false;
+        this.value = false;
       },
       dangerBtn(){
         this.$emit('danger');
@@ -257,6 +370,42 @@
         console.log("进入init")
         // this.content = this.dependList.name
         // console.log("..................",data.processId,data.name)
+      },
+      handleDefinition(id) {
+        let _this = this;
+        return new Promise((resolve, reject) => {
+          _this.getProcessDetails(id)
+            .then((data) => {
+              // console.log("handleDefinition",data)
+              // console.log(data.processType)
+              if (data.processType==="SCHEDULER"){
+                // console.log("11111111111111111111111111111")
+                _this.isEarliestParent = true
+              }
+              resolve(_this.isEarliestParent)
+            })
+            .catch((e) => {
+              _this.isLoading = false
+              console.log("faild===", e)
+          })
+        })
+      },
+      handleInstance() {
+        let _this = this;
+        return new Promise((resolve, reject) => {
+          _this.getInstancedetail(id)
+            .then((data) => {
+              console.log(data.processType)
+              if (data.processType==="SCHEDULER"){
+                _this.isEarliestParent = true
+              }
+              resolve(_this.isEarliestParent)
+            })
+            .catch((e) => {
+              _this.isLoading = false
+              console.log("faild===", e)
+            })
+        })
       },
       // 拿到depend的对象
       handleData() {
@@ -291,6 +440,64 @@
                 " ,ID: "+(_this.workType==="instance"?
                   _this.$store.state.dag.dependList.processId:_this.$store.state.dag.dependList.definitionId)
 
+
+              let successParentArray = []
+              let faildParentArray = []
+              let execParentArray = []
+              let waitParentArray = []
+              let successChildArray = []
+              let faildChildArray = []
+              let execChildArray = []
+              let waitChildArray = []
+              for (let i = 0; i < _this.parentStrArray.length; i++) {
+                if (_this.parentStrArray[i].state==="SUCCESS") {
+                  successParentArray.push(_this.parentStrArray[i])
+                } else if (_this.parentStrArray[i].state==="FAILURE" ||
+                  _this.parentStrArray[i].state==="STOP" ||
+                  _this.parentStrArray[i].state==="PAUSE" ||
+                  _this.parentStrArray[i].state==="STOP_BY_DEPENDENT_FAILURE") {
+                  faildParentArray.push(_this.parentStrArray[i])
+                } else if (_this.parentStrArray[i].state==="SUBMITTED_SUCCESS" ||
+                  _this.parentStrArray[i].state==="RUNNING_EXECUTION" ||
+                  _this.parentStrArray[i].state==="INITED"){
+                  execParentArray.push(_this.parentStrArray[i])
+                } else if (_this.workType==="instance" && _this.parentStrArray[i].state===null){
+                  waitParentArray.push(_this.parentStrArray[i])
+                }
+              }
+
+
+              for (let i = 0; i < _this.childStrArray.length; i++) {
+                if (_this.childStrArray[i].state==="SUCCESS") {
+                  successChildArray.push(_this.childStrArray[i])
+                } else if (_this.childStrArray[i].state==="FAILURE" ||
+                  _this.childStrArray[i].state==="STOP" ||
+                  _this.childStrArray[i].state==="PAUSE" ||
+                  _this.childStrArray[i].state==="STOP_BY_DEPENDENT_FAILURE") {
+                  faildChildArray.push(this.childStrArray[i])
+                } else if (_this.childStrArray[i].state==="SUBMITTED_SUCCESS" ||
+                  _this.childStrArray[i].state==="RUNNING_EXECUTION" ||
+                  _this.childStrArray[i].state==="INITED"){
+                  execChildArray.push(_this.childStrArray[i])
+                } else if (_this.workType==="instance" && _this.childStrArray[i].state===null){
+                  waitChildArray.push(_this.childStrArray[i])
+                }
+              }
+              _this.totalObj = new Map()
+              _this.successObj = new Map()
+              _this.faildObj = new Map()
+              _this.execObj = new Map()
+              _this.totalObj.set("parent",{num:_this.parentStrArray.length,list:_this.parentStrArray})
+              _this.totalObj.set("child",{num:_this.childStrArray.length,list:_this.childStrArray})
+              _this.successObj.set("parent",{num:successParentArray.length,list:successParentArray})
+              _this.successObj.set("child",{num:successChildArray.length,list:successChildArray})
+              _this.faildObj.set("parent",{num:faildParentArray.length,list:faildParentArray})
+              _this.faildObj.set("child",{num:faildChildArray.length,list:faildChildArray})
+              _this.execObj.set("parent",{num:execParentArray.length,list:execParentArray})
+              _this.execObj.set("child",{num:execChildArray.length,list:execChildArray})
+              _this.waitObj.set("parent",{num:waitParentArray.length,list:waitParentArray})
+              _this.waitObj.set("child",{num:waitChildArray.length,list:waitChildArray})
+              console.log("total总数：：：",_this.totalObj.get("parent").num)
               resolve(data)
             }).catch((e) => {
             _this.isLoading = false
@@ -350,7 +557,6 @@
           }
         }
       }
-
     },
     mounted(){
       this.showMask = this.value;
@@ -364,7 +570,8 @@
       }
     },
     created() {
-      console.log(this.id,this.relation,this.workType)
+      // console.log(this.id,this.relation,this.workType)
+      console.log("created",this.id,this.relation,this.workType,this.value)
       this.init()
     }
   }

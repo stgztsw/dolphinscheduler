@@ -68,7 +68,10 @@
             <span>{{$t('Operation')}}</span>
           </th>
         </tr>
-        <tr v-for="(item, $index) in list" :key="item.id">
+        <tr v-for="(item, $index) in list" :key="item.id"
+            :style="selectColor(item)"
+            onMouseOver="this.style.backgroundColor='RGB(221,236,255)'; this.style.opacity=1.5;"
+            :onmouseout="rollbackColor(item)">
           <td width="50"><x-checkbox v-model="item.isCheck" :disabled="item.state === 'RUNNING_EXECUTION' || item.state === 'READY_STOP' || item.state === 'READY_PAUSE'" @on-change="_arrDelChange"></x-checkbox></td>
           <td width="50">
             <span>{{parseInt(pageNo === 1 ? ($index + 1) : (($index + 1) + (pageSize * (pageNo - 1))))}}</span>
@@ -200,7 +203,7 @@
                         data-toggle="tooltip"
                         :title="$t('Depend')"
                         @click="openMask(item)"
-                        icon="ans-icon-search-no-data">
+                        icon="ans-icon-search-no-data" v-if="!(item.processType === 'SCHEDULER' && item.dependentSchedulerFlag)">
               </x-button>
             </div>
             <div v-show="!item.disabled">
@@ -323,6 +326,7 @@
               </x-button>
             </div>
           </td>
+<!--          </div>-->
         </tr>
       </table>
     </div>
@@ -330,6 +334,7 @@
     <div>
       <dialog-bar
         v-model="sendVal"
+        :key="timer"
         :id="id"
         type="danger"
         title="依赖图"
@@ -400,6 +405,7 @@
           type: String,
           default: ''
         },
+        timer: ''
       }
     },
     props: {
@@ -409,6 +415,22 @@
     },
     methods: {
       ...mapActions('dag', ['editExecutorsState', 'deleteInstance', 'batchDeleteInstance']),
+      rollbackColor(item){
+        if (item.processType==="NORMAL"){
+          return "this.style.backgroundColor='#ffffff'; this.style.opacity=1.0;"
+        } else if (item.processType==="SCHEDULER"){
+          // if (item.onmouseover)
+          return "this.style.backgroundColor='#DCDCDC'; this.style.opacity=0.85;"
+        }
+      },
+      selectColor(item){
+        if (item.processType==="NORMAL"){
+          return
+        } else if (item.processType==="SCHEDULER"){
+          // if (item.onmouseover)
+          return "background-color:#DCDCDC; opacity:0.85;"
+        }
+      },
       handleClose(done) {
         this.$confirm('确认关闭？')
           .then(_ => {
@@ -419,13 +441,11 @@
       },
       // 弹窗组件方法
       openMask(item){
-        console.log("11111111111111111111111111",this.sendVal)
         this.id = item.id,
         this.relation = "ONE_ALL",
         this.workType = "instance",
         this.sendVal = true;
-        console.log(item)
-        console.log(this.id,this.relation,this.workType,this.sendVal)
+        this.timer = new Date().getTime()
       },
       clickCancel(){
         console.log('点击了取消');
@@ -437,7 +457,6 @@
       clickConfirm(){
         console.log('点击了confirm');
       },
-
 
       /**
        * Return run type

@@ -35,7 +35,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 
 import 'bootstrap/dist/js/bootstrap.min.js'
 import 'canvg/dist/browser/canvg.min.js'
-import { Button, Dialog, Table, Tree, TableColumn } from 'element-ui';
+import { Button, Dialog, Table, Tree, TableColumn, Alert, Row, Col, Icon,Badge } from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 
 // Component internationalization
@@ -49,6 +49,11 @@ Vue.use(Dialog)
 Vue.use(Table)
 Vue.use(Tree)
 Vue.use(TableColumn)
+Vue.use(Alert)
+Vue.use(Row)
+Vue.use(Col)
+Vue.use(Icon)
+Vue.use(Badge)
 
 sync(store, router)
 

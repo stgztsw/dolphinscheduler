@@ -161,10 +161,10 @@ public class ProcessInstanceService extends BaseDAGService {
 
         DependTreeViewVo processDependents = queryDependentsByProcessInstance(processInstance, ONE_ALL);
 
-        if (processDependents.getParents().isEmpty()) {
-            putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processInstance.getId());
-            return;
-        }
+//        if (processDependents.getParents().isEmpty()) {
+//            putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processInstance.getId());
+//            return;
+//        }
         putResult(result,processDependents,processInstance.getId());
     }
 
@@ -225,10 +225,10 @@ public class ProcessInstanceService extends BaseDAGService {
         } else {
             processService.queryOneLayerDepends(sb, processInstance.getProcessDefinitionId(), dependTreeView);
         }
-        if (dependTreeView.getParents()==null){
-            logger.info("processInstance {} is the first node, don't allow the query",processInstance.getId());
-            return null;
-        }
+//        if (dependTreeView.getParents()==null){
+//            logger.info("processInstance {} is the first node, don't allow the query",processInstance.getId());
+//            return null;
+//        }
 //        if (processInstances.size() == 0) {
 //            logger.debug("process={} has no dependent process", processInstance.getProcessDefinitionId());
 //        }
