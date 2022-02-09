@@ -71,13 +71,16 @@ public class LowerWeightHostManager extends CommonHostManager {
      */
     private ScheduledExecutorService executorService;
 
+    private RefreshResourceTask refreshResourceTask;
+
     @PostConstruct
     public void init() {
         this.selector = new LowerWeightRoundRobin();
         this.workerHostWeightsMap = new ConcurrentHashMap<>();
         this.lock = new ReentrantLock();
         this.executorService = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("LowerWeightHostManagerExecutor"));
-        this.executorService.scheduleWithFixedDelay(new RefreshResourceTask(),0, 5, TimeUnit.SECONDS);
+        this.refreshResourceTask = new RefreshResourceTask();
+        this.executorService.scheduleWithFixedDelay(this.refreshResourceTask,0, 5, TimeUnit.SECONDS);
     }
 
     @PreDestroy
@@ -169,4 +172,7 @@ public class LowerWeightHostManager extends CommonHostManager {
         }
     }
 
+    public RefreshResourceTask getRefreshResourceTask() {
+        return refreshResourceTask;
+    }
 }

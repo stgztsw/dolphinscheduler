@@ -18,6 +18,8 @@
 package org.apache.dolphinscheduler.server.master.dispatch;
 
 
+import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.TaskType;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
 import org.apache.dolphinscheduler.remote.utils.Host;
 import org.apache.dolphinscheduler.server.master.dispatch.context.ExecutionContext;
@@ -29,6 +31,8 @@ import org.apache.dolphinscheduler.server.master.dispatch.host.HostManager;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.dolphinscheduler.server.master.dispatch.host.LowerWeightHostManager;
+import org.apache.dolphinscheduler.server.master.registry.ServerNodeManager;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,6 +55,9 @@ public class ExecutorDispatcher implements InitializingBean {
     @Autowired
     private HostManager hostManager;
 
+    @Autowired
+    protected ServerNodeManager serverNodeManager;
+
     /**
      * executor manager
      */
@@ -70,7 +77,7 @@ public class ExecutorDispatcher implements InitializingBean {
      * @return result
      * @throws ExecuteException if error throws ExecuteException
      */
-    public Boolean dispatch(final ExecutionContext context) throws ExecuteException {
+    public Boolean dispatch(final ExecutionContext context) throws ExecuteException, InterruptedException {
         /**
          * get executor manager
          */
@@ -79,10 +86,20 @@ public class ExecutorDispatcher implements InitializingBean {
             throw new ExecuteException("no ExecutorManager for type : " + context.getExecutorType());
         }
 
+        //节点负载信息有延迟，最高可达到25秒，如果是datax任务必须获得最新的节点负载信息，否则有可能能导致内存使用过载
+        if (TaskType.DATAX.getDescp().equals(context.getTaskType())) {
+            //work通过心跳测试同步节点负载，同步频率为1秒，所以睡眠1秒以拿到最新的节点负载信息
+            Thread.sleep(Constants.SLEEP_TIME_MILLIS);
+            Runnable workerNodeInfoAndGroupDbSyncTask = serverNodeManager.getWorkerNodeInfoAndGroupDbSyncTask();
+            Runnable refreshResourceTask = ((LowerWeightHostManager)hostManager).getRefreshResourceTask();
+            //这边直接执行run方法而不是启动新线程的目的是通过对象调用成员方法达到阻塞同步最新的节点负载信息
+            workerNodeInfoAndGroupDbSyncTask.run();
+            refreshResourceTask.run();
+        }
+
         /**
          * host select
          */
-
         Host host = hostManager.select(context);
         if (StringUtils.isEmpty(host.getAddress())) {
             throw new ExecuteException(String.format("fail to execute : %s due to no suitable worker, "

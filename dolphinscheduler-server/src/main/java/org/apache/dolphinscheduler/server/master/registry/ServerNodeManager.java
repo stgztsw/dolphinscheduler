@@ -121,6 +121,8 @@ public class ServerNodeManager implements InitializingBean {
     @Autowired
     private AlertDao alertDao;
 
+    private WorkerNodeInfoAndGroupDbSyncTask workerNodeInfoAndGroupDbSyncTask;
+
     /**
      * init listener
      * @throws Exception if error throws Exception
@@ -135,7 +137,8 @@ public class ServerNodeManager implements InitializingBean {
          * init executor service
          */
         executorService = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("ServerNodeManagerExecutor"));
-        executorService.scheduleWithFixedDelay(new WorkerNodeInfoAndGroupDbSyncTask(), 0, 10, TimeUnit.SECONDS);
+        this.workerNodeInfoAndGroupDbSyncTask = new WorkerNodeInfoAndGroupDbSyncTask();
+        executorService.scheduleWithFixedDelay(this.workerNodeInfoAndGroupDbSyncTask, 0, 10, TimeUnit.SECONDS);
         /**
          * init MasterNodeListener listener
          */
@@ -383,4 +386,7 @@ public class ServerNodeManager implements InitializingBean {
         registryCenter.close();
     }
 
+    public WorkerNodeInfoAndGroupDbSyncTask getWorkerNodeInfoAndGroupDbSyncTask() {
+        return workerNodeInfoAndGroupDbSyncTask;
+    }
 }

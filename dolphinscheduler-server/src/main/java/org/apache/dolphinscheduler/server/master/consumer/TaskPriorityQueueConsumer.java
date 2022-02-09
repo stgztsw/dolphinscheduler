@@ -143,14 +143,14 @@ public class TaskPriorityQueueConsumer extends Thread{
             int taskInstanceId = taskPriority.getTaskId();
             TaskExecutionContext context = getTaskExecutionContext(taskInstanceId);
             ExecutionContext executionContext = new ExecutionContext(context.toCommand(), ExecutorType.WORKER, context.getWorkerGroup());
-
+            executionContext.setTaskType(context.getTaskType());
             if (taskInstanceIsFinalState(taskInstanceId)){
                 // when task finish, ignore this task, there is no need to dispatch anymore
                 return true;
             }else{
                 result = dispatcher.dispatch(executionContext);
             }
-        } catch (ExecuteException e) {
+        } catch (ExecuteException | InterruptedException e) {
             logger.error("dispatch error: {}",e.getMessage());
         }
         return result;
