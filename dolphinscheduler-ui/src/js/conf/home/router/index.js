@@ -152,7 +152,15 @@ const router = new Router({
               meta: {
                 title: `${i18n.$t('Gantt')}`
               }
-            }
+            },
+            {
+              path: '/projects/instance/depend',
+              name: 'instance-depend-index',
+              component: resolve => require(['../pages/dag/_source/depend/index'], resolve),
+              meta: {
+                title: `${i18n.$t('Depend')}`
+              }
+            },
           ]
         },
         {

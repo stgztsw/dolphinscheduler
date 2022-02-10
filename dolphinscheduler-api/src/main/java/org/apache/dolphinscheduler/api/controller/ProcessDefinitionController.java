@@ -22,6 +22,7 @@ import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.ProcessDefinitionService;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.DependentViewRelation;
 import org.apache.dolphinscheduler.common.utils.ParameterUtils;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
 import org.apache.dolphinscheduler.dao.entity.User;
@@ -187,7 +188,7 @@ public class ProcessDefinitionController extends BaseController {
 
     /**
      * release process definition
-     *
+     * 控制上下线definition的接口入口
      * @param loginUser    login user
      * @param projectName  project name
      * @param processId    process definition id
@@ -494,5 +495,28 @@ public class ProcessDefinitionController extends BaseController {
         Map<String, Object> result = processDefinitionService.queryProcessDefinitionAllByProjectId(projectId);
         return returnDataList(result);
     }
+
+
+    @ApiOperation(value = "queryProcessDefinitionOneLayerDependentsById", notes= "QUERY_PROCESS_DEFINITION_DEPENDENTS_BY_ID_NOTES")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "processId", value = "PROCESS_DEFINITION_ID", required = true, dataType = "Int", example = "100"),
+            @ApiImplicitParam(name = "dependentViewRelation", value = "DEPENDENT_VIEW_RELATION", type = "DependentViewRelation"),
+    })
+    @GetMapping(value = "/select-dependent-layer-by-id")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_DATAIL_OF_PROCESS_DEFINITION_ERROR)
+    public Result queryProcessDefinitionOneLayerDependentsById(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                               @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName,
+                                                               @RequestParam("processId") Integer processId,
+                                                               @RequestParam("dependentViewRelation") DependentViewRelation dependentViewRelation
+
+    ) {
+        logger.info("query detail dependents of process definition, login user:{}, project name:{}, process definition id:{}",
+                loginUser.getUserName(), projectName, processId);
+        Map<String, Object> result = processDefinitionService.queryProcessDefinitionOneLayerDependentById(loginUser, projectName, processId, dependentViewRelation);
+        return returnDataList(result);
+    }
+
+
 
 }

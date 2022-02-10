@@ -52,7 +52,10 @@
             <span>{{$t('Operation')}}</span>
           </th>
         </tr>
-        <tr v-for="(item, $index) in list" :key="item.id">
+        <tr v-for="(item, $index) in list" :key="item.id"
+            :style="selectColor(item)"
+            onMouseOver="this.style.backgroundColor='RGB(221,236,255)'; this.style.opacity=1.5;"
+            :onmouseout="rollbackColor(item)">
           <td width="50"><x-checkbox v-model="item.isCheck" :disabled="item.releaseState === 'ONLINE'" @on-change="_arrDelChange"></x-checkbox></td>
           <td width="50">
             <span>{{parseInt(pageNo === 1 ? ($index + 1) : (($index + 1) + (pageSize * (pageNo - 1))))}}</span>
@@ -118,10 +121,45 @@
             </x-poptip>
             <x-button type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('TreeView')" @click="_treeView(item)"  icon="ans-icon-node"><!--{{$t('树形图')}}--></x-button>
             <x-button type="info" shape="circle" size="xsmall" data-toggle="tooltip" :title="$t('Export')" @click="_export(item)"  icon="ans-icon-download"><!--{{$t('导出')}}--></x-button>
-
+            <x-button type="info"
+                      shape="circle"
+                      size="xsmall"
+                      data-toggle="tooltip"
+                      :title="$t('Depend')"
+                      @click="openMask(item)"
+                      icon="ans-icon-search-no-data" v-if="item.processType != 'SCHEDULER'">
+            </x-button>
           </td>
         </tr>
       </table>
+    </div>
+    <!-- 弹窗组件 -->
+    <div>
+      <dialog-bar
+        v-model="sendVal"
+        :key="timer"
+        :id="id"
+        type="danger"
+        title="依赖图"
+        :workType="workType"
+        :relation="relation"
+        v-on:cancel="clickCancel()"
+        @danger="clickDanger()"
+        @confirm="clickConfirm()"
+        dangerText="Delete">
+      </dialog-bar>
+      <el-dialog
+        title="提示"
+        :visible.sync="dialogVisible"
+        width="30%"
+        :before-close="handleClose"
+        custom-class="dialog-mask">
+        <span>这是一段信息</span>
+        <span slot="footer" class="dialog-footer">
+                  <el-button @click="dialogVisible = false">取 消</el-button>
+                  <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+                </span>
+      </el-dialog>
     </div>
     <x-poptip
             v-show="strSelectIds !== ''"
@@ -149,6 +187,7 @@
   import mTiming from './timing'
   import { mapActions } from 'vuex'
   import { publishStatus } from '@/conf/home/pages/dag/_source/config'
+  import dialogBar from "@/conf/home/pages/dag/_source/depend/dialog/dependDialog";
 
   export default {
     name: 'definition-list',
@@ -156,7 +195,23 @@
       return {
         list: [],
         strSelectIds: '',
-        checkAll: false
+        checkAll: false,
+
+        // 新增弹窗
+        sendVal: false,
+        id: {
+          type: Number,
+          default: ''
+        },
+        relation:{
+          type: String,
+          default: 'ONE_ALL'
+        },
+        workType: {
+          type: String,
+          default: ''
+        },
+        timer: ''
       }
     },
     props: {
@@ -167,6 +222,50 @@
     methods: {
       ...mapActions('dag', ['editProcessState', 'getStartCheck', 'getReceiver', 'deleteDefinition', 'batchDeleteDefinition','exportDefinition','copyProcess']),
       ...mapActions('security', ['getWorkerGroupsAll']),
+      rollbackColor(item){
+        if (item.processType==="NORMAL"){
+          return "this.style.backgroundColor='#ffffff'; this.style.opacity=1.0;"
+        } else if (item.processType==="SCHEDULER"){
+          // if (item.onmouseover)
+          return "this.style.backgroundColor='#DCDCDC'; this.style.opacity=0.85;"
+        }
+      },
+      selectColor(item){
+        if (item.processType==="NORMAL"){
+          return
+        } else if (item.processType==="SCHEDULER"){
+          // if (item.onmouseover)
+          return "background-color:#DCDCDC; opacity:0.85;"
+        }
+      },
+      handleClose(done) {
+        this.$confirm('确认关闭？')
+          .then(_ => {
+            done();
+          })
+          .catch(_ => {
+          });
+      },
+
+      // 弹窗组件方法
+      openMask(item){
+        this.id = item.id,
+          this.relation = "ONE_ALL",
+          this.workType = "definition",
+          this.sendVal = true;
+        this.timer = new Date().getTime()
+      },
+      clickCancel(){
+        console.log('点击了取消');
+        this.sendVal=false;
+      },
+      clickDanger(){
+        console.log('这里是danger回调')
+      },
+      clickConfirm(){
+        console.log('点击了confirm');
+      },
+
       _rtPublishStatus (code) {
         return _.filter(publishStatus, v => v.code === code)[0].desc
       },
@@ -432,6 +531,8 @@
     },
     mounted () {
     },
-    components: { }
+    components: {
+      'dialog-bar': dialogBar
+    }
   }
 </script>

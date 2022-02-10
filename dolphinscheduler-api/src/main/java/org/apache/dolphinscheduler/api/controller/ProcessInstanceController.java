@@ -21,6 +21,7 @@ import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.ProcessInstanceService;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.DependentViewRelation;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.enums.Flag;
 import org.apache.dolphinscheduler.common.utils.ParameterUtils;
@@ -203,6 +204,34 @@ public class ProcessInstanceController extends BaseController {
         Map<String, Object> result = processInstanceService.queryProcessInstanceById(loginUser, projectName, processInstanceId);
         return returnDataList(result);
     }
+
+    /**
+     * update jack list instances 页面查询 上下游一层依赖
+     *
+     * @param loginUser
+     * @param projectName
+     * @param processInstanceId
+     * @return
+     */
+    @ApiOperation(value = "queryProcessInstanceOneLayerDependentById", notes = "QUERY_PROCESS_INSTANCE_DEPENDENT_BY_ID_NOTES")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "processInstanceId", value = "PROCESS_INSTANCE_ID", dataType = "Int", example = "100"),
+            @ApiImplicitParam(name = "dependentViewRelation", value = "DEPENDENT_VIEW_RELATION", type = "DependentViewRelation"),
+    })
+    @GetMapping(value = "/select-dependent-layer-by-id")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_PROCESS_INSTANCE_BY_ID_ERROR)
+    public Result queryProcessInstanceOneLayerDependentById(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                            @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName,
+                                                            @RequestParam("processInstanceId") Integer processInstanceId,
+                                                            @RequestParam("dependentViewRelation") DependentViewRelation dependentViewRelation
+                                                            ) {
+        logger.info("query process instance detail by id, login user:{},project name:{}, process instance id:{}",
+                loginUser.getUserName(), projectName, processInstanceId);
+        Map<String, Object> result = processInstanceService.queryProcessInstanceOneLayerDependentById(loginUser,projectName,processInstanceId,dependentViewRelation);
+        return returnDataList(result);
+    }
+
 
     /**
      * delete process instance by id, at the same time,

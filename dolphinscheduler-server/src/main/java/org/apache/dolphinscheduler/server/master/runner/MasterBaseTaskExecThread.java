@@ -171,7 +171,7 @@ public class MasterBaseTaskExecThread implements Callable<Boolean> {
                     }
                 }
                 if(submitDB && !submitTask){
-                    // dispatch task
+                    // dispatch task 真正的调度起始位置
                     submitTask = dispatchTask(task);
                 }
                 if(submitDB && submitTask){

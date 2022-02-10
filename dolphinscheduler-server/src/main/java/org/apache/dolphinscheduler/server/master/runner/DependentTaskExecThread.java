@@ -19,9 +19,7 @@ package org.apache.dolphinscheduler.server.master.runner;
 import static org.apache.dolphinscheduler.common.Constants.DEPENDENT_SPLIT;
 
 import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.CommandType;
-import org.apache.dolphinscheduler.common.enums.DependResult;
-import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
+import org.apache.dolphinscheduler.common.enums.*;
 import org.apache.dolphinscheduler.common.model.DependentTaskModel;
 import org.apache.dolphinscheduler.common.task.dependent.DependentParameters;
 import org.apache.dolphinscheduler.common.thread.Stopper;
@@ -92,7 +90,7 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
             Thread.currentThread().setName(threadLoggerInfoName);
             initTaskParameters();
             initDependParameters();
-            waitTaskQuit();
+            waitTaskQuit();// 等待所有的dependent完成
             updateTaskState();
         }catch (Exception e){
             logger.error("dependent task run exception" , e);
@@ -131,7 +129,7 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
             status = (result == DependResult.SUCCESS) ? ExecutionStatus.SUCCESS : ExecutionStatus.FAILURE;
         }
         taskInstance.setState(status);
-        taskInstance.setEndTime(new Date());
+        taskInstance.setEndTime(new Date()); // SUCCESS 设置结束时间
         processService.saveTaskInstance(taskInstance);
     }
 
@@ -195,6 +193,7 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
     }
 
     /**
+     * 判断所有依赖完成
      * judge all dependent tasks finish
      * @return whether all dependent tasks finish
      */

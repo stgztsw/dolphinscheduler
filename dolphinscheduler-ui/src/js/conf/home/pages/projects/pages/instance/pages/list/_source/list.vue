@@ -68,7 +68,10 @@
             <span>{{$t('Operation')}}</span>
           </th>
         </tr>
-        <tr v-for="(item, $index) in list" :key="item.id">
+        <tr v-for="(item, $index) in list" :key="item.id"
+            :style="selectColor(item)"
+            onMouseOver="this.style.backgroundColor='RGB(221,236,255)'; this.style.opacity=1.5;"
+            :onmouseout="rollbackColor(item)">
           <td width="50"><x-checkbox v-model="item.isCheck" :disabled="item.state === 'RUNNING_EXECUTION' || item.state === 'READY_STOP' || item.state === 'READY_PAUSE'" @on-change="_arrDelChange"></x-checkbox></td>
           <td width="50">
             <span>{{parseInt(pageNo === 1 ? ($index + 1) : (($index + 1) + (pageSize * (pageNo - 1))))}}</span>
@@ -194,7 +197,14 @@
                         @click="_gantt(item)"
                         icon="ans-icon-gantt">
               </x-button>
-
+              <x-button type="info"
+                        shape="circle"
+                        size="xsmall"
+                        data-toggle="tooltip"
+                        :title="$t('Depend')"
+                        @click="openMask(item)"
+                        icon="ans-icon-search-no-data" v-if="!(item.processType === 'SCHEDULER' && item.dependentSchedulerFlag)">
+              </x-button>
             </div>
             <div v-show="!item.disabled">
               <!--Edit-->
@@ -305,10 +315,48 @@
                       icon="ans-icon-gantt"
                       disabled="true">
               </x-button>
+
+              <!--Depend-->
+              <x-button
+                type="info"
+                shape="circle"
+                size="xsmall"
+                icon="ans-icon-search-no-data"
+                disabled="true">
+              </x-button>
             </div>
           </td>
+<!--          </div>-->
         </tr>
       </table>
+    </div>
+    <!-- 弹窗组件 -->
+    <div>
+      <dialog-bar
+        v-model="sendVal"
+        :key="timer"
+        :id="id"
+        type="danger"
+        title="依赖图"
+        :workType="workType"
+        :relation="relation"
+        v-on:cancel="clickCancel()"
+        @danger="clickDanger()"
+        @confirm="clickConfirm()"
+        dangerText="Delete">
+      </dialog-bar>
+      <el-dialog
+        title="提示"
+        :visible.sync="dialogVisible"
+        width="30%"
+        :before-close="handleClose"
+        custom-class="dialog-mask">
+        <span>这是一段信息</span>
+        <span slot="footer" class="dialog-footer">
+                  <el-button @click="dialogVisible = false">取 消</el-button>
+                  <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+                </span>
+      </el-dialog>
     </div>
     <x-poptip
             v-show="strDelete !== ''"
@@ -330,6 +378,7 @@
   import _ from 'lodash'
   import { mapActions } from 'vuex'
   import { tasksState, runningType } from '@/conf/home/pages/dag/_source/config'
+  import dialogBar from "@/conf/home/pages/dag/_source/depend/dialog/dependDialog";
 
   export default {
     name: 'list',
@@ -340,7 +389,23 @@
         // btn type
         buttonType: '',
         strDelete: '',
-        checkAll: false
+        checkAll: false,
+
+        // 新增弹窗
+        sendVal: false,
+        id: {
+          type: Number,
+          default: ''
+        },
+        relation:{
+          type: String,
+          default: 'ONE_ALL'
+        },
+        workType: {
+          type: String,
+          default: ''
+        },
+        timer: ''
       }
     },
     props: {
@@ -350,6 +415,49 @@
     },
     methods: {
       ...mapActions('dag', ['editExecutorsState', 'deleteInstance', 'batchDeleteInstance']),
+      rollbackColor(item){
+        if (item.processType==="NORMAL"){
+          return "this.style.backgroundColor='#ffffff'; this.style.opacity=1.0;"
+        } else if (item.processType==="SCHEDULER"){
+          // if (item.onmouseover)
+          return "this.style.backgroundColor='#DCDCDC'; this.style.opacity=0.85;"
+        }
+      },
+      selectColor(item){
+        if (item.processType==="NORMAL"){
+          return
+        } else if (item.processType==="SCHEDULER"){
+          // if (item.onmouseover)
+          return "background-color:#DCDCDC; opacity:0.85;"
+        }
+      },
+      handleClose(done) {
+        this.$confirm('确认关闭？')
+          .then(_ => {
+            done();
+          })
+          .catch(_ => {
+          });
+      },
+      // 弹窗组件方法
+      openMask(item){
+        this.id = item.id,
+        this.relation = "ONE_ALL",
+        this.workType = "instance",
+        this.sendVal = true;
+        this.timer = new Date().getTime()
+      },
+      clickCancel(){
+        console.log('点击了取消');
+        this.sendVal=false;
+      },
+      clickDanger(){
+        console.log('这里是danger回调')
+      },
+      clickConfirm(){
+        console.log('点击了confirm');
+      },
+
       /**
        * Return run type
        */
@@ -594,6 +702,10 @@
           this.strDelete = ''
           this.$message.error(e.msg || '')
         })
+      },
+      _viewDepend (item) {
+        this.$router.push({ name: 'instance-depend-index',params:{id:item.id,relation:"ONE_ALL",workType:"instance"} })
+        console.log(item)
       }
     },
     watch: {
@@ -616,6 +728,8 @@
     },
     mounted () {
     },
-    components: { }
+    components: {
+      'dialog-bar': dialogBar
+    }
   }
 </script>

@@ -96,7 +96,7 @@ public class MasterSchedulerService extends Thread {
      * constructor of MasterSchedulerThread
      */
     @PostConstruct
-    public void init(){
+    public void init(){// desc 依赖注入时会运行这个方法 Constructor(构造方法) -> @Autowired(依赖注入) -> @PostConstruct(注释的方法)
         this.masterExecService = (ThreadPoolExecutor)ThreadUtils.newDaemonFixedThreadExecutor("Master-Exec-Thread", masterConfig.getMasterExecThreads());
         NettyClientConfig clientConfig = new NettyClientConfig();
         this.nettyRemotingClient = new NettyRemotingClient(clientConfig);
@@ -129,7 +129,7 @@ public class MasterSchedulerService extends Thread {
     @Override
     public void run() {
         logger.info("master scheduler started");
-        while (Stopper.isRunning()){
+        while (Stopper.isRunning()){// desc 非挂掉状态10s一次轮询
             try {
                 boolean runCheckFlag = OSUtils.checkResource(masterConfig.getMasterMaxCpuloadAvg(), masterConfig.getMasterReservedMemory());
                 if(!runCheckFlag) {
@@ -150,13 +150,13 @@ public class MasterSchedulerService extends Thread {
         try {
                     mutex = zkMasterClient.blockAcquireMutex();
 
-                    int activeCount = masterExecService.getActiveCount();
+                    int activeCount = masterExecService.getActiveCount();// update desc 获取存活的线程
                     // make sure to scan and delete command  table in one transaction
                     Command command = processService.findOneCommand();
                     if (command != null) {
                         logger.info("find one command: id: {}, type: {}", command.getId(),command.getCommandType());
 
-                        try{
+                        try{// update desc 异步消息处理
                             ProcessInstance processInstance = processService.handleCommand(logger,
                                     getLocalAddress(),
                                     this.masterConfig.getMasterExecThreads() - activeCount, command);
@@ -165,7 +165,7 @@ public class MasterSchedulerService extends Thread {
                                 Future<ProcessInstance> future;
                                 if (processInstance.getState() == ExecutionStatus.RUNNING_EXECUTION) {
                                     future = masterExecService.submit(
-                                            new MasterExecThread(
+                                            new MasterExecThread(// update desc 提交线程 到线程池
                                                     processInstance
                                                     , processService
                                                     , nettyRemotingClient
@@ -261,7 +261,7 @@ public class MasterSchedulerService extends Thread {
         }
 
         @Override
-        public void run() {
+        public void run() {// desc 在依赖注入的时候就初始化了这个线程
             logger.info("master dependent scheduler started");
             while (true) {
                 try {
@@ -346,7 +346,7 @@ public class MasterSchedulerService extends Thread {
                 }
             }
         }
-
+        // 生成子节点的command
         private void schedulerProcess(ProcessInstance parentProcessInstance, List<ProcessDependent> processDependents) {
             for (ProcessDependent processDependent : processDependents) {
                 logger.info("definitionId={} is need to be fired by parentInstanceId={} parentInstanceName={} parentDefinitionId={}",

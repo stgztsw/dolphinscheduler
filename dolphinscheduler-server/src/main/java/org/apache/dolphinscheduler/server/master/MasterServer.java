@@ -190,6 +190,7 @@ public class MasterServer implements IStoppable {
 
     @Override
     public void stop(String cause) {
+        // todo 发版需要去掉注释
         close(cause);
     }
 }

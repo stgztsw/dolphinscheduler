@@ -72,6 +72,17 @@
             </a>
           </div>
           <x-button
+                  type="success"
+                  v-tooltip.light="$t('Depend')"
+                  icon="ans-icon-search-no-data"
+                  size="xsmall"
+
+                  data-container="boby"
+                  v-if="(type === 'instance' || 'definition') && urlParam.id !=undefined"
+                  style="vertical-align: middle;"
+                  @click="openMask">
+          </x-button>
+          <x-button
                   type="primary"
                   v-tooltip.light="$t('Format DAG')"
                   icon="ans-icon-triangle-solid-right"
@@ -112,6 +123,31 @@
             {{spinnerLoading ? 'Loading...' : $t('Save')}}
           </x-button>
         </div>
+        <div>
+          <dialog-bar
+            v-model="sendVal"
+            :id="id"
+            type="danger"
+            title="依赖图"
+            :workType="type"
+            v-on:cancel="clickCancel()"
+            @danger="clickDanger()"
+            @confirm="clickConfirm()"
+            dangerText="Delete">
+          </dialog-bar>
+          <el-dialog
+            title="提示"
+            :visible.sync="dialogVisible"
+            width="30%"
+            :before-close="handleClose"
+            custom-class="dialog-mask">
+            <span>这是一段信息</span>
+            <span slot="footer" class="dialog-footer">
+              <el-button @click="dialogVisible = false">取 消</el-button>
+              <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+            </span>
+          </el-dialog>
+        </div>
       </div>
       <div class="scrollbar dag-container">
         <div class="jtk-demo" id="jtk-demo">
@@ -135,12 +171,13 @@
   import { findComponentDownward } from '@/module/util/'
   import disabledState from '@/module/mixin/disabledState'
   import { mapActions, mapState, mapMutations } from 'vuex'
+  import dialogBar from "./depend/dialog/dependDialog";
 
   let eventModel
 
   export default {
     name: 'dag-chart',
-    data () {
+    data() {
       return {
         tasksTypeList: tasksType,
         toolOperList: toolOper(this),
@@ -156,24 +193,51 @@
         taskId: null,
         arg: false,
 
+        // 是否展示依赖窗口
+        sendVal: false,
       }
     },
     mixins: [disabledState],
     props: {
       type: String,
-      releaseState: String
+      releaseState: String,
+      id: Number,
+      relation: {
+        type: String,
+        default: "ONE_ALL"
+      }
     },
     methods: {
       ...mapActions('dag', ['saveDAGchart', 'updateInstance', 'updateDefinition', 'getTaskState']),
       ...mapMutations('dag', ['addTasks', 'cacheTasks', 'resetParams', 'setIsEditDag', 'setName']),
+        handleClose(done) {
+          this.$confirm('确认关闭？')
+            .then(_ => {
+              done();
+            })
+            .catch(_ => {
+            });
+        },
 
-      // DAG automatic layout
-      dagAutomaticLayout() {
-        if(this.store.state.dag.isEditDag) {
-          this.$message.warning(`${i18n.$t('Please save the DAG before formatting')}`)
-          return false
-        }
-        $('#canvas').html('')
+        openMask(){
+          this.sendVal = true;
+        },
+        clickCancel(){
+          console.log('点击了取消');
+        },
+        clickDanger(){
+          console.log('这里是danger回调')
+        },
+        clickConfirm(){
+          console.log('点击了confirm');
+        },
+        // DAG automatic layout
+        dagAutomaticLayout() {
+          if (this.store.state.dag.isEditDag) {
+            this.$message.warning(`${i18n.$t('Please save the DAG before formatting')}`)
+            return false
+          }
+          $('#canvas').html('')
 
       // Destroy round robin
         Dag.init({
@@ -337,7 +401,7 @@
       /**
        * Storage interface
        */
-      _save (sourceType) {
+      _save (sourceType) {// desc 点击dag保存的触发函数
         return new Promise((resolve, reject) => {
           this.spinnerLoading = true
           // Storage store
@@ -643,19 +707,21 @@
     beforeDestroy () {
       this.resetParams()
 
-      // Destroy round robin
-      clearInterval(this.setIntervalP)
-    },
-    destroyed () {
-      if (eventModel) {
-        eventModel.remove()
-      }
-    },
-    computed: {
-      ...mapState('dag', ['tasks', 'locations', 'connects', 'isEditDag', 'name'])
-    },
-    components: {}
-  }
+        // Destroy round robin
+        clearInterval(this.setIntervalP)
+      },
+      destroyed() {
+        if (eventModel) {
+          eventModel.remove()
+        }
+      },
+      computed: {
+        ...mapState('dag', ['tasks', 'locations', 'connects', 'isEditDag', 'name'])
+      },
+      components: {
+        'dialog-bar': dialogBar
+      },
+    }
 </script>
 
 <style lang="scss" rel="stylesheet/scss">

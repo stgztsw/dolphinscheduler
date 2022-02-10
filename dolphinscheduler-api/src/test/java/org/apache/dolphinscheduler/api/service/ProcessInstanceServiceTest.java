@@ -91,6 +91,14 @@ public class ProcessInstanceServiceTest {
             "\"timeout\":{\"strategy\":\"\",\"interval\":1,\"enable\":false},\"taskInstancePriority\":\"MEDIUM\"," +
             "\"workerGroupId\":-1,\"preTasks\":[]}],\"tenantId\":1,\"timeout\":0}";
 
+    @Test
+    public void testQueryProcessInstanceDependentById() throws Exception{
+        String projectName = "project_test1";
+        User loginUser = getAdminUser();
+
+//        Map<String, Object> objectMap = processInstanceService.queryProcessInstanceDependentById(loginUser, "demo", 14);
+//        objectMap.forEach(System.out::printf);
+    }
 
     @Test
     public void testQueryProcessInstanceList() {
@@ -438,6 +446,7 @@ public class ProcessInstanceServiceTest {
         Map<String, Object> successRes = processInstanceService.viewGantt(1);
         Assert.assertEquals(Status.SUCCESS, successRes.get(Constants.STATUS));
     }
+
 
     /**
      * get Mock Admin User

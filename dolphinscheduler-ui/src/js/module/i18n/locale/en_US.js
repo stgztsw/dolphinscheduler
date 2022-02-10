@@ -289,6 +289,7 @@ export default {
   Pause: 'Pause',
   'Recovery Suspend': 'Recovery Suspend',
   Gantt: 'Gantt',
+  Depend: 'Depend',
   Name: 'Name',
   'Node Type': 'Node Type',
   'Submit Time': 'Submit Time',

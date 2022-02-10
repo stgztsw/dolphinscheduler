@@ -21,6 +21,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cronutils.model.Cron;
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependTreeViewVo;
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.*;
@@ -650,7 +652,7 @@ public class ProcessService {
     }
 
     /**
-     * construct process instance according to one command.
+     * construct process instance according to one command.  desc command参数传给processInstance
      * @param command command
      * @param host host
      * @return process instance
@@ -913,6 +915,7 @@ public class ProcessService {
             this.saveProcessInstance(subProcessInstance);
         }
         // copy parent instance user def params to sub process..
+        //  父instance GlobalParams 和 子instance GlobalParams 拼接
         String parentInstanceId = paramMap.get(CMDPARAM_SUB_PROCESS_PARENT_INSTANCE_ID);
         if(StringUtils.isNotEmpty(parentInstanceId)){
             ProcessInstance parentInstance = findProcessInstanceDetailById(Integer.parseInt(parentInstanceId));
@@ -1516,6 +1519,7 @@ public class ProcessService {
      */
     public ProcessInstance findSubProcessInstance(Integer parentProcessId, Integer parentTaskId){
         ProcessInstance processInstance = null;
+        // 父 instanceid 和 父 taskid 定位实例生成的唯一一条记录
         ProcessInstanceMap processInstanceMap = processInstanceMapMapper.queryByParentId(parentProcessId, parentTaskId);
         if(processInstanceMap == null || processInstanceMap.getProcessInstanceId() == 0){
             return processInstance;
@@ -2080,6 +2084,23 @@ public class ProcessService {
         return processDependentMapper.queryByDependentIdListPaging(page, dependentId);
     }
 
+    /**
+     * find the process by process id in paging
+     * @param page
+     * @param processId
+     * @return
+     */
+    public Page<ProcessDependent> queryByProcessIdListPaging(IPage<ProcessDependent> page, int processId) {
+        return processDependentMapper.queryByProcessIdListPaging(page, processId);
+    }
+
+//    public List<ProcessInstance> queryByDependentIdList(int processId) {
+//        return processDependentMapper.queryByDependentIdList(processId);
+//    }
+//    public List<ProcessInstance> queryByProcessIdList(int processId) {
+//        return processDependentMapper.queryByProcessIdList(processId);
+//    }
+
     public boolean dependentProcessIsFired(SchedulingBatch sb , int processId) {
         return commandMapper.findCommandByProcessIdInInterval(processId, sb.getStartTime(), sb.getEndTime(),
                 null, sb.getBatchNo()).size()>0;
@@ -2088,6 +2109,34 @@ public class ProcessService {
     public ProcessInstance findProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes, int[] dependentSchedulerType, boolean dependentSchedulerFlag) {
         return processInstanceMapper
                 .findProcessInstanceByProcessIdInInterval(processId, sb.getStartTime(), sb.getEndTime(), states, commandTypes,sb.getBatchNo(), dependentSchedulerType, dependentSchedulerFlag);
+    }
+
+    /**
+     * update jack 查找调度批次时间间隔中当前processInstance实例最近启动的的时间间隔 实例
+     * @param sb
+     * @param processId
+     * @param states
+     * @param commandTypes
+     * @return
+     */
+    public ProcessInstance findLastBatchProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes) {
+        ProcessInstance processInstance = processInstanceMapper
+                .findProcessInstanceByProcessIdInInterval(processId, sb.getLastStartTime(), sb.getLastEndTime(), states, commandTypes,sb.getBatchNo(),null,true);
+        return processInstance;
+    }
+
+    /**
+     * update jack 查找调度批次时间间隔中当前processInstance实例最近启动的的时间间隔 实例
+     * @param sb
+     * @param processId
+     * @param states
+     * @param commandTypes
+     * @return
+     */
+    public ProcessInstance findLastBatchProcessInstanceByProcessIdInInterval(SchedulingBatch sb, int processId, int[] states, int[] commandTypes, int[] dependentSchedulerType, boolean dependentSchedulerFlag) {
+        ProcessInstance processInstance = processInstanceMapper
+                .findProcessInstanceByProcessIdInInterval(processId, sb.getLastStartTime(), sb.getLastEndTime(), states, commandTypes,sb.getBatchNo(), dependentSchedulerType,dependentSchedulerFlag);
+        return processInstance;
     }
 
     public Integer getNextSchedulerBatchNo(int processId, List<DateInterval> dateIntervals) {
@@ -2128,6 +2177,50 @@ public class ProcessService {
         return !pageInstance.getRecords().isEmpty();
     }
 
+
+    public void queryParentDepends(SchedulingBatch sb, int processId, DependTreeViewVo dependTreeView) {
+//        List<DependsVo> parentsList = processInstanceMapper.findLastBatchDependByProcessIdInIntervalList(
+//                processId, sb.getLastStartTime(), sb.getLastEndTime(), sb.getBatchNo());
+//        if (parentsList!=null && !parentsList.isEmpty()) {
+//            dependTreeView.setParents(parentsList);
+//        }
+        queryOneLayerDepends(sb,processId,dependTreeView);
+    }
+
+    public void queryChildDepends(SchedulingBatch sb, int processId, DependTreeViewVo dependTreeView) {
+//        List<DependsVo> childsList = processInstanceMapper.findLastBatchDependByDependentIdInIntervalList(
+//                processId, sb.getLastStartTime(), sb.getLastEndTime(), sb.getBatchNo());
+//        if (childsList!=null && !childsList.isEmpty()) {
+//            dependTreeView.setChilds(childsList);
+//        }
+        queryOneLayerDepends(sb,processId,dependTreeView);
+    }
+
+    public void queryOneLayerDepends(SchedulingBatch sb, int processId, DependTreeViewVo dependTreeView) {
+        List<DependsVo> dependsList = null;
+        if (sb!=null) {
+            dependsList = processInstanceMapper.findLastBatchDependByProcessInstanceInIntervalList(
+                    processId, sb.getLastStartTime(), sb.getLastEndTime(), sb.getBatchNo());
+        } else {
+            dependsList = processInstanceMapper.findLastBatchDependByProcessDefinitionInIntervalList(processId);
+        }
+        setDepends(dependsList,dependTreeView);
+    }
+
+    private void setDepends(List<DependsVo> dependsList, DependTreeViewVo dependTreeView) {
+        ArrayList<DependsVo> parents = new ArrayList<>();
+        ArrayList<DependsVo> childs = new ArrayList<>();
+        dependsList.stream()
+            .forEach((e) -> {
+                if ("parent".equals(e.getDependType())){
+                    parents.add(e);
+                } else if ("child".equals(e.getDependType())){
+                    childs.add(e);
+                }
+            });
+        dependTreeView.setParents(parents);
+        dependTreeView.setChilds(childs);
+    }
     public boolean hasValidateFireDate(Date start, Date end, String crontab) {
         CronExpression expression;
         try {

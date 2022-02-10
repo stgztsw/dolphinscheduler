@@ -18,18 +18,23 @@ package org.apache.dolphinscheduler.api.service;
 
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependTreeViewVo;
 import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.DependentViewRelation;
 import org.apache.dolphinscheduler.common.enums.UserType;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.HadoopUtils;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
+import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
+import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 import org.apache.dolphinscheduler.dao.entity.User;
 
 import java.text.MessageFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+
+import static org.apache.dolphinscheduler.common.Constants.DATA_LIST;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_ASCEND;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.ONE_DESCEND;
 
 /**
  * base service
@@ -93,7 +98,49 @@ public class BaseService {
         } else {
             result.setMsg(status.getMsg());
         }
+    }
 
+    protected void putResult(Map<String, Object> result, DependTreeViewVo processDependents, Object... statusParams) {
+
+        if (isAllOneEmpty(processDependents)) {
+            putMsg(result, Status.QUERY_PROCESS_IS_NOT_DEPENDENCIES, statusParams);
+        } else {
+            putMsg(result, Status.SUCCESS, statusParams);
+            result.put(DATA_LIST,processDependents);
+        }
+    }
+
+    protected void putResult(Map<String, Object> result, DependTreeViewVo dependTreeView,
+                                 DependentViewRelation dependentViewRelation, Object paramObject) {
+
+            if (ONE_ASCEND == dependentViewRelation && dependTreeView.getParents() == null) {
+                if (paramObject instanceof ProcessInstance) {
+                    putMsg(result, Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD, ((ProcessInstance) paramObject).getId());
+                }else if (paramObject instanceof ProcessDefinition) {
+                    putMsg(result, Status.QUERY_DEFINITION_DEPENDENCIES_ASCEND_IS_FAILD, ((ProcessDefinition) paramObject).getId());
+                }
+            } else if (ONE_DESCEND == dependentViewRelation && dependTreeView.getChilds() == null) {
+                if (paramObject instanceof ProcessInstance) {
+                    putMsg(result, Status.QUERY_PROCESS_DEPENDENCIES_DESCEND_IS_FAILD, ((ProcessInstance) paramObject).getId());
+                }else if (paramObject instanceof ProcessDefinition) {
+                    putMsg(result, Status.QUERY_DEFINITION_DEPENDENCIES_DESCEND_IS_FAILD, ((ProcessDefinition) paramObject).getId());
+                }
+            } else {
+                if (paramObject instanceof ProcessInstance) {
+                    putMsg(result, Status.SUCCESS, ((ProcessInstance) paramObject).getId());
+                }else if (paramObject instanceof ProcessDefinition) {
+                    putMsg(result, Status.SUCCESS, ((ProcessDefinition) paramObject).getId());
+                }
+                result.put(DATA_LIST,dependTreeView);
+            }
+    }
+
+    private boolean isAllOneEmpty(DependTreeViewVo dependTreeViewVo) {
+        return dependTreeViewVo.getParents()==null && dependTreeViewVo.getChilds()==null;
+    }
+
+    private <T> boolean isDescendEmpty(List<T> descendProcessDependentsObject) {
+        return descendProcessDependentsObject!=null && !descendProcessDependentsObject.isEmpty();
     }
 
     /**

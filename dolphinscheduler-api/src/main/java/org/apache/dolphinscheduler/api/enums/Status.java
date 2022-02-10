@@ -265,6 +265,17 @@ public enum Status {
     KERBEROS_STARTUP_STATE(100001,"get kerberos startup state error", "获取kerberos启动状态错误"),
     MANUAL_SCHEDULER_FAILED(100002, "failed to start the job in manual scheduler mode", "手动调度执行失败"),
     SAME_INTERVAL_BATCH_SCHEDULER_FAILED(100003 ,"failed to start, Because there are tasks of the same period running", "因为有相同实例批次的任务在运行，任务启动失败"),
+
+    /**
+     * dependencies view query state
+     */
+//    QUERY_DEPENDENCIES_SUCCESS(110001, "processInstance {0} query single ascend and descend dependent success", "查询上下单层实例[{0}]依赖成功"),
+    QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD(110002, "processInstance {0} query single ascend dependent faild", "首层实例[{0}]不允许查询依赖"),
+    QUERY_PROCESS_DEPENDENCIES_DESCEND_IS_FAILD(110003, "processInstance {0} is not hive descend dependent", "没有下一层实例[{0}]依赖"),
+    QUERY_DEFINITION_DEPENDENCIES_ASCEND_IS_FAILD(110004, "processDefinition {0} query single ascend dependent faild", "首层工作流[{0}]不允许查询依赖"),
+    QUERY_DEFINITION_DEPENDENCIES_DESCEND_IS_FAILD(110005, "processDefinition {0} is not hive descend dependent", "没有下一层工作流[{0}]依赖"),
+    QUERY_PROCESS_IS_NOT_DEPENDENCIES(110006, "processInstance {0} is not dependent", "当前实例[{0}]没有依赖关系"),
+    QUERY_DEFINITION_IS_NOT_DEPENDENCIES(110007, "processDefinition {0} is not dependent", "当前工作流[{0}]没有依赖关系")
     ;
 
     private final int code;

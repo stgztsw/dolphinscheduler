@@ -289,6 +289,7 @@ export default {
   Pause: '暂停',
   'Recovery Suspend': '恢复运行',
   Gantt: '甘特图',
+  Depend: '依赖图',
   Name: '名称',
   'Node Type': '节点类型',
   'Submit Time': '提交时间',

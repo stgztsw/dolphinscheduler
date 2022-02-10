@@ -191,7 +191,7 @@ public class ProcessInstance {
      * @return
      */
     @TableField(exist = false)
-    private String duration;
+    private String duration;// update desc string->long
 
     /**
      * process instance priority
@@ -261,6 +261,12 @@ public class ProcessInstance {
 
     @TableField("rerun_scheduler_flag")
     private boolean rerunSchedulerFlag;
+
+    /**
+     * 显示上下游依赖的标记
+     */
+//    @TableField(exist = false)
+//    private Integer viewDependentFlag;
 
     public ProcessInstance(){
 
@@ -427,7 +433,7 @@ public class ProcessInstance {
 
     public void setScheduleTime(Date scheduleTime) {
         this.scheduleTime = scheduleTime;
-        setInterval();
+        setInterval();// update
     }
 
     public Date getCommandStartTime() {
@@ -703,6 +709,7 @@ public class ProcessInstance {
     public void setRerunSchedulerFlag(boolean rerunSchedulerFlag) {
         this.rerunSchedulerFlag = rerunSchedulerFlag;
     }
+
 
     @Override
     public String toString() {

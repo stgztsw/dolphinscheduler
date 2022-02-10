@@ -17,16 +17,15 @@
 package org.apache.dolphinscheduler.api.service;
 
 import java.nio.charset.StandardCharsets;
+
+import org.apache.dolphinscheduler.dao.entity.vo.depend.DependTreeViewVo;
 import org.apache.dolphinscheduler.api.dto.gantt.GanttDto;
 import org.apache.dolphinscheduler.api.dto.gantt.Task;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.DependResult;
-import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
-import org.apache.dolphinscheduler.common.enums.Flag;
-import org.apache.dolphinscheduler.common.enums.TaskType;
+import org.apache.dolphinscheduler.common.enums.*;
 import org.apache.dolphinscheduler.common.graph.DAG;
 import org.apache.dolphinscheduler.common.model.TaskNode;
 import org.apache.dolphinscheduler.common.model.TaskNodeRelation;
@@ -39,6 +38,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.dolphinscheduler.dao.entity.*;
 import org.apache.dolphinscheduler.dao.mapper.*;
 import org.apache.dolphinscheduler.service.process.ProcessService;
+import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +54,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.dolphinscheduler.common.Constants.*;
+import static org.apache.dolphinscheduler.common.enums.DependentViewRelation.*;
 
 /**
  * process instance service
@@ -126,6 +127,125 @@ public class ProcessInstanceService extends BaseDAGService {
     }
 
     /**
+     * update jack 实例级别支持查询processInstance级别的依赖关系
+     *
+     * @param loginUser
+     * @param projectName
+     * @param processId
+     * @return
+     */
+    public Map<String, Object> queryProcessInstanceDependentById(User loginUser, String projectName, Map<String, Object> result,Integer processId){
+
+        Project project = projectMapper.queryByName(projectName);
+
+        Map<String, Object> checkResult = projectService.checkProjectAndAuth(loginUser, project, projectName);
+        Status resultEnum = (Status) checkResult.get(Constants.STATUS);
+        if (resultEnum != Status.SUCCESS) {
+            return checkResult;
+        }
+        ProcessInstance processInstance = processService.findProcessInstanceDetailById(processId);
+
+        queryDependentTreeViewList(result, processInstance);
+        return null;
+    }
+
+    /**
+     * update jack 获取依赖的实例列表视图
+     *
+     *
+     * @param result
+     * @param processInstance
+     * @return
+     */
+    private void queryDependentTreeViewList(Map<String, Object> result, ProcessInstance processInstance) {
+
+        DependTreeViewVo processDependents = queryDependentsByProcessInstance(processInstance, ONE_ALL);
+
+//        if (processDependents.getParents().isEmpty()) {
+//            putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processInstance.getId());
+//            return;
+//        }
+        putResult(result,processDependents,processInstance.getId());
+    }
+
+    /**
+     * update jack 实例级别展开上层或下层的功能接口
+     *
+     *
+     * @param loginUser
+     * @param projectName
+     * @param processId
+     * @return
+     */
+    public Map<String, Object> queryProcessInstanceOneLayerDependentById(User loginUser, String projectName, Integer processId, DependentViewRelation dependentViewRelation){
+        Map<String, Object> result = new HashMap<>(5);
+        ProcessInstance processInstance = processService.findProcessInstanceDetailById(processId);
+        switch (dependentViewRelation) {
+            case ONE_ASCEND:
+                DependTreeViewVo ascendProcessDependents = queryDependentsByProcessInstance(processInstance, ONE_ASCEND);
+                if (ascendProcessDependents.getParents().isEmpty()) {
+                    putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processInstance.getId());
+                    return result;
+                }
+                putResult(result,ascendProcessDependents,ONE_ASCEND,processInstance);
+                break;
+            case ONE_DESCEND:
+                DependTreeViewVo descendProcessDependents = queryDependentsByProcessInstance(processInstance, ONE_DESCEND);
+                if (descendProcessDependents.getParents().isEmpty()) {
+                    putMsg(result,Status.QUERY_PROCESS_DEPENDENCIES_ASCEND_IS_FAILD,processInstance.getId());
+                    return result;
+                }
+                putResult(result,descendProcessDependents,ONE_DESCEND,processInstance);
+                break;
+            case ONE_ALL:
+                Map<String, Object> checkResult = queryProcessInstanceDependentById(loginUser, projectName, result, processId);
+                result = checkResult != null ? checkResult : result;
+                break;
+            default:
+                break;
+        }
+        return result;
+    }
+
+    private boolean checkParentsExist(DependTreeViewVo allProcessDependents) {
+        return allProcessDependents.getParents() != null;
+
+    }
+
+    public DependTreeViewVo queryDependentsByProcessInstance(ProcessInstance processInstance,
+                                                                  DependentViewRelation dependentViewRelation){
+
+        // 查询所有的当层dependent
+        DependTreeViewVo dependTreeView = newDependTreeView(processInstance,dependentViewRelation);
+        SchedulingBatch sb = new SchedulingBatch(processInstance);
+        if (ONE_DESCEND==dependentViewRelation) {
+            processService.queryChildDepends(sb, processInstance.getProcessDefinitionId(),dependTreeView);
+        } else if (ONE_ASCEND==dependentViewRelation) {
+            processService.queryParentDepends(sb, processInstance.getProcessDefinitionId(),dependTreeView);
+        } else {
+            processService.queryOneLayerDepends(sb, processInstance.getProcessDefinitionId(), dependTreeView);
+        }
+//        if (dependTreeView.getParents()==null){
+//            logger.info("processInstance {} is the first node, don't allow the query",processInstance.getId());
+//            return null;
+//        }
+//        if (processInstances.size() == 0) {
+//            logger.debug("process={} has no dependent process", processInstance.getProcessDefinitionId());
+//        }
+        return dependTreeView;
+    }
+
+    private DependTreeViewVo newDependTreeView(ProcessInstance processInstance, DependentViewRelation dependentViewRelation) {
+        return new DependTreeViewVo(
+                processInstance.getId(),
+                processInstance.getProcessDefinitionId(),
+                DependViewType.PROCESS_INSTANCE.getCode(),
+                processInstance.getName(),
+                processInstance.getState(),
+                dependentViewRelation);
+    }
+
+    /**
      * paging query process instance list, filtering according to project, process definition, time range, keyword, process status
      *
      * @param loginUser login user
@@ -176,7 +296,7 @@ public class ProcessInstanceService extends BaseDAGService {
 
         List<ProcessInstance> processInstances = processInstanceList.getRecords();
 
-        for(ProcessInstance processInstance: processInstances){
+        for(ProcessInstance processInstance: processInstances){// update desc 从数据库中找到实例列表，插入的时候是从队列中插入
             processInstance.setDuration(DateUtils.format2Duration(processInstance.getStartTime(),processInstance.getEndTime()));
             User executor = usersService.queryUser(processInstance.getExecutorId());
             if (null != executor) {

@@ -159,5 +159,22 @@ export default {
     } else {
       state.cacheTasks[payload.id] = payload
     }
+  },
+
+  setIdListState (state, payload) {
+    state.idListState = payload
+  },
+
+  setDependList (state, payload) {
+    state.dependList = payload
+  },
+
+  getIdListState() {
+    return state.idListState
   }
+
+  // getDependList() {
+  //   return sta
+  // }
+
 }

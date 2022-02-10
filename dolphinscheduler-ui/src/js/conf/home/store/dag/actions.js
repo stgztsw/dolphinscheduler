@@ -217,7 +217,7 @@ export default {
         globalParams: state.globalParams,
         tasks: deleteDefinitionList(state.tasks),
         tenantId: state.tenantId,
-        processType: state.processType,
+        processType: state.processType,// update
         timeout: state.timeout
       }
       io.post(`projects/${state.projectName}/process/save`, {
@@ -242,7 +242,7 @@ export default {
         globalParams: state.globalParams,
         tasks: deleteDefinitionList(state.tasks),
         tenantId: state.tenantId,
-        processType: state.processType,
+        processType: state.processType,// update
         timeout: state.timeout
       }
       io.post(`projects/${state.projectName}/process/update`, {
@@ -773,5 +773,41 @@ export default {
         reject(e)
       })
     })
+  },
+
+  getDependObject({ state }, payload) {
+    if (payload==="dependList") {
+      return state.dependList
+    } else {
+      return state.idListState
+    }
+  },
+
+  getDependView ({ state }, {id,relation,workType}) {
+    if (workType==="instance") {
+      return new Promise((resolve, reject) => {
+        io.get(`projects/${state.projectName}/instance/select-dependent-layer-by-id`, {
+          processInstanceId: id,
+          dependentViewRelation: relation
+        }, res => {
+          console.log("getDependView被调用了")
+          resolve(res.data)
+        }).catch(res => {
+          reject(res)
+        })
+      })
+    } else if (workType==="definition"){
+      return new Promise((resolve, reject) => {
+        io.get(`projects/${state.projectName}/process/select-dependent-layer-by-id`, {
+          processId: id,
+          dependentViewRelation: relation
+        }, res => {
+          console.log("getDependView被调用了")
+          resolve(res.data)
+        }).catch(res => {
+          reject(res)
+        })
+      })
+    }
   }
 }

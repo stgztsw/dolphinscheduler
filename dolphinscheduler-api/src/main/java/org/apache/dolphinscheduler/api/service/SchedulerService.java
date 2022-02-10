@@ -340,7 +340,7 @@ public class SchedulerService extends BaseService {
             List<Integer> subProcessDefineIds = new ArrayList<>();
             processService.recurseFindSubProcessId(scheduleObj.getProcessDefinitionId(), subProcessDefineIds);
             Integer[] idArray = subProcessDefineIds.toArray(new Integer[subProcessDefineIds.size()]);
-            if (subProcessDefineIds.size() > 0){
+            if (subProcessDefineIds.size() > 0){// 拿到subprocess 的 ProcessDefinition对象列表
                 List<ProcessDefinition> subProcessDefinitionList =
                         processDefinitionMapper.queryDefinitionListByIdList(idArray);
                 if (subProcessDefinitionList != null && subProcessDefinitionList.size() > 0){

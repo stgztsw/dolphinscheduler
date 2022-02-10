@@ -1,6 +1,7 @@
 package org.apache.dolphinscheduler.service.quartz.cron;
 
 import org.apache.dolphinscheduler.common.model.DateInterval;
+import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.DependentUtils;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
 
@@ -73,5 +74,24 @@ public class SchedulingBatch {
 
     public Date getEndTime() {
         return getDateInterval().getEndTime();
+    }
+
+    public DateInterval getLastDateInterval() {
+        if (dateInterval != null) {
+            return dateInterval;
+        }
+        List<DateInterval> dateIntervals = DependentUtils
+                .getDateIntervalListForDependent(this.schedulerTime, this.schedulerInterval);
+        dateIntervals.sort((o1,o2)-> !DateUtils.compare(o1.getStartTime(),o2.getStartTime())? 1:-1);
+        this.dateInterval = dateIntervals.get(0);
+        return dateInterval;
+    }
+
+    public Date getLastStartTime() {
+        return getLastDateInterval().getStartTime();
+    }
+
+    public Date getLastEndTime() {
+        return getLastDateInterval().getEndTime();
     }
 }

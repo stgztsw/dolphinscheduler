@@ -53,4 +53,10 @@
         where dependent_id = #{dependentId}
         order by process_id asc
     </select>
+    <select id="queryByProcessIdListPaging" resultType="org.apache.dolphinscheduler.dao.entity.ProcessDependent">
+        select id, dependent_id, process_id, create_time, update_time
+        from t_ds_process_dependent
+        where process_id = #{processId}
+        order by dependent_id asc
+    </select>
 </mapper>

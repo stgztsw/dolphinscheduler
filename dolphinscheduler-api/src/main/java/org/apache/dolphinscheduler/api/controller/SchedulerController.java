@@ -287,7 +287,7 @@ public class SchedulerController extends BaseController {
 
     /**
      * preview schedule
-     *
+     * 预览scheduler 在创建定时的时候调用
      * @param loginUser   login user
      * @param projectName project name
      * @param schedule    schedule expression

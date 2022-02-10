@@ -16,7 +16,7 @@
  */
 <template>
   <div class="home-main index-model">
-    <m-dag v-if="!isLoading" :type="'definition'" :release-state="releaseState"></m-dag>
+    <m-dag v-if="!isLoading" :type="'definition'" :id="$route.params.id"></m-dag>
     <m-spin :is-spin="isLoading" ></m-spin>
   </div>
 </template>
@@ -32,9 +32,7 @@
     data () {
       return {
         // loading
-        isLoading: true,
-        // state
-        releaseState: ''
+        isLoading: true
       }
     },
     mixins: [disabledState],
