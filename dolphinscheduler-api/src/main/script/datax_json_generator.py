@@ -4,8 +4,8 @@
 import datetime
 import json as js
 import os
-import timedelta
-import dateutil
+# import timedelta
+from dateutil import relativedelta
 import sys, getopt
 import re
 import sqlparse
@@ -19,17 +19,26 @@ partition = "pt"
 env = "prd"
 
 # reader 支持ftp, oracle, hive
-reader_db_type = "ftp"
-reader_db_table_name = "dingxiangclinic.ods_f_dxy_clinic_supplier"  # 注意oracle的识别大小写，请确保库表名的大小写和实际一致
-mysql_file_path = "/alidata1/admin/jar/createTable/dingxiangClinic"  # table schema 文件夹路径
-# writer 支持hive, dorisdb
-writer_db_type = "hive"
-writer_db_name = "dingxiangclinic"
-writer_hive_table_prefix = "ods_f_dxy_"
-writer_table_name = None  # 默认策略: hive的场景会在表名前加ods_; dorisdb的场景会在表前加 doris_
+reader_db_type = "hive"
 
+mysql_file_path = "E:\工作\资料\接口服务\dingxiangClinic"  # table schema 文件夹路径
+
+reader_db_table_name = "jh_ads.ads_f_fin_cux_bi_account_subledger_budget_v"  # 注意oracle的识别大小写，请确保库表名的大小写和实际一致
+# writer 支持hive, dorisdb
+writer_db_type = "dorisdb"
+writer_hive_table_prefix = "ads_f_crm_"
+writer_db_name = "crm"
+if reader_db_type == "ftp":
+    writer_table_name = None
+else:
+    writer_table_name = writer_hive_table_prefix+reader_db_table_name.split(".")[1]  # 默认策略: hive的场景会在表名前加ods_; dorisdb的场景会在表前加 doris_
+    # writer_table_name = "ods_f_his_vw_medication_fifo_transaction"
 haveKerberos = "false"
 dorisdb_dynamic_partition_time_unit = "MONTH"  # 可以指定为: DAY/WEEK/MONTH
+
+work_dir_json = "json"
+work_dir_sql = "sql"
+
 
 
 # -------------------配置项---------------------
@@ -77,6 +86,11 @@ db_infos = {
             "password": "JHBIlwd",
             "listener": "10.2.12.131:1558/emrdg"
         }
+        # "prd": {
+        #     "user": "NEUORIS",
+        #     "password": "neuorisa",
+        #     "listener": "10.2.12.94:1558/icudb"
+        # }
     },
     "hive": {
         "uat": {
@@ -155,6 +169,13 @@ hdfs_info = hdfs_infos.get(env)
 # reader字段信息缓存，writer处理中复用到
 column_type_list = []
 
+def create_dir():
+    if not os.path.exists(
+            os.path.join(os.path.abspath(os.path.join(os.getcwd(), )), reader_db_table_name, work_dir_json)):
+        os.makedirs(os.path.join(os.path.abspath(os.path.join(os.getcwd(), )), reader_db_table_name, work_dir_json))
+    if not os.path.exists(
+            os.path.join(os.path.abspath(os.path.join(os.getcwd(), )), reader_db_table_name, work_dir_sql)):
+        os.makedirs(os.path.join(os.path.abspath(os.path.join(os.getcwd(), )), reader_db_table_name, work_dir_sql))
 
 def create_setting_json(channel=1):
     setting = {"speed": {"channel": channel}, "errorLimit": {"record": 0}}
@@ -162,6 +183,7 @@ def create_setting_json(channel=1):
 
 
 def create_oracle_reader_json():
+    """创建oracle reader"""
     global column_type_list
     conn = cx_Oracle.connect(reader_db_info.get("user"), reader_db_info.get("password"),
                              reader_db_info.get("listener"))  # type: Connection
@@ -194,6 +216,7 @@ def create_oracle_reader_json():
 
 
 def reader_type_mapping(data_type: str):
+    """reader type映射"""
     global reader_db_type
     data_type = data_type.upper()
     index = data_type.find("(")
@@ -238,12 +261,26 @@ def reader_type_mapping(data_type: str):
             rtv_data_type = "Date"
         elif data_type in ("BIT", "BOOL"):
             rtv_data_type = "Boolean"
+    elif reader_db_type.lower() == "mysql":
+        if data_type in ("int", "tinyint", "smallint", "mediumint", "int", "bigint"):
+            rtv_data_type = "LONG"
+        elif data_type in ("float","double","decimal"):
+            rtv_data_type = "Double"
+        elif data_type in ("varchar,char,tinytext","text","mediumtext","longtext","year"):
+            rtv_data_type = "String"
+        elif data_type in ("date","datetime","timestamp","time"):
+            rtv_data_type = "Date"
+        elif data_type in ("bit", "bool"):
+            rtv_data_type = "Boolean"
+        elif data_type in ("tinyblob","mediumblob","blob","longblob","varbinary"):
+            rtv_data_type = "Bytes"
     # if rtv_data_type is None:
     #     print(rtv_data_type)
     return rtv_data_type, data_len
 
 
 def writer_type_mapping(reader_data_type: str):
+    """writer type映射"""
     global writer_db_type
     datax_data = reader_type_mapping(reader_data_type)
     datax_type = datax_data[0]
@@ -258,7 +295,8 @@ def writer_type_mapping(reader_data_type: str):
         if datax_type == "Boolean":
             return "BOOLEAN"
         if datax_type == "Date":
-            return "DATE"
+            # return "time" 修复hive 类型只显示日期的问题
+            return "timestamp"
     elif writer_db_type.lower() == "dorisdb":
         if datax_type == "Long":
             return "BIGINT"
@@ -276,6 +314,7 @@ def writer_type_mapping(reader_data_type: str):
 
 
 def get_reader_db_table_name():
+    """获取db表名"""
     index = reader_db_table_name.find(".")
     if index > 0:
         return reader_db_table_name[0:index].lower(), reader_db_table_name[index + 1:].lower()
@@ -283,7 +322,7 @@ def get_reader_db_table_name():
         raise Exception('reader_db_table_name is not right, it must bu set as db_name.table_name format')
 
 
-def get_writer_db_table_name():
+def get_writer_db_table_name(db_name=None):
     global writer_table_name, writer_db_name, writer_hive_table_prefix
     db_name = get_reader_db_table_name()[0]
     table_name = get_reader_db_table_name()[1]
@@ -318,7 +357,7 @@ def create_hive_reader_json():
     column_list = list(map(lambda y: {"index": y[0], "type": reader_type_mapping(y[2])[0]}, column_type_list))
     db_name = get_reader_db_table_name()[0]
     table_name = get_reader_db_table_name()[1]
-    path = os.path.join("/user/hive/warehouse", db_name + ".db", table_name, partition + "=${biz_date}")
+    path = os.path.join("/user/hive/warehouse/", db_name + ".db/", table_name+"/", partition + "=${biz_date}")
     hive_reader = {"name": "hdfsreader", "parameter": {"path": path, "column": column_list, "fileType": "orc",
                                                        "encoding": "UTF-8", "fieldDelimiter": "\t",
                                                        "haveKerberos": haveKerberos,
@@ -328,6 +367,7 @@ def create_hive_reader_json():
 
 
 def process_col_name(col_name):
+    """字段 """
     col_name = col_name.strip()
     if col_name.startswith("`"):
         col_name = col_name[1:]
@@ -337,24 +377,43 @@ def process_col_name(col_name):
 
 
 def parse_table_schema(table_schema_file_path):
+    """获取元数据信息"""
     global column_type_list
-    with open(table_schema_file_path, 'r') as file_to_read:
-        context = file_to_read.readlines()
-        count = 0
-        for line in context:
-            if re.search("create\s+table\s+", line.lower()) or re.search("primary\s+key\s+", line.lower()) \
-                    or re.search("unique\s+key\s+", line.lower()) or re.search("key\s+", line.lower()) \
-                    or re.search("engine\s*=innodb\s+", line.lower()):
-                continue
-            if line.upper().find(' COMMENT ') > -1:
-                match_obj = re.match(r'(.*?)\s+(.*?)\s+.*(COMMENT\s+\'(.*?)\')', line.upper().strip())
-                s = (count, process_col_name(match_obj.group(1).lower()), match_obj.group(2).lower(), match_obj.group(4))
-            else:
-                match_obj = re.match(r'(.*?)\s+(.*?)\s+.*', line.upper().strip())
-                s = (count, process_col_name(match_obj.group(1).lower()), match_obj.group(2).lower(), None)
-            count = count + 1
-            column_type_list.append(s)
-
+    # 修复windows下unicode报错
+    if os.name=='nt':
+        with open(table_schema_file_path, 'r',encoding='UTF-8') as file_to_read:
+            context = file_to_read.readlines()
+            count = 0
+            for line in context:
+                if re.search("create\s+table\s+", line.lower()) or re.search("primary\s+key\s+", line.lower()) \
+                        or re.search("unique\s+key\s+", line.lower()) or re.search("key\s+", line.lower()) \
+                        or re.search("engine\s*=innodb\s+", line.lower()):
+                    continue
+                if line.upper().find(' COMMENT ') > -1:
+                    match_obj = re.match(r'(.*?)\s+(.*?)\s+.*(COMMENT\s+\'(.*?)\')', line.upper().strip())
+                    s = (count, process_col_name(match_obj.group(1).lower()), match_obj.group(2).lower(), match_obj.group(4))
+                else:
+                    match_obj = re.match(r'(.*?)\s+(.*?)\s+.*', line.upper().strip())
+                    s = (count, process_col_name(match_obj.group(1).lower()), match_obj.group(2).lower(), None)
+                count = count + 1
+                column_type_list.append(s)
+    else:
+        with open(table_schema_file_path, 'r') as file_to_read:
+            context = file_to_read.readlines()
+            count = 0
+            for line in context:
+                if re.search("create\s+table\s+", line.lower()) or re.search("primary\s+key\s+", line.lower()) \
+                        or re.search("unique\s+key\s+", line.lower()) or re.search("key\s+", line.lower()) \
+                        or re.search("engine\s*=innodb\s+", line.lower()):
+                    continue
+                if line.upper().find(' COMMENT ') > -1:
+                    match_obj = re.match(r'(.*?)\s+(.*?)\s+.*(COMMENT\s+\'(.*?)\')', line.upper().strip())
+                    s = (count, process_col_name(match_obj.group(1).lower()), match_obj.group(2).lower(), match_obj.group(4))
+                else:
+                    match_obj = re.match(r'(.*?)\s+(.*?)\s+.*', line.upper().strip())
+                    s = (count, process_col_name(match_obj.group(1).lower()), match_obj.group(2).lower(), None)
+                count = count + 1
+                column_type_list.append(s)
 
 def create_ftp_reader_json(table_schema_file_path, file_name):
     global column_type_list
@@ -363,7 +422,7 @@ def create_ftp_reader_json(table_schema_file_path, file_name):
     column_list = []
     for x in column_type_list:
         if reader_type_mapping(x[2])[0] == "Date":
-            s = {"index": x[0], "type": reader_type_mapping(x[2])[0], "format": "请输入时间格式"}
+            s = {"index": x[0], "type": reader_type_mapping(x[2])[0], "format": "yyyy-MM-dd HH:mm:ss"}
         elif reader_type_mapping(x[2])[0] == "Long" or reader_type_mapping(x[2])[0] == "Double":
             # 数据库里数值型的数据有肯能为null, 转datax内部类型的时候，null转long会报错，所以要转成String类型，但是为了建表保证数据类型一致，所以保留原类型
             s = {"index": x[0], "type": "String"}
@@ -382,6 +441,13 @@ def create_ftp_reader_json(table_schema_file_path, file_name):
     return ftp_reader
 
 
+def create_mysql_reader_json():
+
+
+    pass
+
+
+
 def create_reader_json(reader_type: str, table_schema_file_path, file_name):
     if reader_type.lower() == "oracle":
         return create_oracle_reader_json()
@@ -389,6 +455,8 @@ def create_reader_json(reader_type: str, table_schema_file_path, file_name):
         return create_hive_reader_json()
     elif reader_type.lower() == "ftp":
         return create_ftp_reader_json(table_schema_file_path, file_name)
+    elif reader_type.lower() == "mysql":
+        return create_mysql_reader_json()
 
 
 def create_hive_writer_json():
@@ -396,7 +464,7 @@ def create_hive_writer_json():
     column_list = list(map(lambda x: {"name": x[1], "type": writer_type_mapping(x[2])}, column_type_list))
     db_name = get_writer_db_table_name()[0].lower()
     table_name = get_writer_db_table_name()[1].lower()
-    path = os.path.join("/user/hive/warehouse", db_name + ".db", table_name, partition + "=${biz_date}")
+    path = "/".join(["/user/hive/warehouse", db_name + ".db", table_name, partition + "=${biz_date}"])
     hive_writer = {"name": "hdfswriter", "parameter": {"compress": "NONE", "fileType": "orc", "writeMode": "truncate",
                                                        "fieldDelimiter": "\t", "path": path, "fileName": table_name,
                                                        "column": column_list, "haveKerberos": haveKerberos,
@@ -429,24 +497,31 @@ def create_writer_json(writer_type):
 def create_datax_json(table_schema_file_path=None, file_name=None):
     global reader_db_type, writer_db_type
     setting_json = create_setting_json()
+    # reader类型，元数据路径，create文件路径
     reader_json = create_reader_json(reader_type=reader_db_type, table_schema_file_path=table_schema_file_path, file_name=file_name)
     writer_json = create_writer_json(writer_db_type)
     datax_json = {"job": {"content": [{"reader": reader_json, "writer": writer_json}], "setting": setting_json}}
     datax_json = js.dumps(datax_json, indent=4, ensure_ascii=False)
-    with open(os.path.join(os.getcwd(), reader_db_type + "2" + writer_db_type + "_" + reader_db_table_name + ".json"), "w+", encoding="utf-8") as f:
+    with open(os.path.join(os.path.abspath(os.path.join(os.getcwd())), reader_db_table_name, work_dir_json, reader_db_type + "2" + writer_db_type + "_" + reader_db_table_name + ".json"), "w+", encoding="utf-8") as f:
         f.write(datax_json)
 
 
 def strip(s: str):
     if s is not None:
-        return "COMMENT '%s'" % s.strip()
+        if "'" in s:
+            print("COMMENT '%s'" % s.replace("'", "\\'"))
+            return "COMMENT '%s'" % s.replace("'","\\'")
+        else:
+            return "COMMENT '%s'" % s.strip()
+
     return ""
 
 
 def create_writer_hive_table_sql():
     global column_type_list
     db_table_name = get_writer_db_table_name()[2]
-    with open(os.path.join(os.getcwd(), "create_table_%s_sql" % db_table_name), "w+", encoding="utf-8") as f:
+
+    with open(os.path.join(os.path.abspath(os.path.join(os.getcwd())), reader_db_table_name, work_dir_sql, "create_table_%s_sql" % db_table_name), "w+", encoding="utf-8") as f:
         f.write("create table IF NOT EXISTS %s (\r" % db_table_name)
         length = len(column_type_list)
         count = 1
@@ -478,10 +553,10 @@ def dorisdb_dynamic_partition(f):
                 f.write("PARTITION p%s VALUES LESS THAN (\"%s\"),\r" % (n_day_, n_day_plus_1))
     elif dorisdb_dynamic_partition_time_unit.lower() == "month":
         for x in range(-3, 3):
-            n_day = curr_time + dateutil.relativedelta.relativedelta(months=x)
+            n_day = curr_time + relativedelta.relativedelta(months=x)
             the_month_start_day = datetime.datetime(n_day.year, n_day.month, 1)
             the_month_start_day_str = the_month_start_day.strftime('%Y-%m-%d')
-            month_before = the_month_start_day + dateutil.relativedelta.relativedelta(months=-1)
+            month_before = the_month_start_day + relativedelta.relativedelta(months=-1)
             month_before_str = month_before.strftime('%Y%m')
             if x == 2:
                 f.write("PARTITION p%s VALUES LESS THAN (\"%s\")" % (month_before_str, the_month_start_day_str))
@@ -493,7 +568,7 @@ def dorisdb_dynamic_partition(f):
 def create_writer_doris_table_sql():
     global column_type_list
     db_table_name = get_writer_db_table_name()[2]
-    with open(os.path.join(os.getcwd(), "create_table_%s_sql" % db_table_name), "w+", encoding="utf-8") as f:
+    with open(os.path.join(os.path.abspath(os.path.join(os.getcwd())), reader_db_table_name, work_dir_sql, "create_table_%s_sql" % db_table_name), "w+", encoding="utf-8") as f:
         f.write("CREATE TABLE IF NOT EXISTS %s (\r" % db_table_name)
         length = len(column_type_list)
         count = 1
@@ -529,6 +604,7 @@ def do_batch():
         for file in files:
             path = os.path.join(root, file)
             reader_db_table_name = file
+            create_dir()
             create_datax_json(table_schema_file_path=path, file_name=file)
             create_writer_table_sql()
 
@@ -537,5 +613,6 @@ if __name__ == '__main__':
     if reader_db_type == "ftp":
         do_batch()
     else:
+        create_dir()
         create_datax_json()
         create_writer_table_sql()
