@@ -86,16 +86,17 @@ public class ExecutorDispatcher implements InitializingBean {
             throw new ExecuteException("no ExecutorManager for type : " + context.getExecutorType());
         }
 
-        //节点负载信息有延迟，最高可达到25秒，如果是datax任务必须获得最新的节点负载信息，否则有可能能导致内存使用过载
+        //节点负载信息有延迟，最高可达到25秒，务必须获得最新的节点负载信息，否则有可能能导致内存使用过载
         if (TaskType.DATAX.getDescp().equals(context.getTaskType())) {
-            //work通过心跳测试同步节点负载，同步频率为1秒，所以睡眠1秒以拿到最新的节点负载信息
+            //work通过心跳测试同步节点负载，同步频率为1秒，datax任务内存占用比高，所以睡眠1秒以拿到最新的节点负载信息
             Thread.sleep(Constants.SLEEP_TIME_MILLIS);
-            Runnable workerNodeInfoAndGroupDbSyncTask = serverNodeManager.getWorkerNodeInfoAndGroupDbSyncTask();
-            Runnable refreshResourceTask = ((LowerWeightHostManager)hostManager).getRefreshResourceTask();
-            //这边直接执行run方法而不是启动新线程的目的是通过对象调用成员方法达到阻塞同步最新的节点负载信息
-            workerNodeInfoAndGroupDbSyncTask.run();
-            refreshResourceTask.run();
         }
+        //其他类型的任务不等待时间，如果还是出现负载高的话，可以调整等待一定的时间
+        Runnable workerNodeInfoAndGroupDbSyncTask = serverNodeManager.getWorkerNodeInfoAndGroupDbSyncTask();
+        Runnable refreshResourceTask = ((LowerWeightHostManager)hostManager).getRefreshResourceTask();
+        //这边直接执行run方法而不是启动新线程的目的是通过对象调用成员方法达到阻塞同步最新的节点负载信息
+        workerNodeInfoAndGroupDbSyncTask.run();
+        refreshResourceTask.run();
 
         /**
          * host select
