@@ -314,4 +314,17 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
     List<DependsVo> findLastBatchDependByProcessDefinitionInIntervalList(
             @Param("processId") int processId
     );
+
+    List<DependsVo> findParentsByDefinitionIdList(
+            @Param("processId") int processId
+    );
+
+    List<DependsVo> findChildsByDefinitionIdList(
+            @Param("processId") int processId
+    );
+
+    ProcessInstance queryLastInstanceByProcessId(
+            @Param("processId") int processId,
+            @Param("checkDate") Date checkDate
+    );
 }

@@ -219,9 +219,9 @@ public class ProcessInstanceService extends BaseDAGService {
         DependTreeViewVo dependTreeView = newDependTreeView(processInstance,dependentViewRelation);
         SchedulingBatch sb = new SchedulingBatch(processInstance);
         if (ONE_DESCEND==dependentViewRelation) {
-            processService.queryChildDepends(sb, processInstance.getProcessDefinitionId(),dependTreeView);
+            processService.queryOneLayerDepends(sb, processInstance.getProcessDefinitionId(),dependTreeView);
         } else if (ONE_ASCEND==dependentViewRelation) {
-            processService.queryParentDepends(sb, processInstance.getProcessDefinitionId(),dependTreeView);
+            processService.queryOneLayerDepends(sb, processInstance.getProcessDefinitionId(),dependTreeView);
         } else {
             processService.queryOneLayerDepends(sb, processInstance.getProcessDefinitionId(), dependTreeView);
         }

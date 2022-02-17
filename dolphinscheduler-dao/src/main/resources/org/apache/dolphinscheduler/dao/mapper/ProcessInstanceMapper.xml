@@ -303,33 +303,35 @@
             COALESCE(ins.id,0) as procesId,
             COALESCE(ins.process_definition_id,def_all.id) as definitionId,
             COALESCE(ins.name,def_all.name) as name,
-            COALESCE(ins.state,null) as state
+            COALESCE(ins.state,null) as state,
+            'parent' dependType
         from
-        -- 找出当前processId的所有的父节点def id
-        (select def.id,def.name from
-        (
-        select id, dependent_id, process_id, create_time, update_time
-        from t_ds_process_dependent
-        where process_id = #{processId}
-        order by process_id asc
-        ) dep
-        left join (select * from t_ds_process_definition) def
-        on dep.dependent_id = def.id
-        where def.release_state != 0) def_all
-        -- left join instance 根据 processId, id ,name ,definitionId ,start_time 这几个Instance的字段必要
-        left join
-        (select * from t_ds_process_instance) ins on def_all.id = ins.process_definition_id
-        -- 在调度周期内
-        and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
-        and scheduler_batch_no = #{batchNo}
-        and ins.dependent_scheduler_flag = true
+            -- 找出当前processId的所有的父节点def id
+            (select def.id,def.name from
+                (
+                    select id, dependent_id, process_id, create_time, update_time
+                    from t_ds_process_dependent
+                    where process_id = #{processId}
+                    order by process_id asc
+                ) dep
+                    left join (select * from t_ds_process_definition) def
+                              on dep.dependent_id = def.id
+             where def.release_state != 0) def_all
+                -- left join instance 根据 processId, id ,name ,definitionId ,start_time 这几个Instance的字段必要
+                left join
+                (select * from t_ds_process_instance) ins on def_all.id = ins.process_definition_id
+                -- 在调度周期内
+                and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+                and scheduler_batch_no = #{batchNo}
+                and ins.dependent_scheduler_flag = true
     </select>
     <select id="findLastBatchDependByDependentIdInIntervalList" resultType="org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo">
         select
             COALESCE(ins.id,0) as procesId,
             COALESCE(ins.process_definition_id,def_all.id) as definitionId,
             COALESCE(ins.name,def_all.name) as name,
-            COALESCE(ins.state,null) as state
+            COALESCE(ins.state,null) as state,
+            'child' dependType
         from
             -- 找出当前processId的所有的父节点def id
             (select def.id,def.name from
@@ -441,6 +443,12 @@
                     left join (select * from t_ds_process_definition) def
                               on dep.process_id = def.id
              where def.release_state != 0) def_all
+    </select>
+    <select id="queryLastInstanceByProcessId" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
+        select pi.* from t_ds_process_instance pi
+        where  process_definition_id = #{processId} and schedule_time>= #{checkDate}
+        order by schedule_time desc
+            limit 1
     </select>
 
 <!--    <resultMap id="var" type="java.util.HashMap"/>-->

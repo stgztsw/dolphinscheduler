@@ -386,9 +386,9 @@ public class ProcessDefinitionService extends BaseDAGService {
         // 查询所有的当层dependent
         DependTreeViewVo dependTreeView = newDependTreeView(processDefinition,dependentViewRelation);
         if (ONE_DESCEND==dependentViewRelation) {
-            processService.queryChildDepends(null, processDefinition.getId(),dependTreeView);
+            processService.queryOneLayerDepends(null, processDefinition.getId(),dependTreeView);
         } else if (ONE_ASCEND==dependentViewRelation) {
-            processService.queryParentDepends(null, processDefinition.getId(),dependTreeView);
+            processService.queryOneLayerDepends(null, processDefinition.getId(),dependTreeView);
         } else {
             processService.queryOneLayerDepends(null, processDefinition.getId(), dependTreeView);
         }

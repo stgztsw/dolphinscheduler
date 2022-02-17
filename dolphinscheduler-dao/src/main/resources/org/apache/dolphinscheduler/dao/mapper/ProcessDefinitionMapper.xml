@@ -115,4 +115,8 @@
         left join t_ds_schedules s on p_f.id = s.process_definition_id
         where p_f.id = #{processId}
     </select>
+
+    <select id="queryAllProcessIdByProcessType" resultType="java.lang.Integer">
+        select id from t_ds_process_definition p_f where process_type = #{processType} and release_state = #{releaseState}
+    </select>
 </mapper>

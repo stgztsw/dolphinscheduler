@@ -63,4 +63,15 @@ public class DependsVo {
     public void setState(ExecutionStatus state) {
         this.state = state;
     }
+
+    @Override
+    public String toString() {
+        return "DependsVo{" +
+                "processId=" + processId +
+                ", definitionId=" + definitionId +
+                ", name='" + name + '\'' +
+                ", state=" + state +
+                ", dependType='" + dependType + '\'' +
+                '}';
+    }
 }

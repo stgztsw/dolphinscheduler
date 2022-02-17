@@ -2231,4 +2231,13 @@ public class ProcessService {
         return CronUtils.getNextFireDate(start, end, expression) != null;
     }
 
+    public List<Integer> queryAllProcessIdByProcessType(ProcessType processType,ReleaseState releaseState) {
+        List<Integer> queryList = processDefineMapper.queryAllProcessIdByProcessType(processType.getCode(),releaseState.getCode());
+        return queryList;
+    }
+
+    public ProcessInstance queryLastInstanceByProcessId(Integer processId,Date checkDate){
+        return processInstanceMapper.queryLastInstanceByProcessId(processId,checkDate);
+    }
+
 }
