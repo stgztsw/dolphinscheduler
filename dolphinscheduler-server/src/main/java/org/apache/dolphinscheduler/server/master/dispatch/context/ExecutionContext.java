@@ -48,6 +48,8 @@ public class ExecutionContext {
      */
     private String workerGroup;
 
+    private String taskType;
+
 
     public ExecutionContext(Command command, ExecutorType executorType) {
         this(command, executorType, DEFAULT_WORKER_GROUP);
@@ -82,5 +84,13 @@ public class ExecutionContext {
 
     public void setHost(Host host) {
         this.host = host;
+    }
+
+    public String getTaskType() {
+        return taskType;
+    }
+
+    public void setTaskType(String taskType) {
+        this.taskType = taskType;
     }
 }
