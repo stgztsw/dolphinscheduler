@@ -97,6 +97,10 @@ public class LowerWeightHostManager extends CommonHostManager {
     public Host select(ExecutionContext context) {
         Set<HostWeight> workerHostWeights = getWorkerHostWeights(context.getWorkerGroup());
         if (CollectionUtils.isNotEmpty(workerHostWeights)) {
+            if (workerHostWeights.stream().findFirst().isPresent()) {
+                HostWeight workerHostWeight = workerHostWeights.stream().findFirst().get();
+                logger.info(String.format("[Task dispatch] success to dispatch the task, info: %s", workerHostWeight.toString()));
+            }
             return selector.select(workerHostWeights).getHost();
         }
         return new Host();

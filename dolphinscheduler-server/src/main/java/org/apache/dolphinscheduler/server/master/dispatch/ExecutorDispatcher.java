@@ -19,7 +19,6 @@ package org.apache.dolphinscheduler.server.master.dispatch;
 
 
 import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.TaskType;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
 import org.apache.dolphinscheduler.remote.utils.Host;
 import org.apache.dolphinscheduler.server.master.dispatch.context.ExecutionContext;
@@ -28,14 +27,13 @@ import org.apache.dolphinscheduler.server.master.dispatch.exceptions.ExecuteExce
 import org.apache.dolphinscheduler.server.master.dispatch.executor.ExecutorManager;
 import org.apache.dolphinscheduler.server.master.dispatch.executor.NettyExecutorManager;
 import org.apache.dolphinscheduler.server.master.dispatch.host.HostManager;
-
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.dolphinscheduler.server.master.dispatch.host.LowerWeightHostManager;
 import org.apache.dolphinscheduler.server.master.registry.ServerNodeManager;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * executor dispatcher
@@ -101,7 +99,7 @@ public class ExecutorDispatcher implements InitializingBean {
          */
         Host host = hostManager.select(context);
         if (StringUtils.isEmpty(host.getAddress())) {
-            throw new ExecuteException(String.format("fail to execute : %s due to no suitable worker, "
+            throw new ExecuteException(String.format("[Task dispatch] fail to execute : %s due to no suitable worker, "
                             + "current task needs worker group %s to execute",
                     context.getCommand(),context.getWorkerGroup()));
         }

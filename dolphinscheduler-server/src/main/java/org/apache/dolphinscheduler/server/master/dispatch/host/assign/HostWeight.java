@@ -36,7 +36,16 @@ public class HostWeight {
 
     private int currentWeight;
 
+    private double cpu;
+
+    private double memory;
+
+    private  double loadAverage;
+
     public HostWeight(Host host, double cpu, double memory, double loadAverage) {
+        this.cpu = cpu;
+        this.memory = memory;
+        this.loadAverage = loadAverage;
         this.weight = calculateWeight(cpu, memory, loadAverage);
         this.host = host ;
         this.currentWeight = weight ;
@@ -62,6 +71,9 @@ public class HostWeight {
     public String toString() {
         return "HostWeight{" +
                 "host=" + host +
+                ", cpu=" + cpu +
+                ", memory=" + memory +
+                ", loadAverage=" + loadAverage +
                 ", weight=" + weight +
                 ", currentWeight=" + currentWeight +
                 '}';
