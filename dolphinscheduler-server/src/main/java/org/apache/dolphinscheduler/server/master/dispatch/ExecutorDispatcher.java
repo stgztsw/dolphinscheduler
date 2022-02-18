@@ -19,6 +19,7 @@ package org.apache.dolphinscheduler.server.master.dispatch;
 
 
 import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.enums.TaskType;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
 import org.apache.dolphinscheduler.remote.utils.Host;
 import org.apache.dolphinscheduler.server.master.dispatch.context.ExecutionContext;
@@ -84,9 +85,17 @@ public class ExecutorDispatcher implements InitializingBean {
             throw new ExecuteException("no ExecutorManager for type : " + context.getExecutorType());
         }
 
+        TaskType taskType = TaskType.valueOf(context.getTaskType());
         //节点负载信息有延迟，最高可达到25秒，务必须获得最新的节点负载信息，否则有可能能导致内存使用过载
-        //work通过心跳测试同步节点负载，同步频率为1秒，所以睡眠1秒以拿到最新的节点负载信息
-        Thread.sleep(Constants.SLEEP_TIME_MILLIS);
+        //work通过心跳测试同步节点负载，所以睡眠1秒以拿到最新的节点负载信息
+        if (TaskType.DATAX == taskType) {
+            //datax耗内存，所以需要睡眠1秒以确保最新的负载信息刷新到zk中
+            Thread.sleep(Constants.SLEEP_TIME_MILLIS);
+        } else if (TaskType.SQL == taskType) {
+            //do nothing
+        } else {
+            Thread.sleep(500);
+        }
         //其他类型的任务不等待时间，如果还是出现负载高的话，可以调整等待一定的时间
         Runnable workerNodeInfoAndGroupDbSyncTask = serverNodeManager.getWorkerNodeInfoAndGroupDbSyncTask();
         Runnable refreshResourceTask = ((LowerWeightHostManager)hostManager).getRefreshResourceTask();
