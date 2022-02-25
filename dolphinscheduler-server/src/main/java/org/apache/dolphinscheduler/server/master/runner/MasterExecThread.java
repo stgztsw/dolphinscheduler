@@ -908,6 +908,7 @@ public class MasterExecThread implements Callable<ProcessInstance> {
             }
             // send alert
             if(CollectionUtils.isNotEmpty(this.recoverToleranceFaultTaskList)){
+                // send alert fault
                 alertManager.sendAlertWorkerToleranceFault(processInstance, recoverToleranceFaultTaskList);
                 this.recoverToleranceFaultTaskList.clear();
             }

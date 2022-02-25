@@ -107,6 +107,9 @@ public class ProcessService {
     @Autowired
     private ProcessDependentMapper processDependentMapper;
 
+    @Autowired
+    private DependCheckParamMapper dependParamMapper;
+
     private ReentrantLock lock = new ReentrantLock();
 
     /**
@@ -404,7 +407,7 @@ public class ProcessService {
      * @param processInstance processInstance
      */
     public void createRecoveryWaitingThreadCommand(Command originCommand, ProcessInstance processInstance) {
-
+        // todo 子节点 恢复失败线程
         // sub process doesnot need to create wait command
         if(processInstance.getIsSubProcess() == Flag.YES){
             if(originCommand != null){
@@ -2240,4 +2243,21 @@ public class ProcessService {
         return processInstanceMapper.queryLastInstanceByProcessId(processId,checkDate);
     }
 
+
+    /**
+     * quary depend check thread controller param
+     * @return
+     */
+    public DependCheckParam quaryDependParam() {
+        DependCheckParam dependCheckParam = dependParamMapper.selectById(0);
+        if (dependCheckParam!=null){
+            return dependCheckParam;
+        }
+        return new DependCheckParam(FlgLock.YES,FlgLock.YES,FlgLock.YES);
+    }
+
+    public void updateDependParam(DependCheckParam dependCheckParam) {
+        int i = dependParamMapper.updateById(dependCheckParam);
+        System.out.println(i);
+    }
 }

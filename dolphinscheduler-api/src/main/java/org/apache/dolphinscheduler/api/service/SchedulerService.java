@@ -26,16 +26,15 @@ import org.apache.dolphinscheduler.common.model.Server;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
-import org.apache.dolphinscheduler.dao.entity.Project;
-import org.apache.dolphinscheduler.dao.entity.Schedule;
-import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.entity.*;
 import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.dao.mapper.ScheduleMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.apache.dolphinscheduler.service.depend.DependStateCheckExecutor;
 import org.apache.dolphinscheduler.service.process.ProcessService;
+import org.apache.dolphinscheduler.service.quartz.DependStateScheduleJob;
 import org.apache.dolphinscheduler.service.quartz.ProcessScheduleJob;
 import org.apache.dolphinscheduler.service.quartz.QuartzExecutors;
 import org.apache.dolphinscheduler.service.quartz.cron.CronUtils;
@@ -43,6 +42,7 @@ import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,6 +78,9 @@ public class SchedulerService extends BaseService {
 
     @Autowired
     private ProcessDefinitionMapper processDefinitionMapper;
+
+    @Value("${scheduler.thread.crontab:0 10 16 * * ? *}")
+    private String crontab;
 
     /**
      * save schedule
@@ -615,5 +618,57 @@ public class SchedulerService extends BaseService {
         result.put(Constants.DATA_LIST, selfFireDateList.stream().map(t -> DateUtils.dateToString(t)));
         putMsg(result, Status.SUCCESS);
         return result;
+    }
+
+    /**
+     * set depend check scheduler job into quartz executor
+     * @param projectId
+     * @param scheduleId
+     */
+    public synchronized void setDependStateCheckSchedule(int projectId, int scheduleId){
+
+        logger.info("set depend check schedule into quartz job");
+
+        String jobName = QuartzExecutors.buildJobName(scheduleId);
+        String jobGroupName = QuartzExecutors.buildJobGroupName(projectId);
+
+        try{
+//            DependCheckParam dependParam = processService.quaryDependParam();
+            // 保证只处理一次addJob
+//            if (dependParam.getIsAddJob()!=FlgLock.YES) {
+//                logger.info("is started one number of depend check, not be retry addJob");
+//                // todo 这个逻辑放到额外处理
+//                QuartzExecutors.getInstance().deleteJob(jobName,jobGroupName);
+//                dependParam.setIsAddJob(FlgLock.YES);
+//                dependParam.setIsExecuteJob(FlgLock.YES);
+//                processService.updateDependParam(dependParam);
+//                return;
+//            }
+            QuartzExecutors.getInstance().deleteJob(jobName,jobGroupName);
+//            dependParam.setIsAddJob(FlgLock.YES);
+//            dependParam.setIsExecuteJob(FlgLock.YES);
+//            processService.updateDependParam(dependParam);
+//            return;
+
+            // todo 起始结束时间未定,起始时间使用当前的时间
+           Date startDate = new Date();
+           Date endDate = null;
+
+           // 保存巡检记录
+//            processService.saveDependCheckScheduler(startDate, endDate, crontab);
+
+           // 传给job的参数map 在job实例化时能用到的参数 可以传到这
+           Map<String, Object> dataMap = new HashMap<>();
+           dataMap.put("className", DependStateCheckExecutor.class.getName());
+           dataMap.put(Constants.PROJECT_ID,projectId);
+           dataMap.put(Constants.SCHEDULE_ID,scheduleId);
+           // 给quartz添加一个定时任务
+           QuartzExecutors.getInstance().addJob(DependStateScheduleJob.class, jobName, jobGroupName, startDate, endDate, crontab, dataMap);
+           logger.info("update depend param success");
+        } catch (RuntimeException e) {
+            // 异常如何处理
+            logger.warn("check depend faild please check"+e.getCause().toString());
+            QuartzExecutors.getInstance().deleteJob(jobName,jobGroupName);
+        }
     }
 }
