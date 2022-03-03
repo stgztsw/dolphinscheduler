@@ -183,10 +183,12 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
                         // 表头
                         t.append(Constants.TR);
+//                        t.append(Constants.TH).append("projectName").append(Constants.TH_END);
                         t.append(Constants.TH).append("processId").append(Constants.TH_END);
                         t.append(Constants.TH).append("definitionId").append(Constants.TH_END);
                         t.append(Constants.TH).append("name").append(Constants.TH_END);
                         t.append(Constants.TH).append("state").append(Constants.TH_END);
+                        t.append(Constants.TH).append("link").append(Constants.TH_END);
                         t.append(Constants.TR_END);
                         title = t.toString();
 //                        contents.append(StringUtils.isEmpty(title) ? "" : String.format("<thead>%s</thead>\n", title));
@@ -196,13 +198,17 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
                             Map.Entry<Integer, JSONObject> entry = iterator.next();
                             JSONObject jo = entry.getValue();
+                            Integer processId = (Integer) jo.get("processId");
 
                             // rows data
                             cs.append(Constants.TR);
+//                            cs.append(Constants.TD).append(jo.get("projectName")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("processId")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("definitionId")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("name")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("state")).append(Constants.TD_END);
+                            cs.append(Constants.TD).append(
+                                    processId!=null && !processId.equals(0)? String.format("<a href=\"%s\">实例链接</a>",Constants.INSTANCE_LINK_PRD+processId) : "").append(Constants.TD_END);
                             cs.append(Constants.TR_END);
                         }
                         contents.append(cs).append(Constants.TABLE_END);

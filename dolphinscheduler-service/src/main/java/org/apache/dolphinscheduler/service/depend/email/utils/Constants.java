@@ -51,6 +51,9 @@ public class Constants {
 
     public static final String MAIL_PASSWD = "mail.passwd";
 
+    public static final String MAIL_RECIPIENTS = "mail.recipients";
+
+
     public static final String XLS_FILE_PATH = "xls.file.path";
 
     public static final String MAIL_HOST = "mail.smtp.host";
@@ -154,6 +157,10 @@ public class Constants {
     public static final String TH = "<th>";
 
     public static final String TH_END = "</th>";
+
+    public static final String INSTANCE_LINK_PRD = "http://dolphinscheduler.jihint.com:12345/dolphinscheduler/ui/#/projects/instance/list/";
+
+    public static final String INSTANCE_LINK_DEV = "http://localhost:8888/#/projects/instance/list/";
 
     public static final int ALERT_SCAN_INTERVAL = 5000;
 

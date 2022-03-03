@@ -118,6 +118,14 @@ public class AlertDao extends AbstractBaseDao {
         saveTaskTimeoutAlert(alert, content, alertgroupId, receivers, receiversCc);
     }
 
+    /**
+     * 保存task超时的告警
+     * @param alert
+     * @param content
+     * @param alertgroupId
+     * @param receivers
+     * @param receiversCc
+     */
     private void  saveTaskTimeoutAlert(Alert alert, String content, int alertgroupId,
                                     String receivers,  String receiversCc){
         alert.setShowType(ShowType.TABLE);

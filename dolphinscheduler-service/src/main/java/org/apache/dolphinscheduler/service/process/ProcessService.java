@@ -492,7 +492,7 @@ public class ProcessService {
         processInstance.setFailureStrategy(command.getFailureStrategy());
         processInstance.setExecutorId(command.getExecutorId());
         WarningType warningType = command.getWarningType() == null ? WarningType.NONE : command.getWarningType();
-        processInstance.setWarningType(warningType);
+        processInstance.setWarningType(warningType);// 设置 alert 类型
         Integer warningGroupId = command.getWarningGroupId() == null ? 0 : command.getWarningGroupId();
         processInstance.setWarningGroupId(warningGroupId);
 
@@ -585,7 +585,7 @@ public class ProcessService {
         processInstance.setCommandType(parent.getCommandType());
         processInstance.setWarningGroupId(parent.getWarningGroupId());
         processInstance.setWorkerGroup(parent.getWorkerGroup());
-        processInstance.setWarningType(parent.getWarningType());
+        processInstance.setWarningType(parent.getWarningType());// 设置 alert 类型
     }
 
     public boolean findAndUpdateInformalProcessInstance(int processId, SchedulingBatch sb, ProcessInstance parent) {
@@ -2234,13 +2234,34 @@ public class ProcessService {
         return CronUtils.getNextFireDate(start, end, expression) != null;
     }
 
-    public List<Integer> queryAllProcessIdByProcessType(ProcessType processType,ReleaseState releaseState) {
-        List<Integer> queryList = processDefineMapper.queryAllProcessIdByProcessType(processType.getCode(),releaseState.getCode());
+    /**
+     * 找到 所有上并定时上线状态的definitionId
+     * @param processType
+     * @param releaseState
+     * @return
+     */
+    public List<Integer> queryAllProcessIdByProcessTypeAndReleaseState(ProcessType processType,ReleaseState releaseState) {
+        List<Integer> queryList = processDefineMapper.queryAllProcessIdByProcessTypeAndReleaseState(processType.getCode(),releaseState.getCode());
         return queryList;
     }
 
+    /**
+     * 找到在checkDate 之后运行的最新的实例
+     * @param processId
+     * @param checkDate
+     * @return
+     */
     public ProcessInstance queryLastInstanceByProcessId(Integer processId,Date checkDate){
         return processInstanceMapper.queryLastInstanceByProcessId(processId,checkDate);
+    }
+
+    /**
+     * 找到 全局的最新的实例
+     * @param processId
+     * @return
+     */
+    public ProcessInstance queryLastExecInstanceByProcessId(Integer processId) {
+        return processInstanceMapper.queryLastExecInstanceByProcessId(processId);
     }
 
 
@@ -2260,4 +2281,5 @@ public class ProcessService {
         int i = dependParamMapper.updateById(dependCheckParam);
         System.out.println(i);
     }
+
 }

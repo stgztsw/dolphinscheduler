@@ -112,6 +112,7 @@ public class AlertManager {
 
         String res = "";
         if(processInstance.getState().typeIsSuccess()){
+            // 运行成功
             res = String.format(PROCESS_INSTANCE_FORMAT,
                     processInstance.getId(),
                     processInstance.getName(),
@@ -126,6 +127,7 @@ public class AlertManager {
             );
             res = "[" + res + "]";
         }else if(processInstance.getState().typeIsFailure()){
+            // process status 失败 log path 需要加上日志链接
 
             List<LinkedHashMap> failedTaskList = new ArrayList<>();
 
@@ -243,6 +245,7 @@ public class AlertManager {
         alert.setTitle(cmdName + " " + success);
         ShowType showType = processInstance.getState().typeIsSuccess() ? ShowType.TEXT : ShowType.TABLE;
         alert.setShowType(showType);
+        // 获取send msg
         String content = getContentProcessInstance(processInstance, taskInstances);
         alert.setContent(content);
         alert.setAlertType(AlertType.EMAIL);

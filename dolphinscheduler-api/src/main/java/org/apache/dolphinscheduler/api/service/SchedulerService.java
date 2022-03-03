@@ -17,6 +17,8 @@
 package org.apache.dolphinscheduler.api.service;
 
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.dolphinscheduler.api.dto.ScheduleParam;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
@@ -26,12 +28,13 @@ import org.apache.dolphinscheduler.common.model.Server;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.StringUtils;
-import org.apache.dolphinscheduler.dao.entity.*;
+import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
+import org.apache.dolphinscheduler.dao.entity.Project;
+import org.apache.dolphinscheduler.dao.entity.Schedule;
+import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.dao.mapper.ScheduleMapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.dolphinscheduler.service.depend.DependStateCheckExecutor;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.quartz.DependStateScheduleJob;
@@ -663,6 +666,7 @@ public class SchedulerService extends BaseService {
            dataMap.put(Constants.PROJECT_ID,projectId);
            dataMap.put(Constants.SCHEDULE_ID,scheduleId);
            // 给quartz添加一个定时任务
+           // todo 上线需要打开 此处为了不开启巡检
            QuartzExecutors.getInstance().addJob(DependStateScheduleJob.class, jobName, jobGroupName, startDate, endDate, crontab, dataMap);
            logger.info("update depend param success");
         } catch (RuntimeException e) {
