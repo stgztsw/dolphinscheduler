@@ -187,7 +187,15 @@ const router = new Router({
           meta: {
             title: `${i18n.$t('History task record')}`
           }
-
+        },
+        // todo uncheck router
+        {
+          path: '/project/task-inner-log/:id',
+          name: 'inner-log-index',
+          component: resolve => require(['../pages/dag/_source/innerLog/index'], resolve),
+          meta: {
+            title: `${i18n.$t('Error log detail')}`
+          }
         }
       ]
     },

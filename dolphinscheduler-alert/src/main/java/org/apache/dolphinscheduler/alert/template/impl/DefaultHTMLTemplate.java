@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static org.apache.dolphinscheduler.common.utils.Preconditions.*;
+import static org.apache.dolphinscheduler.common.utils.Preconditions.checkNotNull;
 
 /**
  * the default html alert message template
@@ -81,14 +81,23 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
                 StringBuilder t = new StringBuilder(Constants.TR);
                 StringBuilder cs = new StringBuilder(Constants.TR);
+                String processId = null;
                 while (iterator.hasNext()){
-
                     Map.Entry<String, Object> entry = iterator.next();
+
+                    if (entry.getKey().equals("task id")){
+                        processId = (String) entry.getValue();
+                    }
+
                     // 表头
                     t.append(Constants.TH).append(entry.getKey()).append(Constants.TH_END);
-                    // rows
-                    cs.append(Constants.TD).append(String.valueOf(entry.getValue())).append(Constants.TD_END);
-
+                    // rows Constants.TASK_LOG_LINK_DEV dev or prd
+                    cs.append(Constants.TD).append(
+                            (entry.getKey().equals("log path") && processId!=null) ?
+                                    String.format("<a href=\"%s\">%s</a>",Constants.TASK_LOG_LINK_PRD+processId,entry.getValue()) :
+                                    String.valueOf(entry.getValue()))
+                            .append(Constants.TD_END);
+//                    cs.append(Constants.TD).append(entry.getValue()).append(Constants.TD_END);
                 }
                 t.append(Constants.TR_END);
                 cs.append(Constants.TR_END);

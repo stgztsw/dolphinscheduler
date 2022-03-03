@@ -33,6 +33,7 @@ export default {
   'Current node settings': 'Current node settings',
   'View history': 'View history',
   'View log': 'View log',
+  'Error log detail': 'Error log detail',
   'Enter this child node': 'Enter this child node',
   'Node name': 'Node name',
   'Please enter name (required)': 'Please enter name (required)',
