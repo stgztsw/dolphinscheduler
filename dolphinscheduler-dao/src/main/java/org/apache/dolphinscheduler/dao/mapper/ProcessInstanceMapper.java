@@ -327,4 +327,8 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
             @Param("processId") int processId,
             @Param("checkDate") Date checkDate
     );
+
+    ProcessInstance queryLastExecInstanceByProcessId(
+            @Param("processId") int processId
+    );
 }

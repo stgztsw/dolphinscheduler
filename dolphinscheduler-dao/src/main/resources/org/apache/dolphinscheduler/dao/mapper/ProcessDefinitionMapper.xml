@@ -116,7 +116,18 @@
         where p_f.id = #{processId}
     </select>
 
-    <select id="queryAllProcessIdByProcessType" resultType="java.lang.Integer">
-        select id from t_ds_process_definition p_f where process_type = #{processType} and release_state = #{releaseState}
+    <select id="queryAllProcessIdByProcessTypeAndReleaseState" resultType="java.lang.Integer">
+        select def.id from
+        (select id from t_ds_process_definition p_f where process_type = #{processType} and release_state = #{releaseState}) def
+        inner join
+        (select process_definition_id from t_ds_schedules where release_state= #{releaseState}) sch
+        on def.id = sch.process_definition_id
+    </select>
+    <select id="queryProjectNameBydefinitionId" resultType="java.lang.String">
+        select pro.name from
+            (select project_id from t_ds_process_definition p_f where id = #{definitionId}) def
+                inner join
+            (select * from t_ds_project) pro
+            on def.project_id = pro.id
     </select>
 </mapper>

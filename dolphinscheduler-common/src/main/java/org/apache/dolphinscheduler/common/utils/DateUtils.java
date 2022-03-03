@@ -366,6 +366,38 @@ public class DateUtils {
     }
 
     /**
+     * get date of hour offset new date 不支持大于24的offset
+     * @param date
+     * @param offsetHour
+     * @return
+     */
+    public static Date getOffsetMin(Date date, long offsetHour) {
+        if (offsetHour>24){
+            throw new RuntimeException("get date of minute offset too big "+offsetHour);
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY)+(int)offsetHour);
+        return cal.getTime();
+    }
+
+    /**
+     * get date of minute offset new date 不支持大于60的offset
+     * @param date
+     * @param offsetMin
+     * @return
+     */
+    public static Date getOffsetHour(Date date, long offsetMin) {
+        if (offsetMin>60){
+            throw new RuntimeException("get date of minute offset too big "+offsetMin);
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE)+(int)offsetMin);
+        return cal.getTime();
+    }
+
+    /**
      * get last day of month
      *
      * @param date date

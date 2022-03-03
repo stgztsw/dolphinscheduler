@@ -121,5 +121,7 @@ public interface ProcessDefinitionMapper extends BaseMapper<ProcessDefinition> {
 
     ProcessDefinition findDefineSchedulerById(@Param("processId") int processId);
 
-    List<Integer> queryAllProcessIdByProcessType(@Param("processType") int processType, @Param("releaseState") int releaseState);
+    List<Integer> queryAllProcessIdByProcessTypeAndReleaseState(@Param("processType") int processType, @Param("releaseState") int releaseState);
+
+    String queryProjectNameBydefinitionId(@Param("definitionId") int definitionId);
 }

@@ -451,6 +451,13 @@
             limit 1
     </select>
 
+    <select id="queryLastExecInstanceByProcessId" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">
+        select pi.* from t_ds_process_instance pi
+        where  process_definition_id = #{processId}
+        order by schedule_time desc
+            limit 1
+    </select>
+
 <!--    <resultMap id="var" type="java.util.HashMap"/>-->
 <!--    <resultMap id="processInstance" type="org.apache.dolphinscheduler.dao.entity.ProcessInstance"/>-->
 <!--    <select id="findLastBatchProcessInstanceByProcessIdInIntervalList" resultType="var,processInstance">-->
