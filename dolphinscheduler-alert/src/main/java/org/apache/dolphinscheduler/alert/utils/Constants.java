@@ -139,7 +139,7 @@ public class Constants {
 
     public static final String TH_END = "</th>";
 
-    public static final String TASK_LOG_LINK_PRD = "http://dolphinscheduler.jihint.com:12345/dolphinscheduler/ui/#/projects/task-inner-log/";
+    public static final String TASK_LOG_LINK_PRD = "http://dolphinscheduler.jihint.com:12345/dolphinscheduler/ui/#/project/task-inner-log/";
 
     public static final String TASK_LOG_LINK_DEV = "http://localhost:8888/#/project/task-inner-log/";
 
