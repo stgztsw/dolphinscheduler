@@ -2282,4 +2282,8 @@ public class ProcessService {
         System.out.println(i);
     }
 
+    public String queryCronByProcessDefinitionId(int processId){
+        return scheduleMapper.queryCronByProcessDefinitionId(processId);
+    }
+
 }

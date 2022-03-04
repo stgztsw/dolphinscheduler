@@ -11,10 +11,12 @@ import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
 import org.apache.dolphinscheduler.service.depend.pojo.DependsOnSendingMailObj;
 import org.apache.dolphinscheduler.service.process.ProcessService;
+import org.apache.dolphinscheduler.service.quartz.cron.CronUtils;
 import org.apache.dolphinscheduler.service.quartz.cron.SchedulingBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -29,6 +31,7 @@ import java.util.concurrent.Callable;
  *      * 3、周、月、年 调度周期的 判断逻辑调整
  **/
 //@Service
+//@Component
 public class DependStateCheckExecutor implements Callable<String>{
 
     /**
@@ -54,19 +57,27 @@ public class DependStateCheckExecutor implements Callable<String>{
 
     public static  LinkedHashMap<Integer, Object> unExecObjs = new LinkedHashMap<>();
 
+
     /**
      * 定时器触发时间和下次触发时间
      */
-    private final Date fireTime;
-    private final Date previousFireTime;
+    private Date fireTime;
+    private Date previousFireTime;
+    private Date nextFireTime;
 
     private ProcessService processService = SpringApplicationContext.getBean(ProcessService.class);
 
     private ProcessDefinitionMapper processDefineMapper = SpringApplicationContext.getBean(ProcessDefinitionMapper.class);
 
-    public DependStateCheckExecutor(Date fireTime, Date previousFireTime) {
+    public DependStateCheckExecutor(Date fireTime) {
         this.fireTime = fireTime;
-        this.previousFireTime = previousFireTime;
+    }
+
+    public DependStateCheckExecutor() {
+    }
+
+    private ProcessService getProcessService(){
+        return SpringApplicationContext.getBean(ProcessService.class);
     }
 
 
@@ -78,9 +89,9 @@ public class DependStateCheckExecutor implements Callable<String>{
 
             for (Integer processId : processIds) {
                 // 递归版本
-                queryDepends(processId, true);
+//                queryDepends(processId, true);
                 // loop版本
-//                queryDependsByLoop(processId,true);
+                queryDependsByLoop(processId,true);
             }
             String reportObj = buildDependReportStr();
 
@@ -208,39 +219,45 @@ public class DependStateCheckExecutor implements Callable<String>{
      * @param processId
      * @param existInstance
      */
-    private void queryDependsByLoop(Integer processId, Boolean existInstance) {
+    private void queryDependsByLoop(Integer processId, Boolean existInstance) throws ParseException {
         DependTreeViewVo dependTreeViewVo = null;
         // 如果存在实例
         if (existInstance) {
-//            ProcessInstance processInstance = processService.queryLastInstanceByProcessId(processId,getNowDateZero());
 
             // 自上线以来的所有实例中的最新的一个
             ProcessInstance processInstance = processService.queryLastExecInstanceByProcessId(processId);
+            String cron = getProcessService().queryCronByProcessDefinitionId(processId);
             // 头节点默认是 存在实例的 但是如果并没有跑过 则 实例为null 重定位到 不存在实例的分支
             if (processInstance==null){
                 logger.info("processInstance wei null "+processId);
                 queryDependsByLoop(processId,false);
+                return;
             }
             int interval = processInstance.getSchedulerInterval();
             Date scheduleTime = processInstance.getScheduleTime();
-            boolean needRunCheckDepend = needCheckDepend(interval,getNowDate(),scheduleTime);
 
-            // (start process 非null) && 最新的调度周期有运行实例 过滤
-            if (processInstance!=null && needRunCheckDepend){
-                setStartProcessState(processInstance);
-                // start 节点创建实例失败
-                SchedulingBatch sb = new SchedulingBatch(processInstance);
-                dependTreeViewVo = newDependTreeView(processInstance, DependentViewRelation.ONE_ALL);
-                // 因为是遍历出了所有的start节点，所以无需考虑有多个上游的情况，会充分遍历到所有节点。
-                // 所以只需要查询出需要child 依赖即可
-                processInstance = null;
-                processService.queryChildDepends(sb, processId, dependTreeViewVo);
-            } else {// start节点没有运行 || start运行过但最新的调度周期没有运行实例 直接查询definition构造depend
-                logger.info("processInstance is null because start process id not be scheduled");
-                processInstance = null;
-                queryDependsByLoop(processId, false);
+            try {
+                boolean needRunCheckDepend = needCheckDepend(interval,scheduleTime,cron);
+
+                // (start process 非null) && 最新的调度周期有运行实例 过滤
+                if (processInstance!=null && needRunCheckDepend){
+                    setStartProcessState(processInstance);
+                    // start 节点创建实例失败
+                    SchedulingBatch sb = new SchedulingBatch(processInstance);
+                    dependTreeViewVo = newDependTreeView(processInstance, DependentViewRelation.ONE_ALL);
+                    // 因为是遍历出了所有的start节点，所以无需考虑有多个上游的情况，会充分遍历到所有节点。
+                    // 所以只需要查询出需要child 依赖即可
+                    processInstance = null;
+                    processService.queryChildDepends(sb, processId, dependTreeViewVo);
+                } else {// start节点没有运行 || start运行过但最新的调度周期没有运行实例 直接查询definition构造depend
+                    logger.info("processInstance is null because start process id not be scheduled");
+                    processInstance = null;
+                    queryDependsByLoop(processId, false);
+                }
+            } catch (RuntimeException e) {
+                logger.warn(e.getMessage());
             }
-        // 实例不存在 通过definition构建 查一层依赖
+            // 实例不存在 通过definition构建 查一层依赖
         } else {
             ProcessDefinition processDefinition = processDefineMapper.selectById(processId);
             if (processDefinition!=null){
@@ -313,85 +330,120 @@ public class DependStateCheckExecutor implements Callable<String>{
         }
     }
 
-    private boolean needCheckDepend(int interval, Date nowDate, Date scheduleTime) {
+    private boolean needCheckDepend(int interval, Date scheduleTime, String cron) throws ParseException {
+
+        // 调度时间的下一次的cron 表达式生成的调度时间
+        Date nextScheduleTime = CronUtils.nextExecDate(cron,scheduleTime);
+        // 获取调度时间的间隔 last 10.00 next 13.00 触发时间 10.00.20 check 10.00-9.30 之间触发过 需要check 没有 则不需
+        //                      9.30        10.30        10.00.20
+        logger.info("scheduleTime:{},nextScheduleTime:{}",scheduleTime,nextScheduleTime);
+
+
         boolean needCheckDepend = false;
-        switch (interval){
-            case 0:
-                logger.warn("don't support minute depend check interval");
-                // 调度的时间 是 当前的小时数
-//                if (previousFireTime.getHours()==fireTime.getHours()) {
-//                    // 10:00 10:30 10:45 9:45
-//                    if (scheduleTime.getHours()!=previousFireTime.getHours()) {
-//                        long diffMin = DateUtils.diffMin(previousFireTime, fireTime);
-//                        Date lastPreFireTime = DateUtils.getOffsetMin(previousFireTime, diffMin);
-//                        // 上上次调度的日期在scheduleTime之后 说明已经对当条实例进行过 check
-//                        if (lastPreFireTime.before(scheduleTime)){
-//                            needCheck = false;
-//                        } else {
-//                            needCheck = true;
-//                        }
-//                    }
-//                    // 两次调度时间之间 跨小时 check 上小时的实例
-//                } else {
-//                    if (scheduleTime.getHours()==previousFireTime.getHours()){
-//                        needCheck = true;
-//
-//                    } else if (scheduleTime.getHours()==fireTime.getHours()){
-//                        needCheck = true;
-//                    }
-//                }
+
+        switch (CycleEnum.valueOf(interval)){
+            case MINUTE:
+                throw new RuntimeException("don't support minute depend check interval");
+            case HOUR:
+                // 下一次触发的时间在当前check 时间之前 则表示 有一次cron 定时任务未触发 返回 false
+                needCheckDepend = !nextScheduleTime.before(fireTime);
                 break;
-            case 1:
-                long diffHours = DateUtils.diffHours(fireTime, previousFireTime);
-                // 调度时间在上次调度时间之后
-                needCheckDepend = scheduleTime.before(previousFireTime);
+            case DAY:
+                needCheckDepend = !nextScheduleTime.before(fireTime);
                 break;
-            case 2:
-//                needCheckDepend = fireTime.getDay()==scheduleTime.getDay();
-                needCheckDepend = scheduleTime.after(previousFireTime);
+            case WEEK:
+                needCheckDepend = !nextScheduleTime.before(fireTime);
                 break;
-            case 3:
-//                needCheckDepend = fireTime.getDay()==scheduleTime.getDay();
-                needCheckDepend = scheduleTime.after(previousFireTime);
+            case MONTH:
+                needCheckDepend = !nextScheduleTime.before(fireTime);
                 break;
-            case 4:
-//                needCheckDepend = fireTime.getDay()==scheduleTime.getDay();
-                needCheckDepend = scheduleTime.after(previousFireTime);
-                break;
-            case 5:
-                logger.warn("don't support year depend check interval");
-                break;
+            case YEAR:
+                throw new RuntimeException("don't support year depend check interval");
             default:
-                logger.warn("dont't support interval to check depend ...");
-                break;
+                throw new RuntimeException("dont't support interval to check depend ...");
         }
         return needCheckDepend;
     }
 
-    // loop depend version
-    private void dependAddStack(Integer processId, Boolean existInstance,Stack<DependsVo> stack){
+    /**
+     * 获取上一次的 processInstance 调度时间 如果是首次调度 则根据下一次的定期调度的时间 和当次调度时间的 时间间隔 计算出 模拟的 上一次的调度时间
+     * 不支持非固定周期的调度时间
+     * @param dates
+     * @param nowDate
+     * @param cronInterval
+     * @param scheduleTime
+     * @return
+     */
+    private Date getPreFireTime(List<Date> dates, Date nowDate, Long cronInterval, Date scheduleTime) {
+
+        Date nextFireDate = dates.get(0);
+
+        Date preFireDate = DateUtils.getOffsetMin(nextFireDate, -cronInterval);
+
+        Date fireDate;
+
+        if (nowDate.equals(preFireDate)) {
+            fireDate = preFireDate;
+            preFireDate = DateUtils.getOffsetMin(fireDate,-cronInterval);
+        } else {
+            fireDate = dates.get(0);
+            nextFireDate = dates.get(1);
+        }
+
+        logger.info("processInstance crontab preFire time:{}, fire time:{}, next time:{} schedule time:{}",preFireDate,fireDate,nextFireDate,scheduleTime);
+
+        return preFireDate;
+    }
+
+    /**
+     * 获取上一次的 check depend 调度时间 如果是首次调度 则根据下一次的定期调度的时间 和当次调度时间的 时间间隔 计算出 模拟的 上一次的调度时间
+     * @return
+     */
+    private Date getPreFireTime() {
+        if (previousFireTime!=null){
+            return previousFireTime;
+        } else {
+            long diffMin = DateUtils.diffMin(fireTime, nextFireTime);
+            return DateUtils.getOffsetMin(fireTime, -diffMin);
+        }
+    }
+
+    /**
+     * loop depend version
+     * @param processId
+     * @param existInstance
+     * @param stack
+     */
+    private void dependAddStack(Integer processId, Boolean existInstance,Stack<DependsVo> stack) throws ParseException {
         DependTreeViewVo dependTreeViewVo = null;
         if (existInstance) {
+
             // 自上线以来的所有实例中的最新的一个
             ProcessInstance processInstance = processService.queryLastExecInstanceByProcessId(processId);
+            String cron = getProcessService().queryCronByProcessDefinitionId(processId);
             int interval = processInstance.getSchedulerInterval();
             Date scheduleTime = processInstance.getScheduleTime();
-            boolean needRunCheckDepend = needCheckDepend(interval,getNowDate(),scheduleTime);
 
-            // start process 非null 过滤
-            if (processInstance!=null && needRunCheckDepend){
-                setStartProcessState(processInstance);
-                // start 节点创建实例失败
-                SchedulingBatch sb = new SchedulingBatch(processInstance);
-                dependTreeViewVo = newDependTreeView(processInstance, DependentViewRelation.ONE_ALL);
-                // 因为是遍历出了所有的start节点，所以无需考虑有多个上游的情况，会充分遍历到所有节点。
-                // 所以只需要查询出需要child 依赖即可
-                processInstance = null;
-                processService.queryChildDepends(sb, processId, dependTreeViewVo);
-            } else {// start节点没有运行 直接查询definition构造depend
-                logger.info("processInstance is null because start process id not be scheduled");
-                processInstance = null;
-                queryDependsByLoop(processId, false);
+            try {
+                boolean needRunCheckDepend = needCheckDepend(interval,scheduleTime,cron);
+
+                // start process 非null 过滤
+                if (processInstance!=null && needRunCheckDepend){
+                    setStartProcessState(processInstance);
+                    // start 节点创建实例失败
+                    SchedulingBatch sb = new SchedulingBatch(processInstance);
+                    dependTreeViewVo = newDependTreeView(processInstance, DependentViewRelation.ONE_ALL);
+                    // 因为是遍历出了所有的start节点，所以无需考虑有多个上游的情况，会充分遍历到所有节点。
+                    // 所以只需要查询出需要child 依赖即可
+                    processInstance = null;
+                    processService.queryChildDepends(sb, processId, dependTreeViewVo);
+                } else {// start节点没有运行 直接查询definition构造depend
+                    logger.info("processInstance is null because start process id not be scheduled");
+                    processInstance = null;
+                    queryDependsByLoop(processId, false);
+                }
+            } catch (RuntimeException e) {
+                logger.warn(e.getMessage());
             }
         } else {
             ProcessDefinition processDefinition = processDefineMapper.selectById(processId);
@@ -414,7 +466,7 @@ public class DependStateCheckExecutor implements Callable<String>{
             // 置为null 释放内存
             dependTreeViewVo = null;
 
-            // 递归出口 上层或者下层的依赖列表为空的时候 return
+            // 出口 上层或者下层的依赖列表为空的时候 return
             // 如果是未执行的工作流 此时状态为null 但是当次查询的时候sql依然会查出，只是并未生成实例，需要读取depend表的依赖信息并列出下游的依赖
             if (isDependEntry(childs)) {
                 return;

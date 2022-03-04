@@ -183,7 +183,7 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
                         // 表头
                         t.append(Constants.TR);
-//                        t.append(Constants.TH).append("projectName").append(Constants.TH_END);
+                        t.append(Constants.TH).append("projectName").append(Constants.TH_END);
                         t.append(Constants.TH).append("processId").append(Constants.TH_END);
                         t.append(Constants.TH).append("definitionId").append(Constants.TH_END);
                         t.append(Constants.TH).append("name").append(Constants.TH_END);
@@ -202,7 +202,7 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
                             // rows data
                             cs.append(Constants.TR);
-//                            cs.append(Constants.TD).append(jo.get("projectName")).append(Constants.TD_END);
+                            cs.append(Constants.TD).append(jo.get("projectName")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("processId")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("definitionId")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("name")).append(Constants.TD_END);

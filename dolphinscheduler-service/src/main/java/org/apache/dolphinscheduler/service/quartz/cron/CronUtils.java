@@ -18,16 +18,22 @@ package org.apache.dolphinscheduler.service.quartz.cron;
 
 
 import com.cronutils.model.Cron;
+import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
+import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
 import org.apache.dolphinscheduler.common.enums.CycleEnum;
 import org.apache.dolphinscheduler.common.thread.Stopper;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.quartz.CronExpression;
+import org.quartz.TriggerUtils;
+import org.quartz.impl.triggers.CronTriggerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 import static com.cronutils.model.CronType.QUARTZ;
@@ -64,6 +70,17 @@ public class CronUtils {
    */
   public static CronExpression parse2CronExpression(String cronExpression) throws ParseException {
     return new CronExpression(cronExpression);
+  }
+
+  public static List<Date> getCronNext2TriggerTime(String cronExpression,Date nowDate) throws ParseException {
+    CronExpression cron = new CronExpression(cronExpression);
+    Date nextDate = nowDate;
+    ArrayList<Date> cronTimes = new ArrayList<>();
+    for (int i = 0; i < 2; i++) {
+      nextDate = cron.getNextValidTimeAfter(nextDate);
+      cronTimes.add(nextDate);
+    }
+    return cronTimes;
   }
 
   /**
@@ -242,4 +259,135 @@ public class CronUtils {
     return end.getTime();
   }
 
+  /**
+   * 获取给定cron表达式 当前时间 的上一次时触发的日期
+   * @param cron
+   * @return
+   */
+  public static Date lastExecDate(String cron) throws ParseException {
+    List<Date> dates = computeFireTimes(cron);
+    Date nowDate = new Date();
+    return findNearExecution(dates,nowDate).get(0);
+  }
+
+  /**
+   * 获取给定cron表达式 当前时间 的下一次时触发的日期
+   * @param cron
+   * @return
+   */
+  public static Date nextExecDate(String cron) throws ParseException {
+    List<Date> dates = computeFireTimes(cron);
+    Date nowDate = new Date();
+    return findNearExecution(dates,nowDate).get(1);
+  }
+
+  /**
+   * 获取近4个月的 cron 表达式所有触发的时间集合
+   * @param cron
+   * @return
+   */
+  public static List<Date> computeFireTimes(String cron) throws ParseException {
+    List<Date> dates = null;
+    CronTriggerImpl cronTriggerImpl = new CronTriggerImpl();
+
+    cronTriggerImpl.setCronExpression(cron);
+
+    Calendar nextDate = Calendar.getInstance();
+    Date now = nextDate.getTime();
+    nextDate.add(Calendar.MONTH, 2);
+    Calendar preDate = Calendar.getInstance();
+    preDate.add(Calendar.MONTH,-2);
+    dates = TriggerUtils.computeFireTimesBetween(
+            cronTriggerImpl, null, preDate.getTime(),
+            nextDate.getTime());
+
+    return dates;
+  }
+
+  /**
+   * 查找和给定日期d 最近的 两个日期
+   * @param list
+   * @param d
+   * @return
+   */
+  private static List<Date> findNearExecution(List<Date> list,Date d){
+    if(list==null || list.size()<=0){
+      return null;
+    }
+    long nextTime=Long.MAX_VALUE;
+    long lastTime=Long.MIN_VALUE;
+    Date rn = null;
+    Date rl = null;
+    long time=d.getTime();
+    for(Date t:list){
+      long tm=t.getTime()-time;
+      // 小于传入的date
+      if (tm>0){
+        if(nextTime>tm){
+          nextTime=tm;
+          rn=t;
+        }
+      } else {
+        if (lastTime<tm){
+          lastTime = tm;
+          rl=t;
+        }
+      }
+    }
+    ArrayList<Date> dates = new ArrayList<>();
+    dates.add(rl);
+    dates.add(rn);
+    return dates;
+  }
+
+
+  // use Cron utils to get last and next Execution time
+  private static final CronDefinition CRON_DEFINITION = CronDefinitionBuilder.instanceDefinitionFor(QUARTZ);
+
+  /**
+   * 查找上一次的cron表达式的执行时间
+   * @param expression
+   * @return
+   */
+  public static LocalDateTime lastExecution(String expression) {
+    CronParser parser = new CronParser(CRON_DEFINITION);
+    Cron quartzCron = parser.parse(expression);
+    ZonedDateTime now = ZonedDateTime.now();
+    ExecutionTime executionTime = ExecutionTime.forCron(quartzCron);
+    Optional<ZonedDateTime> zonedDateTimeOptional = Optional.ofNullable(executionTime.lastExecution(now));
+    if (zonedDateTimeOptional.isPresent()) {
+      ZonedDateTime zonedDateTime = zonedDateTimeOptional.get();
+      return zonedDateTime.toLocalDateTime();
+    }
+    return null;
+  }
+
+  /**
+   * 查找下一次的cron表达式的执行时间
+   * @param expression
+   * @return LocalDateTime
+   */
+  public static LocalDateTime nextExecution(String expression) {
+    CronParser parser = new CronParser(CRON_DEFINITION);
+    Cron quartzCron = parser.parse(expression);
+    ZonedDateTime now = ZonedDateTime.now();
+    ExecutionTime executionTime = ExecutionTime.forCron(quartzCron);
+    Optional<ZonedDateTime> zonedDateTimeOptional = Optional.ofNullable(executionTime.nextExecution(now));
+    if (zonedDateTimeOptional.isPresent()) {
+      ZonedDateTime zonedDateTime = zonedDateTimeOptional.get();
+      return zonedDateTime.toLocalDateTime();
+    }
+    return null;
+  }
+
+  /**
+   * 获取给定cron表达式 给定日期 的下一次时触发的日期
+   * @param cron
+   * @param d
+   * @return
+   */
+  public static Date nextExecDate(String cron, Date d) throws ParseException {
+    List<Date> dates = computeFireTimes(cron);
+    return findNearExecution(dates,d).get(1);
+  }
 }
