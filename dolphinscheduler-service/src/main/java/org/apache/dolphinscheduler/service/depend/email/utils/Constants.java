@@ -126,6 +126,10 @@ public class Constants {
 
     public static final String TR_END = "</tr>";
 
+    public static final String H3 = "<h3 style=\"color:red ; font-size:25px\">";
+
+    public static final String H3_END = "</h3>";
+
     public static final String H4 = "<h4>";
 
     public static final String H4_END = "</h4>";

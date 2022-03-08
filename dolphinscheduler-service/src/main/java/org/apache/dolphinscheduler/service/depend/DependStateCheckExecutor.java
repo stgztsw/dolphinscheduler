@@ -9,6 +9,8 @@ import org.apache.dolphinscheduler.dao.entity.vo.depend.DependTreeViewVo;
 import org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo;
 import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
+import org.apache.dolphinscheduler.service.depend.enums.IntervalType;
+import org.apache.dolphinscheduler.service.depend.pojo.DependSendMail;
 import org.apache.dolphinscheduler.service.depend.pojo.DependsOnSendingMailObj;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.quartz.cron.CronUtils;
@@ -20,6 +22,9 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
+import static org.apache.dolphinscheduler.common.enums.ExecutionStatus.*;
+import static org.apache.dolphinscheduler.common.enums.ExecutionStatus.SUCCESS;
+
 /**
  * @program: dolphinscheduler
  * @description:
@@ -29,6 +34,7 @@ import java.util.concurrent.Callable;
  *      * 1、项目名
  *      * 2、definition和schedule都要是online 才 需要遍历
  *      * 3、周、月、年 调度周期的 判断逻辑调整
+ *      * 4、修改msg 返回的值 重构 返回的msg对象 hour调度周期 和 其他调度周期分开 显示
  **/
 //@Service
 //@Component
@@ -39,24 +45,16 @@ public class DependStateCheckExecutor implements Callable<String>{
      */
     private static final Logger logger = LoggerFactory.getLogger(DependStateCheckExecutor.class);
 
-    public static  Integer totalCount = 0;
+    private static final DependSendMail defaultMail = new DependSendMail(IntervalType.DEFAULT);
 
-    public static Integer successCount = 0;
-
-    public static  Integer faildCount = 0;
-
-    public static  Integer execCount = 0;
-
-    public static  Integer unExecCount = 0;
+    private static final DependSendMail hourMail = new DependSendMail(IntervalType.HOUR);
 
     public static HashSet<Integer> searchedIds = new HashSet<>();
 
-    public static  LinkedHashMap<Integer, Object> faildObjs = new LinkedHashMap<>();
-
-    public static  LinkedHashMap<Integer, Object> execObjs = new LinkedHashMap<>();
-
-    public static  LinkedHashMap<Integer, Object> unExecObjs = new LinkedHashMap<>();
-
+    /**
+     * 当前process的调度周期 默认default
+     */
+    private IntervalType intervalType = IntervalType.DEFAULT;
 
     /**
      * 定时器触发时间和下次触发时间
@@ -65,9 +63,9 @@ public class DependStateCheckExecutor implements Callable<String>{
     private Date previousFireTime;
     private Date nextFireTime;
 
-    private ProcessService processService = SpringApplicationContext.getBean(ProcessService.class);
+    private final ProcessService processService = SpringApplicationContext.getBean(ProcessService.class);
 
-    private ProcessDefinitionMapper processDefineMapper = SpringApplicationContext.getBean(ProcessDefinitionMapper.class);
+    private final ProcessDefinitionMapper processDefineMapper = SpringApplicationContext.getBean(ProcessDefinitionMapper.class);
 
     public DependStateCheckExecutor(Date fireTime) {
         this.fireTime = fireTime;
@@ -88,10 +86,11 @@ public class DependStateCheckExecutor implements Callable<String>{
             List<Integer> processIds = processService.queryAllProcessIdByProcessTypeAndReleaseState(ProcessType.SCHEDULER, ReleaseState.ONLINE);
 
             for (Integer processId : processIds) {
+                setIntervalType(IntervalType.DEFAULT);
                 // 递归版本
 //                queryDepends(processId, true);
                 // loop版本
-                queryDependsByLoop(processId,true);
+                queryDependsByLoop(processId,true,null);
             }
             String reportObj = buildDependReportStr();
 
@@ -106,28 +105,15 @@ public class DependStateCheckExecutor implements Callable<String>{
     }
 
     private void clearCache() {
-        totalCount = 0;
-        successCount = 0;
-        faildCount = 0;
-        execCount = 0;
-        unExecCount = 0;
         searchedIds.clear();
-        faildObjs.clear();
-        execObjs.clear();
-        unExecObjs.clear();
+        defaultMail.clear();
+        hourMail.clear();
     }
 
     private String buildDependReportStr() {
-        return new DependsOnSendingMailObj(
-                totalCount,
-                successCount,
-                faildCount,
-                execCount,
-                unExecCount,
-                faildObjs,
-                execObjs,
-                unExecObjs).toString();
-
+        String defaultMsg = new DependsOnSendingMailObj(defaultMail).toString();
+        String hourMsg = new DependsOnSendingMailObj(hourMail).toString();
+        return defaultMsg + DependsOnSendingMailObj.delimiter() + hourMsg;
     }
 
     // recursion depend version
@@ -181,33 +167,33 @@ public class DependStateCheckExecutor implements Callable<String>{
         for (DependsVo dependsVo : dependsList) {
             //不存在DefinitionId 在 遍历过的set中 则继续遍历
             if (!isExistDefinitionId(dependsVo)){
-                if (ExecutionStatus.SUCCESS == dependsVo.getState()) {
+                if (SUCCESS == dependsVo.getState()) {
                     // 成功状态需要递归 查询 上下一层依赖
 //                    System.out.println("11111111111111111111"+dependsVo.getName()+":: in recursivelyTraverseDepend");
-                    totalCount++;
-                    successCount++;
+                    defaultMail.addTotalCount(1);
+                    defaultMail.addSuccessCount(1);
                     searchedIds.add(dependsVo.getDefinitionId());
                     queryDepends(dependsVo.getDefinitionId(),true);
 
-                } else if (ExecutionStatus.FAILURE == dependsVo.getState()) {
+                } else if (FAILURE == dependsVo.getState()) {
                     // 失败状态的下游可能存在拉起的情况 此时也会失败 所以需要向下再查一层
-                    faildObjs.put(dependsVo.getDefinitionId(), dependsVo);
-                    totalCount++;
-                    faildCount++;
+                    defaultMail.addFaildObjs(dependsVo.getDefinitionId(), dependsVo);
+                    defaultMail.addTotalCount(1);
+                    defaultMail.addFaildCount(1);
                     searchedIds.add(dependsVo.getDefinitionId());
                     // 可能被其他节点拉起 下游也失败了 所以需要再查一层
                     queryDepends(dependsVo.getDefinitionId(),true);
 
                 } else if (dependsVo.getState() == null) {
-                    unExecObjs.put(dependsVo.getDefinitionId(), dependsVo);
-                    totalCount++;
-                    unExecCount++;
+                    defaultMail.addUnExecObjs(dependsVo.getDefinitionId(), dependsVo);
+                    defaultMail.addTotalCount(1);
+                    defaultMail.addUnExecCount(1);
                     searchedIds.add(dependsVo.getDefinitionId());
                     queryDepends(dependsVo.getDefinitionId(),false);
                 } else {
-                    execObjs.put(dependsVo.getDefinitionId(), dependsVo);
-                    totalCount++;
-                    execCount++;
+                    defaultMail.addExecObjs(dependsVo.getDefinitionId(), dependsVo);
+                    defaultMail.addTotalCount(1);
+                    defaultMail.addExecCount(1);
                     searchedIds.add(dependsVo.getDefinitionId());
                     queryDepends(dependsVo.getDefinitionId(),true);
                 }
@@ -216,21 +202,28 @@ public class DependStateCheckExecutor implements Callable<String>{
     }
 
     /**
+     * 实例存在 -> 查上线以来最晚的一个process -> 获取cron -> 无process 进入实例不存在分支
+     *                                              -> 有process 查询周期 -> 判断是否在这个周期内有运行过的实例 ，且为hour 标记
+     *                                                  ->运行过实例 -> 进入状态check判断
+     *                                                  ->没运行实例 -> 进入unexec分支
      * @param processId
      * @param existInstance
      */
-    private void queryDependsByLoop(Integer processId, Boolean existInstance) throws ParseException {
+    private void queryDependsByLoop(Integer processId, Boolean existInstance,IntervalType intervalType) throws ParseException {
         DependTreeViewVo dependTreeViewVo = null;
+
+        if (intervalType!=null) {setIntervalType(intervalType);}
+
         // 如果存在实例
         if (existInstance) {
 
             // 自上线以来的所有实例中的最新的一个
             ProcessInstance processInstance = processService.queryLastExecInstanceByProcessId(processId);
             String cron = getProcessService().queryCronByProcessDefinitionId(processId);
-            // 头节点默认是 存在实例的 但是如果并没有跑过 则 实例为null 重定位到 不存在实例的分支
+            // 头节点默认是 存在实例的 但是如果并没有跑过 则 实例为null 重定位到 不存在实例的if分支
             if (processInstance==null){
                 logger.info("processInstance wei null "+processId);
-                queryDependsByLoop(processId,false);
+                queryDependsByLoop(processId,false,this.intervalType);
                 return;
             }
             int interval = processInstance.getSchedulerInterval();
@@ -252,7 +245,7 @@ public class DependStateCheckExecutor implements Callable<String>{
                 } else {// start节点没有运行 || start运行过但最新的调度周期没有运行实例 直接查询definition构造depend
                     logger.info("processInstance is null because start process id not be scheduled");
                     processInstance = null;
-                    queryDependsByLoop(processId, false);
+                    queryDependsByLoop(processId, false,this.intervalType);
                 }
             } catch (RuntimeException e) {
                 logger.warn(e.getMessage());
@@ -288,42 +281,14 @@ public class DependStateCheckExecutor implements Callable<String>{
             childs.forEach(stack::push);
             while (!stack.isEmpty()){
                 DependsVo dependsVo = stack.pop();
+
                 //不存在DefinitionId 在 遍历过的set中 则继续遍历
                 if (!isExistDefinitionId(dependsVo)){
-                    if (ExecutionStatus.SUCCESS == dependsVo.getState()) {
-                        // 成功状态需要递归 查询 上下一层依赖
-//                    System.out.println("11111111111111111111"+dependsVo.getName()+":: in recursivelyTraverseDepend");
-                        totalCount++;
-                        successCount++;
-                        searchedIds.add(dependsVo.getDefinitionId());
-                        dependAddStack(dependsVo.getDefinitionId(),true,stack);
-                    } else if (ExecutionStatus.FAILURE == dependsVo.getState()) {
-                        // 失败状态的下游可能存在拉起的情况 此时也会失败 所以需要向下再查一层
-                        // 获取项目名
-                        String projectName = processDefineMapper.queryProjectNameBydefinitionId(dependsVo.getDefinitionId());
-                        faildObjs.put(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
-                        totalCount++;
-                        faildCount++;
-                        searchedIds.add(dependsVo.getDefinitionId());
-                        // 可能被其他节点拉起 下游也失败了 所以需要再查一层
-                        dependAddStack(dependsVo.getDefinitionId(),true,stack);
 
-                    } else if (dependsVo.getState() == null) {
-                        // 获取项目名
-                        String projectName = processDefineMapper.queryProjectNameBydefinitionId(dependsVo.getDefinitionId());
-                        unExecObjs.put(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
-                        totalCount++;
-                        unExecCount++;
-                        searchedIds.add(dependsVo.getDefinitionId());
-                        dependAddStack(dependsVo.getDefinitionId(),false,stack);
-                    } else {
-                        // 获取项目名
-                        String projectName = processDefineMapper.queryProjectNameBydefinitionId(dependsVo.getDefinitionId());
-                        execObjs.put(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
-                        totalCount++;
-                        execCount++;
-                        searchedIds.add(dependsVo.getDefinitionId());
-                        dependAddStack(dependsVo.getDefinitionId(),true,stack);
+                    if (this.intervalType==IntervalType.DEFAULT) {
+                        addSendMail(defaultMail,dependsVo,stack);
+                    } else if (this.intervalType==IntervalType.HOUR) {
+                        addSendMail(hourMail,dependsVo,stack);
                     }
                 }
             }
@@ -338,7 +303,6 @@ public class DependStateCheckExecutor implements Callable<String>{
         //                      9.30        10.30        10.00.20
         logger.info("scheduleTime:{},nextScheduleTime:{}",scheduleTime,nextScheduleTime);
 
-
         boolean needCheckDepend = false;
 
         switch (CycleEnum.valueOf(interval)){
@@ -347,6 +311,7 @@ public class DependStateCheckExecutor implements Callable<String>{
             case HOUR:
                 // 下一次触发的时间在当前check 时间之前 则表示 有一次cron 定时任务未触发 返回 false
                 needCheckDepend = !nextScheduleTime.before(fireTime);
+                setIntervalType(IntervalType.HOUR);
                 break;
             case DAY:
                 needCheckDepend = !nextScheduleTime.before(fireTime);
@@ -408,6 +373,10 @@ public class DependStateCheckExecutor implements Callable<String>{
         }
     }
 
+    private void setIntervalType(IntervalType intervalType) {
+        this.intervalType = intervalType;
+    }
+
     /**
      * loop depend version
      * @param processId
@@ -415,6 +384,7 @@ public class DependStateCheckExecutor implements Callable<String>{
      * @param stack
      */
     private void dependAddStack(Integer processId, Boolean existInstance,Stack<DependsVo> stack) throws ParseException {
+//        setIntervalType(IntervalType.DEFAULT);
         DependTreeViewVo dependTreeViewVo = null;
         if (existInstance) {
 
@@ -440,7 +410,7 @@ public class DependStateCheckExecutor implements Callable<String>{
                 } else {// start节点没有运行 直接查询definition构造depend
                     logger.info("processInstance is null because start process id not be scheduled");
                     processInstance = null;
-                    queryDependsByLoop(processId, false);
+                    queryDependsByLoop(processId, false,this.intervalType);
                 }
             } catch (RuntimeException e) {
                 logger.warn(e.getMessage());
@@ -510,6 +480,10 @@ public class DependStateCheckExecutor implements Callable<String>{
         return false;
     }
 
+    /**
+     * 设置初始的process的状态
+     * @param process
+     */
     private void setStartProcessState(Object process) {
 
         Integer definitionId = null;
@@ -540,26 +514,74 @@ public class DependStateCheckExecutor implements Callable<String>{
         }
 
         if (!isExist){
-            if (ExecutionStatus.SUCCESS == state) {
-//                System.out.println("11111111111111111111"+name+":: in setStartProcessState");
-                totalCount++;
-                successCount++;
-            } else if (ExecutionStatus.FAILURE == state) {
-                faildObjs.put(definitionId, dependCheckVo);
-                totalCount++;
-                faildCount++;
-            } else if (dependCheckVo.getState() == null) {
-                unExecObjs.put(definitionId, dependCheckVo);
-                totalCount++;
-                unExecCount++;
-            } else {
-                execObjs.put(definitionId, dependCheckVo);
-                totalCount++;
-                execCount++;
+            if (intervalType==IntervalType.DEFAULT) {
+                addSendMail(defaultMail, state, definitionId, dependCheckVo);
+            } else if (intervalType==IntervalType.HOUR) {
+                addSendMail(hourMail, state, definitionId, dependCheckVo);
             }
             searchedIds.add(definitionId);
         }
     }
+
+    private void addSendMail(DependSendMail sendMail,ExecutionStatus status,Integer id,Object obj){
+
+        if (SUCCESS == status) {
+            sendMail.addTotalCount(1);
+            sendMail.addSuccessCount(1);
+        } else if (FAILURE == status) {
+            sendMail.addFaildObjs(id, obj);
+            sendMail.addTotalCount(1);
+            sendMail.addFaildCount(1);
+        } else if (status == null) {
+            sendMail.addUnExecObjs(id, obj);
+            sendMail.addTotalCount(1);
+            sendMail.addUnExecCount(1);
+        } else {
+            sendMail.addExecObjs(id, obj);
+            sendMail.addTotalCount(1);
+            sendMail.addExecCount(1);
+        }
+    }
+
+    private void addSendMail(DependSendMail sendMail, DependsVo dependsVo, Stack<DependsVo> stack) throws ParseException {
+            if (SUCCESS == dependsVo.getState()) {
+                // 成功状态需要递归 查询 上下一层依赖
+//                    System.out.println("11111111111111111111"+dependsVo.getName()+":: in recursivelyTraverseDepend");
+                sendMail.addTotalCount(1);
+                sendMail.addSuccessCount(1);
+                searchedIds.add(dependsVo.getDefinitionId());
+                dependAddStack(dependsVo.getDefinitionId(),true,stack);
+            } else if (FAILURE == dependsVo.getState()) {
+                // 失败状态的下游可能存在拉起的情况 此时也会失败 所以需要向下再查一层
+                // 获取项目名
+                String projectName = processDefineMapper.queryProjectNameBydefinitionId(dependsVo.getDefinitionId());
+                sendMail.addFaildObjs(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
+                sendMail.addTotalCount(1);
+                sendMail.addFaildCount(1);
+                searchedIds.add(dependsVo.getDefinitionId());
+                // 可能被其他节点拉起 下游也失败了 所以需要再查一层
+                dependAddStack(dependsVo.getDefinitionId(),true,stack);
+
+            } else if (dependsVo.getState() == null) {
+                // 获取项目名
+                String projectName = processDefineMapper.queryProjectNameBydefinitionId(dependsVo.getDefinitionId());
+                sendMail.addUnExecObjs(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
+                sendMail.addTotalCount(1);
+                sendMail.addUnExecCount(1);
+                searchedIds.add(dependsVo.getDefinitionId());
+                dependAddStack(dependsVo.getDefinitionId(),false,stack);
+            } else {
+                // 获取项目名
+                String projectName = processDefineMapper.queryProjectNameBydefinitionId(dependsVo.getDefinitionId());
+                sendMail.addExecObjs(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
+                sendMail.addTotalCount(1);
+                sendMail.addExecCount(1);
+                searchedIds.add(dependsVo.getDefinitionId());
+                dependAddStack(dependsVo.getDefinitionId(),true,stack);
+            }
+
+    }
+
 
     private DependTreeViewVo newDependTreeView(ProcessInstance processInstance, DependentViewRelation dependentViewRelation) {
         return new DependTreeViewVo(
