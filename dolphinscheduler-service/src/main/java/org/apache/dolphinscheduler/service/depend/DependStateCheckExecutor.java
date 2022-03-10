@@ -63,6 +63,16 @@ public class DependStateCheckExecutor implements Callable<String>{
     private Date previousFireTime;
     private Date nextFireTime;
 
+    /**
+     * 每个schedule process 的cron
+     */
+    private String cron;
+
+    /**
+     * 子节点如果有设置定时的话
+     */
+    private String subCron = null;
+
     private final ProcessService processService = SpringApplicationContext.getBean(ProcessService.class);
 
     private final ProcessDefinitionMapper processDefineMapper = SpringApplicationContext.getBean(ProcessDefinitionMapper.class);
@@ -90,6 +100,7 @@ public class DependStateCheckExecutor implements Callable<String>{
                 // 递归版本
 //                queryDepends(processId, true);
                 // loop版本
+                cron = getProcessService().queryCronByProcessDefinitionId(processId);
                 queryDependsByLoop(processId,true,null);
             }
             String reportObj = buildDependReportStr();
@@ -219,7 +230,8 @@ public class DependStateCheckExecutor implements Callable<String>{
 
             // 自上线以来的所有实例中的最新的一个
             ProcessInstance processInstance = processService.queryLastExecInstanceByProcessId(processId);
-            String cron = getProcessService().queryCronByProcessDefinitionId(processId);
+
+            String crontab = getProcessCrontab(cron,processId);
             // 头节点默认是 存在实例的 但是如果并没有跑过 则 实例为null 重定位到 不存在实例的if分支
             if (processInstance==null){
                 logger.info("processInstance wei null "+processId);
@@ -230,7 +242,7 @@ public class DependStateCheckExecutor implements Callable<String>{
             Date scheduleTime = processInstance.getScheduleTime();
 
             try {
-                boolean needRunCheckDepend = needCheckDepend(interval,scheduleTime,cron);
+                boolean needRunCheckDepend = needCheckDepend(interval,scheduleTime,crontab);
 
                 // (start process 非null) && 最新的调度周期有运行实例 过滤
                 if (processInstance!=null && needRunCheckDepend){
@@ -295,10 +307,19 @@ public class DependStateCheckExecutor implements Callable<String>{
         }
     }
 
-    private boolean needCheckDepend(int interval, Date scheduleTime, String cron) throws ParseException {
+    private String getProcessCrontab(String cron, Integer processId) {
+//        subCron = getProcessService().queryCronByProcessDefinitionId(processId);
+//        if (cron.equals(subCron)){
+//            return cron;
+//        }
+//        return subCron;
+        return cron;
+    }
+
+    private boolean needCheckDepend(int interval, Date scheduleTime, String crontab) throws ParseException {
 
         // 调度时间的下一次的cron 表达式生成的调度时间
-        Date nextScheduleTime = CronUtils.nextExecDate(cron,scheduleTime);
+        Date nextScheduleTime = CronUtils.nextExecDate(crontab,scheduleTime);
         // 获取调度时间的间隔 last 10.00 next 13.00 触发时间 10.00.20 check 10.00-9.30 之间触发过 需要check 没有 则不需
         //                      9.30        10.30        10.00.20
         logger.info("scheduleTime:{},nextScheduleTime:{}",scheduleTime,nextScheduleTime);
@@ -382,6 +403,7 @@ public class DependStateCheckExecutor implements Callable<String>{
      * @param processId
      * @param existInstance
      * @param stack
+     * 上游节点10 点触发  下游2点触发  判断定时的时候 10点触发的subcron 10点 此时查出其所有的 下游定时任务
      */
     private void dependAddStack(Integer processId, Boolean existInstance,Stack<DependsVo> stack) throws ParseException {
 //        setIntervalType(IntervalType.DEFAULT);
@@ -390,12 +412,13 @@ public class DependStateCheckExecutor implements Callable<String>{
 
             // 自上线以来的所有实例中的最新的一个
             ProcessInstance processInstance = processService.queryLastExecInstanceByProcessId(processId);
-            String cron = getProcessService().queryCronByProcessDefinitionId(processId);
+
+            String crontab = getProcessCrontab(cron,processId);
             int interval = processInstance.getSchedulerInterval();
             Date scheduleTime = processInstance.getScheduleTime();
 
             try {
-                boolean needRunCheckDepend = needCheckDepend(interval,scheduleTime,cron);
+                boolean needRunCheckDepend = needCheckDepend(interval,scheduleTime,crontab);
 
                 // start process 非null 过滤
                 if (processInstance!=null && needRunCheckDepend){
