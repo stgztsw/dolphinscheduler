@@ -87,21 +87,18 @@ public class ExecutorDispatcher implements InitializingBean {
 
         TaskType taskType = TaskType.valueOf(context.getTaskType());
         //节点负载信息有延迟，最高可达到25秒，务必须获得最新的节点负载信息，否则有可能能导致内存使用过载
-        //work通过心跳测试同步节点负载，所以睡眠1秒以拿到最新的节点负载信息
-        if (TaskType.DATAX == taskType) {
-            //datax耗内存，所以需要睡眠1秒以确保最新的负载信息刷新到zk中
-            Thread.sleep(Constants.SLEEP_TIME_MILLIS);
-        } else if (TaskType.SQL == taskType) {
+        if (TaskType.SQL == taskType) {
+            //sql使用的是被限制的jvm的内存，可以不用处理
             //do nothing
         } else {
-            Thread.sleep(500);
+            //work设置每秒通过心跳测试同步节点负载，所以睡眠1秒以拿到最新的节点负载信息
+            Thread.sleep(Constants.SLEEP_TIME_MILLIS);
+            Runnable workerNodeInfoAndGroupDbSyncTask = serverNodeManager.getWorkerNodeInfoAndGroupDbSyncTask();
+            Runnable refreshResourceTask = ((LowerWeightHostManager)hostManager).getRefreshResourceTask();
+            //这边直接执行run方法而不是启动新线程的目的是通过对象调用成员方法达到阻塞同步最新的节点负载信息
+            workerNodeInfoAndGroupDbSyncTask.run();
+            refreshResourceTask.run();
         }
-        //其他类型的任务不等待时间，如果还是出现负载高的话，可以调整等待一定的时间
-        Runnable workerNodeInfoAndGroupDbSyncTask = serverNodeManager.getWorkerNodeInfoAndGroupDbSyncTask();
-        Runnable refreshResourceTask = ((LowerWeightHostManager)hostManager).getRefreshResourceTask();
-        //这边直接执行run方法而不是启动新线程的目的是通过对象调用成员方法达到阻塞同步最新的节点负载信息
-        workerNodeInfoAndGroupDbSyncTask.run();
-        refreshResourceTask.run();
 
         /**
          * host select
