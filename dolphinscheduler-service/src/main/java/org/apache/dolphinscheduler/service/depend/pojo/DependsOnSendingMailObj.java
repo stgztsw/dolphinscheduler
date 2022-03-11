@@ -28,6 +28,7 @@ public class DependsOnSendingMailObj {
 
     private  LinkedHashMap<Integer, Object> unExecObjs;
 
+    public static final String TEXT_Finally_BEGIN = ",[TEXT:";
     public static final String TEXT_BEGIN = "[TEXT:";
     public static final String MID_END = "],";
     public static final String TABLE_BEGIN = "[TABLE:";
@@ -43,6 +44,17 @@ public class DependsOnSendingMailObj {
         this.faildObjs = faildObjs;
         this.execObjs = execObjs;
         this.unExecObjs = unExecObjs;
+    }
+
+    public DependsOnSendingMailObj(DependSendMail dependSendMail) {
+        this.totalCount = dependSendMail.getTotalCount();
+        this.successCount = dependSendMail.getSuccessCount();
+        this.faildCount = dependSendMail.getFaildCount();
+        this.execCount = dependSendMail.getExecCount();
+        this.unExecCount = dependSendMail.getUnExecCount();
+        this.faildObjs = dependSendMail.getFaildObjs();
+        this.execObjs = dependSendMail.getExecObjs();
+        this.unExecObjs = dependSendMail.getUnExecObjs();
     }
 
     public String getTotalCount() {
@@ -102,5 +114,10 @@ public class DependsOnSendingMailObj {
                 .append(TABLE_BEGIN).append(JSONObject.toJSONString(getUnExecObjs())).append(Finally_END);
 
         return bf.toString();
+    }
+
+    public static String delimiter(){
+        StringBuffer bf = new StringBuffer();
+        return bf.append(TEXT_Finally_BEGIN).append("").append(MID_END).toString();
     }
 }

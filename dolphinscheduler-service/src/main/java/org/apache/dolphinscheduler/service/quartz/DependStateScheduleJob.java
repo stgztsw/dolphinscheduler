@@ -77,10 +77,12 @@ public class DependStateScheduleJob implements Job {
 
         Date previousFireTime = context.getPreviousFireTime();
 
-        logger.info("scheduled fire time :{}, fire time:{}, previousFire time:{}, finalFire time:{}, process id :{}",
-                scheduledFireTime,fireTime,previousFireTime,finalFireTime,scheduleId);
+        Date nextFireTime = context.getNextFireTime();
 
-        FutureTask<String> future = threadRunner(DependStateCheckExecutor.class.getName(),fireTime,previousFireTime);
+        logger.info("scheduled fire time :{}, fire time:{}, previousFire time:{}, nextFire time:{}, finalFire time:{}, process id :{}",
+                scheduledFireTime,fireTime,previousFireTime,nextFireTime,finalFireTime,scheduleId);
+
+        FutureTask<String> future = threadRunner(DependStateCheckExecutor.class.getName(),fireTime);
         try {
             String resultReport = future.get(28L, TimeUnit.MINUTES);
             //send email
@@ -106,14 +108,13 @@ public class DependStateScheduleJob implements Job {
      * create thread and runner
      * @param className
      * @param fireTime
-     * @param nextFireTime
      * @return
      */
-    private FutureTask<String> threadRunner(String className, Date fireTime, Date previousFireTime) {
+    private FutureTask<String> threadRunner(String className, Date fireTime) {
         FutureTask<String> futureTask = null;
         if (DependStateCheckExecutor.class.getName().equals(className)) {
             // new thread
-            futureTask = new FutureTask<String>(new DependStateCheckExecutor(fireTime,previousFireTime));
+            futureTask = new FutureTask<String>(new DependStateCheckExecutor(fireTime));
             new Thread(futureTask).start();
         }
         return futureTask;

@@ -132,6 +132,7 @@
         return `<em class="${o.icoUnicode} ${o.isSpin ? 'as as-spin' : ''}" style="color:${o.color}" data-toggle="tooltip" data-container="body" title="${o.desc}"></em>`
       },
       _refreshLog (item) {
+        console.log("进入到_refreshLog")
         let self = this
         let instance = this.$modal.dialog({
           closable: false,

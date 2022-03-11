@@ -40,6 +40,13 @@ public interface ScheduleMapper extends BaseMapper<Schedule> {
                                                  @Param("searchVal") String searchVal);
 
     /**
+     * 根据ProcessDefinitionId查询crontab表达式
+     * @param processDefinitionId
+     * @return
+     */
+    String queryCronByProcessDefinitionId(@Param("processDefinitionId") int processDefinitionId);
+
+    /**
      * query schedule list by project name
      * @param projectName projectName
      * @return schedule list

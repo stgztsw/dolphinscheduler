@@ -26,8 +26,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -523,6 +525,18 @@ public class DateUtils {
     static final long C6 = C5 * 24L;
 
     /**
+     * 获取两个定时日期之间的间隔
+     * @param cronTimes
+     * @return
+     */
+    public static Long getCronInterval(List<Date> cronTimes) {
+        if (cronTimes.size()!=2){
+            throw new RuntimeException("getCronInterval list more than 2 size");
+        }
+        return DateUtils.diffMin(cronTimes.get(0),cronTimes.get(1));
+    }
+
+    /**
      * Time unit representing one thousandth of a second
      */
     public static class MILLISECONDS {
@@ -556,5 +570,4 @@ public class DateUtils {
         }
 
     }
-
 }

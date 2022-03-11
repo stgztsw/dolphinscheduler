@@ -145,7 +145,7 @@ public class DependentUtils {
         }
         return result;
     }
-
+    // todo 需要禁止 用户使用一周以内的 或 多周的 多天调度周期 【只允许一小时 天 周 月】
     public static List<DateInterval> getDateIntervalListForDependent(Date businessDate, int interval) {
         switch (interval) {
             case 1 :

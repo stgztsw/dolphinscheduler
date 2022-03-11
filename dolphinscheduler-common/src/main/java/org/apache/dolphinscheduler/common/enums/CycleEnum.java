@@ -23,6 +23,24 @@ public enum CycleEnum {
     /**
      * 0 minute; 1 hour; 2 day; 3 week; 4 month; 5 year;
      */
-    MINUTE, HOUR, DAY, WEEK, MONTH, YEAR
+    MINUTE, HOUR, DAY, WEEK, MONTH, YEAR;
 
+    public static CycleEnum valueOf(int value) {
+        switch (value) {
+            case 0:
+                return MINUTE;
+            case 1:
+                return HOUR;
+            case 2:
+                return DAY;
+            case 3:
+                return WEEK;
+            case 4:
+                return MONTH;
+            case 5:
+                return YEAR;
+            default:
+                throw new RuntimeException("enum type error of value");
+        }
+    }
 }

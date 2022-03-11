@@ -163,8 +163,9 @@ public class DefaultHTMLTemplate implements AlertTemplate {
                 String key = map.keySet().iterator().next();
                 if ("text".equals(key)){
                     contents.append(Constants.H4).append(map.get(key)).append(Constants.H4_END);
-//                    contents.append(Constants.BR);
-                }else if ("table".equals(key)){
+                } else if ("deliiter".equals(key)){
+                    contents.append(Constants.H3).append(map.get(key)).append(Constants.H3_END);
+                } else if ("table".equals(key)){
 
                     LinkedHashMap<Integer, JSONObject> tableMap = (LinkedHashMap) map.get(key);
                     if (tableMap==null){
@@ -178,12 +179,9 @@ public class DefaultHTMLTemplate implements AlertTemplate {
                         StringBuilder t = new StringBuilder(Constants.TABLE);
                         StringBuilder cs = new StringBuilder();
 
-                        // 标题
-//                        t.append(Constants.CAPTION).append("告警工作流详情").append(Constants.CAPTION_END);
-
                         // 表头
                         t.append(Constants.TR);
-//                        t.append(Constants.TH).append("projectName").append(Constants.TH_END);
+                        t.append(Constants.TH).append("projectName").append(Constants.TH_END);
                         t.append(Constants.TH).append("processId").append(Constants.TH_END);
                         t.append(Constants.TH).append("definitionId").append(Constants.TH_END);
                         t.append(Constants.TH).append("name").append(Constants.TH_END);
@@ -191,7 +189,6 @@ public class DefaultHTMLTemplate implements AlertTemplate {
                         t.append(Constants.TH).append("link").append(Constants.TH_END);
                         t.append(Constants.TR_END);
                         title = t.toString();
-//                        contents.append(StringUtils.isEmpty(title) ? "" : String.format("<thead>%s</thead>\n", title));
                         contents.append(title);
 
                         while (iterator.hasNext()) {
@@ -202,7 +199,7 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
                             // rows data
                             cs.append(Constants.TR);
-//                            cs.append(Constants.TD).append(jo.get("projectName")).append(Constants.TD_END);
+                            cs.append(Constants.TD).append(jo.get("projectName")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("processId")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("definitionId")).append(Constants.TD_END);
                             cs.append(Constants.TD).append(jo.get("name")).append(Constants.TD_END);
@@ -244,8 +241,16 @@ public class DefaultHTMLTemplate implements AlertTemplate {
         // 截取text的文本内容或table的表格内容
         String obj = content.substring(startIdx, endIdx);
 
+
+
         if (content.startsWith("[TEXT:")) { // 文本
-            map.put("text",obj);
+            System.out.println(content+ "\n");
+            // 表示是默认的和小时的分割位
+            if ("".equals(obj)){
+                map.put("deliiter", "小时周期实例:");
+            } else {
+                map.put("text", obj);
+            }
             msgTableMapList.add(map);
             if (content.length()==endIdx+1){
                 return "";
