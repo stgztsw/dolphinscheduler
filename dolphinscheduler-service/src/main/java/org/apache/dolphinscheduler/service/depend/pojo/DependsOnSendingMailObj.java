@@ -1,6 +1,8 @@
 package org.apache.dolphinscheduler.service.depend.pojo;
 
 import com.alibaba.fastjson.JSONObject;
+import org.apache.dolphinscheduler.service.depend.email.utils.Constants;
+import org.apache.dolphinscheduler.service.depend.enums.IntervalType;
 
 import java.util.LinkedHashMap;
 
@@ -12,6 +14,8 @@ import java.util.LinkedHashMap;
  **/
 
 public class DependsOnSendingMailObj {
+    private IntervalType intervalType;
+
     private   Integer totalCount = 0;
 
     private Integer successCount = 0;
@@ -46,15 +50,18 @@ public class DependsOnSendingMailObj {
         this.unExecObjs = unExecObjs;
     }
 
-    public DependsOnSendingMailObj(DependSendMail dependSendMail) {
+    public DependsOnSendingMailObj(DependSendMailBase dependSendMail) {
+        this.intervalType = dependSendMail.getIntervalType();
         this.totalCount = dependSendMail.getTotalCount();
         this.successCount = dependSendMail.getSuccessCount();
         this.faildCount = dependSendMail.getFaildCount();
         this.execCount = dependSendMail.getExecCount();
         this.unExecCount = dependSendMail.getUnExecCount();
-        this.faildObjs = dependSendMail.getFaildObjs();
-        this.execObjs = dependSendMail.getExecObjs();
-        this.unExecObjs = dependSendMail.getUnExecObjs();
+        if (dependSendMail instanceof DependSendMail) {
+            this.faildObjs = ((DependSendMail) dependSendMail).getFaildObjs();
+            this.execObjs = ((DependSendMail) dependSendMail).getExecObjs();
+            this.unExecObjs = ((DependSendMail) dependSendMail).getUnExecObjs();
+        }
     }
 
     public String getTotalCount() {
@@ -97,27 +104,58 @@ public class DependsOnSendingMailObj {
     public String toString() {
 
         StringBuffer bf = new StringBuffer();
+        if (IntervalType.DEFAULT==this.intervalType){
+            bf.append(delimiterDefault());
+        }
         bf
                 .append(TEXT_BEGIN).append(getTotalCount()).append(MID_END)
-                .append(TEXT_BEGIN).append(getSuccessCount()).append(MID_END)
+                .append(TEXT_BEGIN).append(getSuccessCount()).append(MID_END);
 
-                .append(TEXT_BEGIN).append(getFaildCount()).append(MID_END)
-                .append(TEXT_BEGIN).append("失败详情：").append(MID_END)
-                .append(TABLE_BEGIN).append(JSONObject.toJSONString(getFaildObjs())).append(MID_END)
+                bf.append(TEXT_BEGIN).append(getFaildCount()).append(MID_END);
+                if (getFaildObjs()!=null && getFaildObjs().size()!=0) {
+                    bf.append(TEXT_BEGIN).append("失败详情：").append(MID_END)
+                    .append(TABLE_BEGIN).append(JSONObject.toJSONString(getFaildObjs())).append(MID_END);
+                }
 
-                .append(TEXT_BEGIN).append(getExecCount()).append(MID_END)
-                .append(TEXT_BEGIN).append("运行中详情").append(MID_END)
-                .append(TABLE_BEGIN).append(JSONObject.toJSONString(getExecObjs())).append(MID_END)
+                bf.append(TEXT_BEGIN).append(getExecCount()).append(MID_END);
+                if (getExecObjs()!=null && getExecObjs().size()!=0) {
+                    bf.append(TEXT_BEGIN).append("运行中详情").append(MID_END)
+                    .append(TABLE_BEGIN).append(JSONObject.toJSONString(getExecObjs())).append(MID_END);
+                }
 
-                .append(TEXT_BEGIN).append(getUnExecCount()).append(MID_END)
-                .append(TEXT_BEGIN).append("待运行详情").append(MID_END)
-                .append(TABLE_BEGIN).append(JSONObject.toJSONString(getUnExecObjs())).append(Finally_END);
-
+                bf.append(TEXT_BEGIN).append(getUnExecCount());
+                if (getUnExecObjs()!=null && getUnExecObjs().size()!=0) {
+                    bf.append(MID_END).append(TEXT_BEGIN).append("待运行详情").append(MID_END)
+                    .append(TABLE_BEGIN).append(JSONObject.toJSONString(getUnExecObjs())).append(Finally_END);
+                } else {
+                    bf.append(Finally_END);
+                }
+        System.out.println(bf);
         return bf.toString();
     }
 
-    public static String delimiter(){
+    public static String delimiterHour(){
         StringBuffer bf = new StringBuffer();
-        return bf.append(TEXT_Finally_BEGIN).append("").append(MID_END).toString();
+        return bf.append(TEXT_Finally_BEGIN).append(Constants.DELIMITER_HOUR).append(MID_END).toString();
+    }
+
+    public static String delimiterDay(){
+        StringBuffer bf = new StringBuffer();
+        return bf.append(TEXT_Finally_BEGIN).append(Constants.DELIMITER_DAY).append(MID_END).toString();
+    }
+
+    public static String delimiterWeek(){
+        StringBuffer bf = new StringBuffer();
+        return bf.append(TEXT_Finally_BEGIN).append(Constants.DELIMITER_WEEK).append(MID_END).toString();
+    }
+
+    public static String delimiterMonth(){
+        StringBuffer bf = new StringBuffer();
+        return bf.append(TEXT_Finally_BEGIN).append(Constants.DELIMITER_MONTH).append(MID_END).toString();
+    }
+
+    public String delimiterDefault(){
+        StringBuffer bf = new StringBuffer();
+        return bf.append(TEXT_BEGIN).append(Constants.DELIMITER_DEFAULT).append(MID_END).toString();
     }
 }

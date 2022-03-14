@@ -11,6 +11,7 @@ import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
 import org.apache.dolphinscheduler.service.depend.enums.IntervalType;
 import org.apache.dolphinscheduler.service.depend.pojo.DependSendMail;
+import org.apache.dolphinscheduler.service.depend.pojo.DependSendMailBase;
 import org.apache.dolphinscheduler.service.depend.pojo.DependsOnSendingMailObj;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.quartz.cron.CronUtils;
@@ -45,9 +46,15 @@ public class DependStateCheckExecutor implements Callable<String>{
      */
     private static final Logger logger = LoggerFactory.getLogger(DependStateCheckExecutor.class);
 
-    private static final DependSendMail defaultMail = new DependSendMail(IntervalType.DEFAULT);
+    private static final DependSendMailBase defaultMail = new DependSendMailBase(IntervalType.DEFAULT);
 
     private static final DependSendMail hourMail = new DependSendMail(IntervalType.HOUR);
+
+    private static final DependSendMail dayMail = new DependSendMail(IntervalType.DAY);
+
+    private static final DependSendMail weekMail = new DependSendMail(IntervalType.WEEK);
+
+    private static final DependSendMail monthMail = new DependSendMail(IntervalType.MONTH);
 
     public static HashSet<Integer> searchedIds = new HashSet<>();
 
@@ -119,12 +126,36 @@ public class DependStateCheckExecutor implements Callable<String>{
         searchedIds.clear();
         defaultMail.clear();
         hourMail.clear();
+        dayMail.clear();
+        weekMail.clear();
+        monthMail.clear();
     }
 
     private String buildDependReportStr() {
         String defaultMsg = new DependsOnSendingMailObj(defaultMail).toString();
-        String hourMsg = new DependsOnSendingMailObj(hourMail).toString();
-        return defaultMsg + DependsOnSendingMailObj.delimiter() + hourMsg;
+        StringBuffer bf = new StringBuffer().append(defaultMsg);
+
+        if (hourMail.getTotalCount()!=0){
+            String hourMsg = new DependsOnSendingMailObj(hourMail).toString();
+            bf.append(DependsOnSendingMailObj.delimiterHour()).append(hourMsg);
+        }
+
+        if (dayMail.getTotalCount()!=0){
+            String dayMsg = new DependsOnSendingMailObj(dayMail).toString();
+            bf.append(DependsOnSendingMailObj.delimiterDay()).append(dayMsg);
+        }
+
+        if (weekMail.getTotalCount()!=0){
+            String weekMsg = new DependsOnSendingMailObj(weekMail).toString();
+            bf.append(DependsOnSendingMailObj.delimiterWeek()).append(weekMsg);
+        }
+
+        if (monthMail.getTotalCount()!=0){
+            String monthMsg = new DependsOnSendingMailObj(monthMail).toString();
+            bf.append(DependsOnSendingMailObj.delimiterMonth()).append(monthMsg);
+        }
+        System.out.println(bf);
+        return bf.toString();
     }
 
     // recursion depend version
@@ -188,7 +219,7 @@ public class DependStateCheckExecutor implements Callable<String>{
 
                 } else if (FAILURE == dependsVo.getState()) {
                     // 失败状态的下游可能存在拉起的情况 此时也会失败 所以需要向下再查一层
-                    defaultMail.addFaildObjs(dependsVo.getDefinitionId(), dependsVo);
+//                    defaultMail.addFaildObjs(dependsVo.getDefinitionId(), dependsVo);
                     defaultMail.addTotalCount(1);
                     defaultMail.addFaildCount(1);
                     searchedIds.add(dependsVo.getDefinitionId());
@@ -196,13 +227,13 @@ public class DependStateCheckExecutor implements Callable<String>{
                     queryDepends(dependsVo.getDefinitionId(),true);
 
                 } else if (dependsVo.getState() == null) {
-                    defaultMail.addUnExecObjs(dependsVo.getDefinitionId(), dependsVo);
+//                    defaultMail.addUnExecObjs(dependsVo.getDefinitionId(), dependsVo);
                     defaultMail.addTotalCount(1);
                     defaultMail.addUnExecCount(1);
                     searchedIds.add(dependsVo.getDefinitionId());
                     queryDepends(dependsVo.getDefinitionId(),false);
                 } else {
-                    defaultMail.addExecObjs(dependsVo.getDefinitionId(), dependsVo);
+//                    defaultMail.addExecObjs(dependsVo.getDefinitionId(), dependsVo);
                     defaultMail.addTotalCount(1);
                     defaultMail.addExecCount(1);
                     searchedIds.add(dependsVo.getDefinitionId());
@@ -297,10 +328,14 @@ public class DependStateCheckExecutor implements Callable<String>{
                 //不存在DefinitionId 在 遍历过的set中 则继续遍历
                 if (!isExistDefinitionId(dependsVo)){
 
-                    if (this.intervalType==IntervalType.DEFAULT) {
-                        addSendMail(defaultMail,dependsVo,stack);
+                    if (this.intervalType==IntervalType.DAY) {
+                        addSendMail(dayMail,dependsVo,stack);
                     } else if (this.intervalType==IntervalType.HOUR) {
                         addSendMail(hourMail,dependsVo,stack);
+                    } else if (this.intervalType==IntervalType.WEEK) {
+                        addSendMail(weekMail,dependsVo,stack);
+                    } else if (this.intervalType==IntervalType.MONTH) {
+                        addSendMail(weekMail,dependsVo,stack);
                     }
                 }
             }
@@ -336,12 +371,15 @@ public class DependStateCheckExecutor implements Callable<String>{
                 break;
             case DAY:
                 needCheckDepend = !nextScheduleTime.before(fireTime);
+                setIntervalType(IntervalType.DAY);
                 break;
             case WEEK:
                 needCheckDepend = !nextScheduleTime.before(fireTime);
+                setIntervalType(IntervalType.WEEK);
                 break;
             case MONTH:
                 needCheckDepend = !nextScheduleTime.before(fireTime);
+                setIntervalType(IntervalType.MONTH);
                 break;
             case YEAR:
                 throw new RuntimeException("don't support year depend check interval");
@@ -537,32 +575,48 @@ public class DependStateCheckExecutor implements Callable<String>{
         }
 
         if (!isExist){
-            if (intervalType==IntervalType.DEFAULT) {
-                addSendMail(defaultMail, state, definitionId, dependCheckVo);
-            } else if (intervalType==IntervalType.HOUR) {
+            if (this.intervalType==IntervalType.DAY) {
+                addSendMail(dayMail, state, definitionId, dependCheckVo);
+            } else if (this.intervalType==IntervalType.HOUR) {
                 addSendMail(hourMail, state, definitionId, dependCheckVo);
+            } else if (this.intervalType==IntervalType.WEEK) {
+                addSendMail(weekMail, state, definitionId, dependCheckVo);
+            } else if (this.intervalType==IntervalType.MONTH) {
+                addSendMail(monthMail, state, definitionId, dependCheckVo);
             }
             searchedIds.add(definitionId);
         }
     }
 
-    private void addSendMail(DependSendMail sendMail,ExecutionStatus status,Integer id,Object obj){
+    private void addSendMail(DependSendMail sendMail,ExecutionStatus status,Integer id,DependCheckVo dependCheckVo){
 
         if (SUCCESS == status) {
             sendMail.addTotalCount(1);
             sendMail.addSuccessCount(1);
+            defaultMail.addTotalCount(1);
+            defaultMail.addSuccessCount(1);
+            searchedIds.add(dependCheckVo.getDefinitionId());
         } else if (FAILURE == status) {
-            sendMail.addFaildObjs(id, obj);
+            sendMail.addFaildObjs(id, dependCheckVo);
             sendMail.addTotalCount(1);
             sendMail.addFaildCount(1);
+            defaultMail.addTotalCount(1);
+            defaultMail.addFaildCount(1);
+            searchedIds.add(dependCheckVo.getDefinitionId());
         } else if (status == null) {
-            sendMail.addUnExecObjs(id, obj);
+            sendMail.addUnExecObjs(id, dependCheckVo);
             sendMail.addTotalCount(1);
             sendMail.addUnExecCount(1);
+            defaultMail.addTotalCount(1);
+            defaultMail.addUnExecCount(1);
+            searchedIds.add(dependCheckVo.getDefinitionId());
         } else {
-            sendMail.addExecObjs(id, obj);
+            sendMail.addExecObjs(id, dependCheckVo);
             sendMail.addTotalCount(1);
             sendMail.addExecCount(1);
+            defaultMail.addTotalCount(1);
+            defaultMail.addExecCount(1);
+            searchedIds.add(dependCheckVo.getDefinitionId());
         }
     }
 
@@ -572,6 +626,8 @@ public class DependStateCheckExecutor implements Callable<String>{
 //                    System.out.println("11111111111111111111"+dependsVo.getName()+":: in recursivelyTraverseDepend");
                 sendMail.addTotalCount(1);
                 sendMail.addSuccessCount(1);
+                defaultMail.addTotalCount(1);
+                defaultMail.addSuccessCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
                 dependAddStack(dependsVo.getDefinitionId(),true,stack);
             } else if (FAILURE == dependsVo.getState()) {
@@ -581,6 +637,8 @@ public class DependStateCheckExecutor implements Callable<String>{
                 sendMail.addFaildObjs(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
                 sendMail.addTotalCount(1);
                 sendMail.addFaildCount(1);
+                defaultMail.addTotalCount(1);
+                defaultMail.addFaildCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
                 // 可能被其他节点拉起 下游也失败了 所以需要再查一层
                 dependAddStack(dependsVo.getDefinitionId(),true,stack);
@@ -591,6 +649,8 @@ public class DependStateCheckExecutor implements Callable<String>{
                 sendMail.addUnExecObjs(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
                 sendMail.addTotalCount(1);
                 sendMail.addUnExecCount(1);
+                defaultMail.addTotalCount(1);
+                defaultMail.addUnExecCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
                 dependAddStack(dependsVo.getDefinitionId(),false,stack);
             } else {
@@ -599,6 +659,8 @@ public class DependStateCheckExecutor implements Callable<String>{
                 sendMail.addExecObjs(dependsVo.getDefinitionId(), new DependCheckVo(dependsVo,projectName));
                 sendMail.addTotalCount(1);
                 sendMail.addExecCount(1);
+                defaultMail.addTotalCount(1);
+                defaultMail.addExecCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
                 dependAddStack(dependsVo.getDefinitionId(),true,stack);
             }

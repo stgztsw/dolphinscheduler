@@ -156,7 +156,7 @@ public class MasterSchedulerService extends Thread {
                     if (command != null) {
                         logger.info("find one command: id: {}, type: {}", command.getId(),command.getCommandType());
 
-                        try{// update desc 异步消息处理
+                        try{// update desc 处理继承 command 到 processInstance
                             ProcessInstance processInstance = processService.handleCommand(logger,
                                     getLocalAddress(),
                                     this.masterConfig.getMasterExecThreads() - activeCount, command);
@@ -210,10 +210,16 @@ public class MasterSchedulerService extends Thread {
 
         private long lastCheckTime = System.currentTimeMillis();
 
+        /**
+         * 调度的consumer
+         */
         private final TriConsumer<Command, ProcessInstance, ProcessInstance> SchedulerConsumer = (command, processInstance, parentProcessInstance)-> {
             setCommandType(command, parentProcessInstance.getDependentSchedulerType());
         };
 
+        /**
+         * 恢复失败的consumer
+         */
         private final TriConsumer<Command, ProcessInstance, ProcessInstance> recoveryFailureConsumer = (command, processInstance, parentProcessInstance) -> {
             command.setCommandType(CommandType.RECOVER_SINGLE_FAILURE_PROCESS_IN_SCHEDULER);
             Map<String, String> cmdParam = this.convert2Map(command.getCommandParam());
@@ -221,6 +227,9 @@ public class MasterSchedulerService extends Thread {
             command.setCommandParam(map2String(cmdParam));
         };
 
+        /**
+         * 重跑的consumer
+         */
         private final TriConsumer<Command, ProcessInstance, ProcessInstance> reRunConsumer = (command, processInstance, parentProcessInstance) -> {
             command.setCommandType(CommandType.REPEAT_RUNNING_SCHEDULER);
             Map<String, String> cmdParam = this.convert2Map(command.getCommandParam());
@@ -231,6 +240,9 @@ public class MasterSchedulerService extends Thread {
             command.setCommandParam(map2String(cmdParam));
         };
 
+        /**
+         * 手动调度的consumer
+         */
         private final TriConsumer<Command, ProcessInstance, ProcessInstance> informalConsumer = (command, processInstance, parentProcessInstance) -> {
             setCommandType(command, parentProcessInstance.getDependentSchedulerType());
             Map<String, String> cmdParam = this.convert2Map(command.getCommandParam());

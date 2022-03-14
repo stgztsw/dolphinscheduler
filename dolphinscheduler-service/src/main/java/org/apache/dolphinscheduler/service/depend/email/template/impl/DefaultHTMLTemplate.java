@@ -141,7 +141,6 @@ public class DefaultHTMLTemplate implements AlertTemplate {
     private String getMsgTableTypeMessage(String content,boolean showAll){
 
         if (StringUtils.isNotEmpty(content)) {
-            System.out.println(content);
             List<Map<String, Object>> list;
             try {
                 // 拆分出 text 和 table 存到 List属性msgTableMapList中
@@ -244,10 +243,10 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
 
         if (content.startsWith("[TEXT:")) { // 文本
-            System.out.println(content+ "\n");
+//            System.out.println(content+ "\n");
             // 表示是默认的和小时的分割位
-            if ("".equals(obj)){
-                map.put("deliiter", "小时周期实例:");
+            if (Constants.DELIMITER_DEFAULT.equals(obj) || Constants.DELIMITER_HOUR.equals(obj) || Constants.DELIMITER_DAY.equals(obj) || Constants.DELIMITER_WEEK.equals(obj) || Constants.DELIMITER_MONTH.equals(obj)){
+                map.put("deliiter", obj);
             } else {
                 map.put("text", obj);
             }
@@ -268,6 +267,10 @@ public class DefaultHTMLTemplate implements AlertTemplate {
 
             msgTableMapList.add(map);
             if (length==endIdx+1){
+                return "";
+            }
+            String s = content.substring(endIdx + endStr.length(), length);
+            if ("".equals(s)){
                 return "";
             }
             return pushElementInHtmlMap(content.substring(endIdx + endStr.length(), length));

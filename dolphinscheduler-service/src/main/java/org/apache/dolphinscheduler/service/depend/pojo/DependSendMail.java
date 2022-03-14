@@ -5,19 +5,7 @@ import org.apache.dolphinscheduler.service.depend.enums.IntervalType;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
-public class DependSendMail {
-
-    private IntervalType intervalType;
-
-    private  Integer totalCount = 0;
-
-    private  Integer successCount = 0;
-
-    private   Integer faildCount = 0;
-
-    private   Integer execCount = 0;
-
-    private   Integer unExecCount = 0;
+public class DependSendMail extends DependSendMailBase{
 
     private   LinkedHashMap<Integer, Object> faildObjs = new LinkedHashMap<>();
 
@@ -32,6 +20,8 @@ public class DependSendMail {
     public DependSendMail() {
     }
 
+
+    @Override
     public void clear() {
         this.totalCount = 0;
         this.successCount = 0;
@@ -41,54 +31,6 @@ public class DependSendMail {
         this.faildObjs.clear();
         this.execObjs.clear();
         this.unExecObjs.clear();
-    }
-
-    public IntervalType getIntervalType() {
-        return intervalType;
-    }
-
-    public void setIntervalType(IntervalType intervalType) {
-        this.intervalType = intervalType;
-    }
-
-    public Integer getTotalCount() {
-        return totalCount;
-    }
-
-    public void addTotalCount(Integer totalCount) {
-        this.totalCount+=totalCount;
-    }
-
-    public Integer getSuccessCount() {
-        return successCount;
-    }
-
-    public void addSuccessCount(Integer successCount) {
-        this.successCount+=successCount;
-    }
-
-    public Integer getFaildCount() {
-        return faildCount;
-    }
-
-    public void addFaildCount(Integer faildCount) {
-        this.faildCount+=faildCount;
-    }
-
-    public Integer getExecCount() {
-        return execCount;
-    }
-
-    public void addExecCount(Integer execCount) {
-        this.execCount+=execCount;
-    }
-
-    public Integer getUnExecCount() {
-        return unExecCount;
-    }
-
-    public void addUnExecCount(Integer unExecCount) {
-        this.unExecCount+=unExecCount;
     }
 
     public LinkedHashMap<Integer, Object> getFaildObjs() {

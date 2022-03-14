@@ -795,6 +795,7 @@ public class ProcessService {
                 initComplementDataParam(processDefinition, processInstance, cmdParam);
                 break;
             case REPEAT_RUNNING:
+            // 重跑调度command
             case REPEAT_RUNNING_SCHEDULER:
                 // delete the recover task names from command parameter
                 if(cmdParam.containsKey(Constants.CMDPARAM_RECOVERY_START_NODE_STRING)){
@@ -812,6 +813,7 @@ public class ProcessService {
                 processInstance.setRunTimes(runTime +1);
                 initComplementDataParam(processDefinition, processInstance, cmdParam);
                 break;
+            // 恢复所有的失败command
             case RECOVER_ALL_FAILURE_PROCESS_IN_SCHEDULER:
                 if (ProcessType.SCHEDULER != processInstance.getProcessType()) {
                     String msg = String.format("processInstance=%s is not a scheduler process, " +
@@ -823,6 +825,7 @@ public class ProcessService {
                 //只需要将调度节点后的失败停止节点的状态初始化，当前节点不需要执行，所以直接返回
                 return processInstance;
             case SCHEDULER:
+            // 手动调度的command
             case MANUAL_SCHEDULER:
                 if (cmdParam != null && cmdParam.containsKey(CMDPARAM_INFORMAL_SCHEDULER)) {
                     processInstance.setStartTime(new Date());

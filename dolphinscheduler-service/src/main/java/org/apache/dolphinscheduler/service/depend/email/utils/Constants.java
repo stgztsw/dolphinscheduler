@@ -214,4 +214,14 @@ public class Constants {
     public static final String PLUGIN_DEFAULT_EMAIL_RECEIVERCCS = "receiverCcs";
 
     public static final String RETMAP_MSG = "msg";
+
+    public static final String DELIMITER_HOUR = "小时周期实例:";
+
+    public static final String DELIMITER_DAY = "天周期实例:";
+
+    public static final String DELIMITER_WEEK = "周周期实例:";
+
+    public static final String DELIMITER_MONTH = "月周期实例:";
+
+    public static final String DELIMITER_DEFAULT = "实例总计:";
 }
