@@ -225,7 +225,20 @@ const sqlTypeList = [
     code: `${i18n.$t('Non Query')}`
   }
 ]
-
+/**
+ *
+ * rgexType
+ */
+const rgexTypeList = [
+  {
+    id: '0',
+    code: `${i18n.$t('Not Use Regular')}`
+  },
+  {
+    id: '1',
+    code: `${i18n.$t('Use Regular')}`
+  }
+]
 const positionList = [
   {
     id: 'PARAMETER',
@@ -257,6 +270,7 @@ export {
   typeList,
   directList,
   sqlTypeList,
+  rgexTypeList,
   positionList,
   nodeStatusList
 }

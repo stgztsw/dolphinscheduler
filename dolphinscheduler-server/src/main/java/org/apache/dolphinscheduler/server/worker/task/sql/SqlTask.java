@@ -207,12 +207,28 @@ public class SqlTask extends AbstractTask {
         setSqlParamsMap(sql, rgex, sqlParamsMap, paramsMap);
 
         // replace the ${} of the SQL statement with the Placeholder
-        String formatSql = sql.replaceAll(rgex, "?");
+        // 保留非正则 sql 的 原始提交到jdbc填充字段的处理逻辑 rgexType = 0 表示禁止正则 前端默认是禁止正则
+        String formatSql = sql;
+        if (this.sqlParameters.getRgexType()==0){
+            logger.info("this model is disable use rgex in sql string");
+            formatSql = sql.replaceAll(rgex, "?");
+        } else {
+            for (int i = 1; i <= sqlParamsMap.size(); i++) {
+                Property prop = sqlParamsMap.get(i);
+                formatSql = formatSql.replaceFirst(rgex, getPropValue(prop));
+                logger.info("Successfully replaced location 【{}】,param:{}，After replacement:{}", i, prop.getProp(), prop.getValue());
+            }
+            logger.info("After replacement sql :\n{}", formatSql);
+        }
         sqlBuilder.append(formatSql);
 
         // print repalce sql
         printReplacedSql(sql, formatSql, rgex, sqlParamsMap);
         return new SqlBinds(sqlBuilder.toString(), sqlParamsMap);
+    }
+
+    private String getPropValue(Property prop) {
+        return prop.getValue();
     }
 
     @Override
@@ -435,14 +451,17 @@ public class SqlTask extends AbstractTask {
         if(timeoutFlag){
             stmt.setQueryTimeout(taskExecutionContext.getTaskTimeout());
         }
-        Map<Integer, Property> params = sqlBinds.getParamsMap();
-        if(params != null) {
-            for (Map.Entry<Integer, Property> entry : params.entrySet()) {
-                Property prop = entry.getValue();
-                ParameterUtils.setInParameter(entry.getKey(), stmt, prop.getType(), prop.getValue());
+        // 只有 rgexType = 0 时 需要 使用 jdbc 填充字段
+        if (this.sqlParameters.getRgexType()==0) {
+            Map<Integer, Property> params = sqlBinds.getParamsMap();
+            if (params != null) {
+                for (Map.Entry<Integer, Property> entry : params.entrySet()) {
+                    Property prop = entry.getValue();
+                    ParameterUtils.setInParameter(entry.getKey(), stmt, prop.getType(), prop.getValue());
+                }
             }
+            logger.info("prepare statement replace sql : {} ", stmt);
         }
-        logger.info("prepare statement replace sql : {} ", stmt);
         return stmt;
     }
 
