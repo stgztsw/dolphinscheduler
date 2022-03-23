@@ -46,17 +46,6 @@
         </div>
       </div>
     </m-list-box>
-    <m-list-box v-show="type === 'HIVE'">
-      <div slot="text">{{$t('Use regular')}}</div>
-      <div slot="content">
-        <div style="display: inline-block;">
-          <m-rgex-type
-            @on-rgexType="_onRgexType"
-            :rgex-type="rgexType">
-          </m-rgex-type>
-        </div>
-      </div>
-    </m-list-box>
     <template v-if="sqlType==0 && sendEmail">
       <m-list-box>
         <div slot="text">{{$t('Show Type')}}</div>
@@ -166,7 +155,6 @@
   import mUdfs from './_source/udfs'
   import mListBox from './_source/listBox'
   import mSqlType from './_source/sqlType'
-  import mRgexType from './_source/rgexType'
   import mDatasource from './_source/datasource'
   import mLocalParams from './_source/localParams'
   import mStatementList from './_source/statementList'
@@ -213,8 +201,6 @@
         receivers: [],
         // copy to
         receiversCc: [],
-        // 是否使用正则
-        rgexType: 0,
       }
     },
     mixins: [disabledState],
@@ -230,17 +216,6 @@
         this.sqlType = a
         if(a==0) {
           this.showType = ['TABLE']
-        }
-      },
-      /**
-       * 是否使用正则
-       */
-      _onRgexType (a) {
-        this.rgexType = a
-        if(a==0) {
-          this.rgexType = 0
-        } else {
-          this.rgexType = 1;
         }
       },
       /**
@@ -356,8 +331,7 @@
           localParams: this.localParams,
           connParams: this.connParams,
           preStatements: this.preStatements,
-          postStatements: this.postStatements,
-          rgexType: this.rgexType
+          postStatements: this.postStatements
         })
         return true
       },
@@ -431,8 +405,7 @@
           localParams: this.localParams,
           connParams: this.connParams,
           preStatements: this.preStatements,
-          postStatements: this.postStatements,
-          rgexType: this.rgexType
+          postStatements: this.postStatements
         });
       },
       _destroyEditor () {
@@ -491,7 +464,6 @@
         this.title = o.params.title || ''
         this.receivers = o.params.receivers && o.params.receivers.split(',') || []
         this.receiversCc = o.params.receiversCc && o.params.receiversCc.split(',') || []
-        this.rgexType = o.params.rgexType
       }
       // read tasks from cache
       if (!_.some(this.store.state.dag.cacheTasks, { id: this.createNodeId }) &&
@@ -541,12 +513,11 @@
           localParams: this.localParams,
           connParams: this.connParams,
           preStatements: this.preStatements,
-          postStatements: this.postStatements,
-          rgexType: this.rgexType
+          postStatements: this.postStatements
         }
       }
     },
-    components: { mListBox, mDatasource, mLocalParams, mUdfs, mSqlType, mRgexType, mStatementList, mSelectInput, mEmail }
+    components: { mListBox, mDatasource, mLocalParams, mUdfs, mSqlType, mStatementList, mSelectInput, mEmail }
   }
 </script>
 <style lang="scss" rel="stylesheet/scss">

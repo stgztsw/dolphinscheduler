@@ -103,8 +103,6 @@ public class SqlParameters extends AbstractParameters {
      */
     private String receiversCc;
 
-    private int rgexType;
-
     public String getType() {
         return type;
     }
@@ -226,14 +224,6 @@ public class SqlParameters extends AbstractParameters {
         return new ArrayList<>();
     }
 
-    public int getRgexType() {
-        return rgexType;
-    }
-
-    public void setRgexType(Integer rgexType) {
-        this.rgexType = rgexType;
-    }
-
     @Override
     public String toString() {
         return "SqlParameters{" +
@@ -251,7 +241,6 @@ public class SqlParameters extends AbstractParameters {
                 ", receiversCc='" + receiversCc + '\'' +
                 ", preStatements=" + preStatements +
                 ", postStatements=" + postStatements +
-                ", rgexType=" + rgexType +
                 '}';
     }
 }

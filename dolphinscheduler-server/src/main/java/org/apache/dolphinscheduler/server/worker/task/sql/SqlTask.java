@@ -26,10 +26,7 @@ import static org.apache.dolphinscheduler.common.enums.DbType.HIVE;
 
 import org.apache.dolphinscheduler.alert.utils.MailUtils;
 import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.CommandType;
-import org.apache.dolphinscheduler.common.enums.DbType;
-import org.apache.dolphinscheduler.common.enums.ShowType;
-import org.apache.dolphinscheduler.common.enums.TaskTimeoutStrategy;
+import org.apache.dolphinscheduler.common.enums.*;
 import org.apache.dolphinscheduler.common.process.Property;
 import org.apache.dolphinscheduler.common.task.AbstractParameters;
 import org.apache.dolphinscheduler.common.task.sql.SqlBinds;
@@ -207,10 +204,9 @@ public class SqlTask extends AbstractTask {
         setSqlParamsMap(sql, rgex, sqlParamsMap, paramsMap);
 
         // replace the ${} of the SQL statement with the Placeholder
-        // 保留非正则 sql 的 原始提交到jdbc填充字段的处理逻辑 rgexType = 0 表示禁止正则 前端默认是禁止正则
+        // 非 hive sql 的 依旧提交到jdbc填充字段的处理逻辑
         String formatSql = sql;
-        if (this.sqlParameters.getRgexType()==0){
-            logger.info("this model is disable use rgex in sql string");
+        if (!"HIVE".equals(this.sqlParameters.getType())){
             formatSql = sql.replaceAll(rgex, "?");
         } else {
             for (int i = 1; i <= sqlParamsMap.size(); i++) {
@@ -228,6 +224,29 @@ public class SqlTask extends AbstractTask {
     }
 
     private String getPropValue(Property prop) {
+        DataType dataType = prop.getType();
+        String value = prop.getValue();
+        if (dataType.equals(DataType.VARCHAR)) {
+            value=value.replace("'", "\\'");
+            return "'"+value+"'";
+        } else if (dataType.equals(DataType.INTEGER)) {
+            return ""+Integer.parseInt(value);
+        } else if (dataType.equals(DataType.LONG)) {
+            return ""+Long.parseLong(value);
+        } else if (dataType.equals(DataType.FLOAT)) {
+            return ""+Float.parseFloat(value);
+        } else if (dataType.equals(DataType.DOUBLE)) {
+            return ""+Double.parseDouble(value);
+        } else if (dataType.equals(DataType.DATE)) {
+            return "'" + java.sql.Date.valueOf(value).toString() + "'";
+        } else if (dataType.equals(DataType.TIME)) {
+            return value;
+        } else if (dataType.equals(DataType.TIMESTAMP)) {
+            return "'" + java.sql.Timestamp.valueOf(value).toString() + "'";
+        } else if (dataType.equals(DataType.BOOLEAN)) {
+            return ""+Boolean.parseBoolean(value);
+        }
+
         return prop.getValue();
     }
 
@@ -451,8 +470,8 @@ public class SqlTask extends AbstractTask {
         if(timeoutFlag){
             stmt.setQueryTimeout(taskExecutionContext.getTaskTimeout());
         }
-        // 只有 rgexType = 0 时 需要 使用 jdbc 填充字段
-        if (this.sqlParameters.getRgexType()==0) {
+        // 只有当 数据源不是 hive 时, 需要 使用jdbc填充字段
+        if (!"HIVE".equals(this.sqlParameters.getType())) {
             Map<Integer, Property> params = sqlBinds.getParamsMap();
             if (params != null) {
                 for (Map.Entry<Integer, Property> entry : params.entrySet()) {
