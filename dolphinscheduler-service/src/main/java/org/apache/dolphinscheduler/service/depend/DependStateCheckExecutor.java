@@ -329,12 +329,16 @@ public class DependStateCheckExecutor implements Callable<String>{
                 if (!isExistDefinitionId(dependsVo)){
 
                     if (this.intervalType==IntervalType.DAY) {
+                        logger.info("intervalType:{},dependVo:{}","day",dependsVo);
                         addSendMail(dayMail,dependsVo,stack);
                     } else if (this.intervalType==IntervalType.HOUR) {
+                        logger.info("intervalType:{},dependVo:{}","hour",dependsVo);
                         addSendMail(hourMail,dependsVo,stack);
                     } else if (this.intervalType==IntervalType.WEEK) {
+                        logger.info("intervalType:{},dependVo:{}","week",dependsVo);
                         addSendMail(weekMail,dependsVo,stack);
                     } else if (this.intervalType==IntervalType.MONTH) {
+                        logger.info("intervalType:{},dependVo:{}","month",dependsVo);
                         addSendMail(weekMail,dependsVo,stack);
                     }
                 }
@@ -368,18 +372,22 @@ public class DependStateCheckExecutor implements Callable<String>{
                 // 下一次触发的时间在当前check 时间之前 则表示 有一次cron 定时任务未触发 返回 false
                 needCheckDepend = !nextScheduleTime.before(fireTime);
                 setIntervalType(IntervalType.HOUR);
+                logger.info("set hour interval success");
                 break;
             case DAY:
                 needCheckDepend = !nextScheduleTime.before(fireTime);
                 setIntervalType(IntervalType.DAY);
+                logger.info("set day interval success");
                 break;
             case WEEK:
                 needCheckDepend = !nextScheduleTime.before(fireTime);
                 setIntervalType(IntervalType.WEEK);
+                logger.info("set week interval success");
                 break;
             case MONTH:
                 needCheckDepend = !nextScheduleTime.before(fireTime);
                 setIntervalType(IntervalType.MONTH);
+                logger.info("set month interval success");
                 break;
             case YEAR:
                 throw new RuntimeException("don't support year depend check interval");
@@ -461,19 +469,23 @@ public class DependStateCheckExecutor implements Callable<String>{
                 // start process 非null 过滤
                 if (processInstance!=null && needRunCheckDepend){
                     setStartProcessState(processInstance);
+                    logger.info("success set start scheduler process state");
                     // start 节点创建实例失败
                     SchedulingBatch sb = new SchedulingBatch(processInstance);
                     dependTreeViewVo = newDependTreeView(processInstance, DependentViewRelation.ONE_ALL);
+                    logger.info(dependTreeViewVo.toString());
                     // 因为是遍历出了所有的start节点，所以无需考虑有多个上游的情况，会充分遍历到所有节点。
                     // 所以只需要查询出需要child 依赖即可
                     processInstance = null;
                     processService.queryChildDepends(sb, processId, dependTreeViewVo);
+                    logger.info(dependTreeViewVo.toString());
                 } else {// start节点没有运行 直接查询definition构造depend
                     logger.info("processInstance is null because start process id not be scheduled");
                     processInstance = null;
                     queryDependsByLoop(processId, false,this.intervalType);
                 }
             } catch (RuntimeException e) {
+                e.printStackTrace();
                 logger.warn(e.getMessage());
             }
         } else {

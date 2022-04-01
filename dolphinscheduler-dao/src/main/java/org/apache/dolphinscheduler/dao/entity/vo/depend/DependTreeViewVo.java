@@ -33,6 +33,20 @@ public class DependTreeViewVo {
      */
     private List<DependsVo> childs;
 
+    @Override
+    public String toString() {
+        return "DependTreeViewVo{" +
+                "processId=" + processId +
+                ", definitionId=" + definitionId +
+                ", treeType=" + treeType +
+                ", name='" + name + '\'' +
+                ", state=" + state +
+                ", parents size=" + (parents!=null? parents.size() : 0) +
+                ", childs size=" + (childs!=null ? childs.size() : 0) +
+                ", relation=" + relation +
+                '}';
+    }
+
     public List<DependsVo> getParents() {
         return parents;
     }
