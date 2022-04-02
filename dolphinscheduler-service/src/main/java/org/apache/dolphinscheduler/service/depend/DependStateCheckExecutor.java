@@ -8,6 +8,7 @@ import org.apache.dolphinscheduler.dao.entity.vo.depend.DependCheckVo;
 import org.apache.dolphinscheduler.dao.entity.vo.depend.DependTreeViewVo;
 import org.apache.dolphinscheduler.dao.entity.vo.depend.DependsVo;
 import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
+import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
 import org.apache.dolphinscheduler.service.depend.enums.IntervalType;
 import org.apache.dolphinscheduler.service.depend.pojo.DependSendMail;
@@ -81,6 +82,8 @@ public class DependStateCheckExecutor implements Callable<String>{
     private String subCron = null;
 
     private final ProcessService processService = SpringApplicationContext.getBean(ProcessService.class);
+
+    private final ProcessInstanceMapper processInstanceMapper = SpringApplicationContext.getBean(ProcessInstanceMapper.class);
 
     private final ProcessDefinitionMapper processDefineMapper = SpringApplicationContext.getBean(ProcessDefinitionMapper.class);
 
@@ -356,14 +359,21 @@ public class DependStateCheckExecutor implements Callable<String>{
     }
 
     private boolean needCheckDepend(int interval, Date scheduleTime, String crontab) throws ParseException {
-
+        logger.info("22222222222222222222222222222222222");
+//        logger.info("interval:{},scheduleTime:{},crontab:{}",interval,scheduleTime.toString(),crontab);
         // 调度时间的下一次的cron 表达式生成的调度时间
-        Date nextScheduleTime = CronUtils.nextExecDate(crontab,scheduleTime);
+        boolean needCheckDepend = false;
+        Date nextScheduleTime = null;
+        try{
+            nextScheduleTime = CronUtils.nextExecDate(crontab,scheduleTime);
+        }catch (RuntimeException e){
+            logger.info("error of get nextExecDate");
+            logger.warn("error",e);
+        }
+
         // 获取调度时间的间隔 last 10.00 next 13.00 触发时间 10.00.20 check 10.00-9.30 之间触发过 需要check 没有 则不需
         //                      9.30        10.30        10.00.20
         logger.info("scheduleTime:{},nextScheduleTime:{}",scheduleTime,nextScheduleTime);
-
-        boolean needCheckDepend = false;
 
         switch (CycleEnum.valueOf(interval)){
             case MINUTE:
@@ -447,22 +457,24 @@ public class DependStateCheckExecutor implements Callable<String>{
     /**
      * loop depend version
      * @param processId
+     * @param instanceId
      * @param existInstance
      * @param stack
-     * 上游节点10 点触发  下游2点触发  判断定时的时候 10点触发的subcron 10点 此时查出其所有的 下游定时任务
      */
-    private void dependAddStack(Integer processId, Boolean existInstance,Stack<DependsVo> stack) throws ParseException {
+    private void dependAddStack(Integer processId, Integer instanceId, Boolean existInstance, Stack<DependsVo> stack) throws ParseException {
 //        setIntervalType(IntervalType.DEFAULT);
         DependTreeViewVo dependTreeViewVo = null;
         if (existInstance) {
 
             // 自上线以来的所有实例中的最新的一个
-            ProcessInstance processInstance = processService.queryLastExecInstanceByProcessId(processId);
-
+//            ProcessInstance processInstance = processService.queryLastExecInstanceByProcessId(processId);
+            // parent instance
+            ProcessInstance processInstance = processInstanceMapper.selectById(instanceId);
+            // 继承parent 属性
             String crontab = getProcessCrontab(cron,processId);
             int interval = processInstance.getSchedulerInterval();
             Date scheduleTime = processInstance.getScheduleTime();
-
+            logger.info("11111111111111111111111111111111,scheduleTime:{}",scheduleTime);
             try {
                 boolean needRunCheckDepend = needCheckDepend(interval,scheduleTime,crontab);
 
@@ -485,8 +497,8 @@ public class DependStateCheckExecutor implements Callable<String>{
                     queryDependsByLoop(processId, false,this.intervalType);
                 }
             } catch (RuntimeException e) {
-                e.printStackTrace();
-                logger.warn(e.getMessage());
+                logger.error("error",e);
+                logger.info("process:::{}",processInstance.toString());
             }
         } else {
             ProcessDefinition processDefinition = processDefineMapper.selectById(processId);
@@ -574,9 +586,11 @@ public class DependStateCheckExecutor implements Callable<String>{
             definitionId = processDefinition.getId();
             name = processDefinition.getName();
         }
+        logger.info("processId:{},definitionId:{},name:{},state:{}",processId,definitionId,name,state);
         String projectName = processDefineMapper.queryProjectNameBydefinitionId(definitionId);
+        logger.info("projectName:{}",projectName);
         DependCheckVo dependCheckVo = new DependCheckVo(new DependsVo(processId, definitionId, name, state, "scheduler"),projectName);
-
+        logger.info("dependCheckVo:{}",dependCheckVo);
         Boolean isExist = false;
         Iterator<Integer> iterator = searchedIds.iterator();
         while(iterator.hasNext()){
@@ -588,12 +602,16 @@ public class DependStateCheckExecutor implements Callable<String>{
 
         if (!isExist){
             if (this.intervalType==IntervalType.DAY) {
+                logger.info("intervalType:{},dependCheckVo:{}","day",dependCheckVo);
                 addSendMail(dayMail, state, definitionId, dependCheckVo);
             } else if (this.intervalType==IntervalType.HOUR) {
+                logger.info("intervalType:{},dependCheckVo:{}","hour",dependCheckVo);
                 addSendMail(hourMail, state, definitionId, dependCheckVo);
             } else if (this.intervalType==IntervalType.WEEK) {
+                logger.info("intervalType:{},dependCheckVo:{}","week",dependCheckVo);
                 addSendMail(weekMail, state, definitionId, dependCheckVo);
             } else if (this.intervalType==IntervalType.MONTH) {
+                logger.info("intervalType:{},dependCheckVo:{}","month",dependCheckVo);
                 addSendMail(monthMail, state, definitionId, dependCheckVo);
             }
             searchedIds.add(definitionId);
@@ -641,7 +659,7 @@ public class DependStateCheckExecutor implements Callable<String>{
                 defaultMail.addTotalCount(1);
                 defaultMail.addSuccessCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
-                dependAddStack(dependsVo.getDefinitionId(),true,stack);
+                dependAddStack(dependsVo.getDefinitionId(), dependsVo.getProcessId(),true,stack);
             } else if (FAILURE == dependsVo.getState()) {
                 // 失败状态的下游可能存在拉起的情况 此时也会失败 所以需要向下再查一层
                 // 获取项目名
@@ -653,7 +671,7 @@ public class DependStateCheckExecutor implements Callable<String>{
                 defaultMail.addFaildCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
                 // 可能被其他节点拉起 下游也失败了 所以需要再查一层
-                dependAddStack(dependsVo.getDefinitionId(),true,stack);
+                dependAddStack(dependsVo.getDefinitionId(), dependsVo.getProcessId(),true,stack);
 
             } else if (dependsVo.getState() == null) {
                 // 获取项目名
@@ -664,7 +682,7 @@ public class DependStateCheckExecutor implements Callable<String>{
                 defaultMail.addTotalCount(1);
                 defaultMail.addUnExecCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
-                dependAddStack(dependsVo.getDefinitionId(),false,stack);
+                dependAddStack(dependsVo.getDefinitionId(), dependsVo.getProcessId(),false,stack);
             } else {
                 // 获取项目名
                 String projectName = processDefineMapper.queryProjectNameBydefinitionId(dependsVo.getDefinitionId());
@@ -674,7 +692,7 @@ public class DependStateCheckExecutor implements Callable<String>{
                 defaultMail.addTotalCount(1);
                 defaultMail.addExecCount(1);
                 searchedIds.add(dependsVo.getDefinitionId());
-                dependAddStack(dependsVo.getDefinitionId(),true,stack);
+                dependAddStack(dependsVo.getDefinitionId(), dependsVo.getProcessId(),true,stack);
             }
 
     }

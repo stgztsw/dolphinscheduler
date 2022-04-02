@@ -387,7 +387,10 @@ public class CronUtils {
    * @return
    */
   public static Date nextExecDate(String cron, Date d) throws ParseException {
+    logger.info("now cron :{}, date :{}",cron,d.toString());
     List<Date> dates = computeFireTimes(cron);
-    return findNearExecution(dates,d).get(1);
+    Date nextDate = findNearExecution(dates, d).get(1);
+    logger.info(nextDate.toString());
+    return nextDate;
   }
 }
