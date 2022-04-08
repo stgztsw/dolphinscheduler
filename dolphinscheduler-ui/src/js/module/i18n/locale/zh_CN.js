@@ -638,5 +638,6 @@ export default {
   'Connection name': '连线名',
   'Current connection settings': '当前连线设置',
   'Please save the DAG before formatting': '格式化前请先保存DAG',
-  'The workflow canvas is abnormal and cannot be saved, please recreate': '该工作流画布异常，无法保存，请重新创建'
+  'The workflow canvas is abnormal and cannot be saved, please recreate': '该工作流画布异常，无法保存，请重新创建',
+  'Project global search': '项目内全局搜索',
 }

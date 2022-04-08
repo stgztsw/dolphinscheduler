@@ -38,6 +38,24 @@ const router = new Router({
         title: `${i18n.$t('Home')} - DolphinScheduler`
       }
     },
+    // 项目管理子菜单
+    {
+      path: '/projects/subList',
+      name: 'projects-sub-list',
+      component: resolve => require(['../pages/projects/subList/subList'], resolve),
+      meta: {
+        title: `${i18n.$t('Project')}`
+      }
+    },
+    // 全局搜索 tab 路由
+    {
+      path: '/projects/global-search',
+      name: 'globalSearch',
+      component: resolve => require(['../pages/projects/pages/globalSearch/index'], resolve),
+      meta: {
+        title: `${i18n.$t('Project global search')}`
+      }
+    },
     {
       path: '/projects',
       name: 'projects',
@@ -133,6 +151,15 @@ const router = new Router({
               path: '/projects/instance/list',
               name: 'projects-instance-list',
               component: resolve => require(['../pages/projects/pages/instance/pages/list/index'], resolve),
+              meta: {
+                title: `${i18n.$t('Process Instance')}`
+              }
+            },
+            // 全局搜索 实例 的路由
+            {
+              path: '/projects/instance/global/list',
+              name: 'projects-instance-global-list',
+              component: resolve => require(['../pages/projects/pages/globalSearch/list'], resolve),
               meta: {
                 title: `${i18n.$t('Process Instance')}`
               }

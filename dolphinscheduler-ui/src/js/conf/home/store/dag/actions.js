@@ -414,6 +414,19 @@ export default {
     })
   },
   /**
+   * Get global process instance
+   */
+  getGlobalProcessInstance ({ state }, payload) {
+    return new Promise((resolve, reject) => {
+      io.get(`projects/global/process-instance-list-paging`, payload, res => {
+        state.instanceListS = res.data.totalList
+        resolve(res.data)
+      }).catch(res => {
+        reject(res)
+      })
+    })
+  },
+  /**
    * Get alarm list
    */
   getNotifyGroupList ({ state }, payload) {

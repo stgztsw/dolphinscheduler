@@ -638,5 +638,6 @@ export default {
   'Connection name': 'Connection name',
   'Current connection settings': 'Current connection settings',
   'Please save the DAG before formatting': 'Please save the DAG before formatting',
-  'The workflow canvas is abnormal and cannot be saved, please recreate': 'The workflow canvas is abnormal and cannot be saved, please recreate'
+  'The workflow canvas is abnormal and cannot be saved, please recreate': 'The workflow canvas is abnormal and cannot be saved, please recreate',
+  'Project global search': 'Project global search',
 }

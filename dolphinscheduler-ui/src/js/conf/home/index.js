@@ -35,7 +35,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 
 import 'bootstrap/dist/js/bootstrap.min.js'
 import 'canvg/dist/browser/canvg.min.js'
-import { Button, Dialog, Table, Tree, TableColumn, Alert, Row, Col, Icon,Badge } from 'element-ui';
+import { Button, Dialog, Table, Tree, TableColumn, Alert, Row, Col, Icon,Badge,Tabs,TabPane,RadioGroup,RadioButton,Menu,MenuItem,Submenu,Aside,Container,Main,Input,Option,Select,Tooltip,Switch } from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 
 // Component internationalization
@@ -44,6 +44,21 @@ const useOpt = i18n.globalScope.LOCALE === 'en_US' ? { locale: en_US } : {}
 // Vue.use(ans)
 Vue.use(ans, useOpt)
 
+Vue.use(Switch)
+Vue.use(Tooltip)
+Vue.use(Input)
+Vue.use(Option)
+Vue.use(Select)
+Vue.use(Submenu)
+Vue.use(Container)
+Vue.use(Main)
+Vue.use(Aside)
+Vue.use(Menu)
+Vue.use(MenuItem)
+Vue.use(RadioGroup)
+Vue.use(RadioButton)
+Vue.use(Tabs)
+Vue.use(TabPane)
 Vue.use(Button)
 Vue.use(Dialog)
 Vue.use(Table)

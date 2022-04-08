@@ -29,9 +29,18 @@
       </div>
       <div class="clearfix list">
         <div class="nav-links">
-          <router-link :to="{ path: '/projects'}" tag="a" active-class="active">
-            <span><em class="ansiconfont ans-icon-setting"></em>{{$t('Project Manage')}}</span><strong></strong>
-          </router-link>
+          <el-menu default-active="/projects/list" mode="horizontal" @select="handleSelect"
+                   background-color="#2D303A" text-color="#FFFFFF" active-text-color="#2D8BF0" router>
+            <el-submenu index="1">
+              <template slot="title"><span><em class="ansiconfont ans-icon-setting"></em></span><strong>{{$t('Project Manage')}}</strong></template>
+              <el-menu-item index="/projects/list">项目</el-menu-item>
+              <el-menu-item index="/projects/global-search">全局搜索</el-menu-item>
+            </el-submenu>
+
+          </el-menu>
+<!--          <router-link :to="{ path: '/projects/subList'}" tag="a" active-class="active">-->
+<!--            <span><em class="ansiconfont ans-icon-setting"></em></span><strong></strong>-->
+<!--          </router-link>-->
         </div>
       </div>
       <div class="clearfix list">
@@ -189,6 +198,9 @@
 
     methods: {
       ...mapActions('user', ['signOut']),
+      handleSelect(key, keyPath) {
+        console.log(key, keyPath);
+      },
       /**
        * User Info
        */
