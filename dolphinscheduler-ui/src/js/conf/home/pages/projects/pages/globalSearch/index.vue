@@ -203,6 +203,7 @@
         }).catch(e => {
           this.isLoading = false;
           console.log("query error:",e)
+          this.$message.error(e.msg || '');
         })
       },
       _getTaskInstanceListP() {

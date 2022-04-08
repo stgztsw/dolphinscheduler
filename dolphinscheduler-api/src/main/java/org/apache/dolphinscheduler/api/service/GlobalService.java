@@ -62,7 +62,7 @@ public class GlobalService extends BaseService {
 
         int[] statusArray = null;
         // filter by state
-        if (stateType != null) {
+        if (stateType != null && !stateType.equals("[]")) {
             statusArray = JSON.parseArray(stateType).stream().mapToInt(var -> ExecutionStatus.valueOf((String) var).ordinal()).toArray();
         }
         Map<String, Object> checkAndParseDateResult = checkAndParseDateParameters(startDate, endDate);
@@ -81,6 +81,13 @@ public class GlobalService extends BaseService {
                         processDefineId, searchVal, executorId,statusArray, host, start, end);
 
         List<ProcessInstance> processInstances = processInstanceList.getRecords();
+
+        if (processInstances.size()<=0) {
+            logger.info("don't exists this searchvar :{} in global",searchVal);
+            result.put(Constants.MSG,"don't exists this searchvar :" + searchVal + " in global");
+            putMsg(result,Status.GLOBAL_PROCESS_INSTANCE_NOT_EXIST);
+            return result;
+        }
 
         for(ProcessInstance processInstance: processInstances){// update desc 从数据库中找到实例列表，插入的时候是从队列中插入
             processInstance.setDuration(DateUtils.format2Duration(processInstance.getStartTime(),processInstance.getEndTime()));
