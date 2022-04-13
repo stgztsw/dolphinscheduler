@@ -10,21 +10,24 @@
 
       <el-input placeholder="请输入内容" v-model="searchParams.searchVal" class="input-with-select" @keyup.enter.native="_onQuery">
         <el-select v-model="select" slot="prepend" placeholder="请选择">
+          <el-option label="工作流" value="2"></el-option>
           <el-option label="工作流实例" value="1"></el-option>
-          <!--          <el-option label="Task实例" value="2"></el-option>-->
+          <el-option label="Task实例" value="3"></el-option>
         </el-select>
         <el-button type="success" slot="append" icon="el-icon-search" @click="_onQuery"></el-button>
 
       </el-input>
       <br/><br/>
-      <h5 style="position: absolute;width:60px;">高级选项 </h5>
-      <el-switch slot="append"
-                 v-model="moreCondition"
-                 active-color="#13ce66"
-                 inactive-color="#ff4949"
-                 @click="_conditionButton"
-                 style="position: absolute;left:70px;margin-left:5px;">
-      </el-switch>
+      <div v-show="select!=='2'">
+        <h5 style="position: absolute;width:60px;">高级选项 </h5>
+        <el-switch slot="append"
+                   v-model="moreCondition"
+                   active-color="#13ce66"
+                   inactive-color="#ff4949"
+                   @click="_conditionButton"
+                   style="position: absolute;left:70px;margin-left:5px;">
+        </el-switch>
+      </div>
       <br/><br/>
       <div v-show="moreCondition">
         <h5 style="position: absolute;width:60px;">执行状态 </h5>
@@ -98,6 +101,8 @@
         stateTypeList: stateType,
         stateList: [],
         searchParams :{
+          // definition userId
+          userId: '',
           // Search keywords
           searchVal: '',
           // Number of pages
@@ -107,7 +112,7 @@
           // host
           host: '',
           // State
-          stateType: '',
+          stateType: '[]',
           // Start Time
           globalStartDate: '',
           // End Time
@@ -115,18 +120,48 @@
           // Exectuor Name
           executorName: '',
         },
+        definitinSearchParams:{
+          pageSize: 10,
+          pageNo: 1,
+          searchVal: '',
+          userId: ''
+        },
+        taskSearchParams: {
+          // page size
+          pageSize: 10,
+          // page index
+          pageNo: 1,
+          // Query name
+          searchVal: '',
+          // Process instance id
+          processInstanceId: '',
+          // host
+          host: '',
+          // state
+          stateType: '[]',
+          // Start Time
+          globalStartDate: '',
+          // End Time
+          globalEndDate: '',
+          // Exectuor Name
+          executorName: ''
+        },
         // loading
         isLoading: true,
         // total
         total: null,
         // data
         processInstanceList: [],
+        processDefinitionList: [],
+        taskInstanceList: [],
         // 被绑定的选择值
         select: '1',
+
       }
     },
     methods: {
-      ...mapActions('dag', ['getGlobalProcessInstance']),
+
+      ...mapActions('dag', ['getGlobalProcessInstance','getGlobalProcessDefinition','getGlobalTaskInstance']),
       /**
        * empty date
        */
@@ -159,6 +194,8 @@
         if (this.select==='1') {
           this._getProcessInstanceListP()
         } else if (this.select==='2') {
+          this._getProcessDefinitionListP()
+        } else if (this.select==='3') {
           this._getTaskInstanceListP()
         }
       },
@@ -206,9 +243,105 @@
           this.$message.error(e.msg || '');
         })
       },
-      _getTaskInstanceListP() {
-        // pass
+      setParams() {
+        if (this.select==='2') {
+          this.definitinSearchParams.searchVal = this.searchParams.searchVal
+          this.definitinSearchParams.userId = this.searchParams.userId
+        } else if (this.select==='3') {
+          this.taskSearchParams.searchVal = this.searchParams.searchVal
+          this.taskSearchParams.executorName = this.searchParams.executorName
+          this.taskSearchParams.host = this.searchParams.host
+          this.taskSearchParams.globalEndDate = this.searchParams.globalEndDate
+          this.taskSearchParams.globalStartDate = this.searchParams.globalStartDate
+          this.taskSearchParams.stateType = this.searchParams.stateType
+        }
       },
+      _getProcessDefinitionListP() {
+        console.log("_getProcessDefinitionListP")
+        this.getGlobalProcessDefinition(this.searchParams).then(res => {
+          if (this.searchParams.pageNo > 1 && res.totalList.length == 0) {
+            this.searchParams.pageNo = this.searchParams.pageNo - 1
+            console.log(this.processDefinitionList.length>0)
+            if (this.processDefinitionList.length>0){
+              this.$router.push({
+                name:'projects-definition-global-list',
+                params:{
+                  processListP: this.processDefinitionList,
+                  searchParams: this.definitinSearchParams,
+                  // total:this.total
+                }
+              })
+            }
+          } else {
+            console.log(res.totalList.length)
+            this.processDefinitionList = []
+            this.processDefinitionList = res.totalList
+            this.total = res.total
+            this.isLoading = false
+            const that = this;
+            console.log(that.processDefinitionList.length>0)
+            if (that.processDefinitionList.length>0){
+              that.setParams()
+              that.$router.push({
+                name:'projects-definition-global-list',
+                params:{
+                  processListP:that.processDefinitionList,
+                  searchParams: that.definitinSearchParams,
+                  // total:this.total
+                }
+              })
+            }
+          }
+        }).catch(e => {
+          this.isLoading = false;
+          console.log("query error:",e)
+          this.$message.error(e.msg || '');
+        })
+      },
+      _getTaskInstanceListP() {
+        console.log("_getTaskInstanceListP")
+        this.getGlobalTaskInstance(this.searchParams).then(res => {
+          const that = this;
+          if (this.searchParams.pageNo > 1 && res.totalList.length == 0) {
+            that.searchParams.pageNo = that.searchParams.pageNo - 1
+            console.log(that.taskInstanceList.length>0)
+            if (that.taskInstanceList.length>0){
+              that.$router.push({
+                name:'projects-task-global-list',
+                params:{
+                  taskInstanceList:that.taskInstanceList,
+                  searchParams: that.searchParams,
+                  // total:this.total
+                }
+              })
+            }
+          } else {
+            console.log(res.totalList.length)
+            this.taskInstanceList = []
+            this.taskInstanceList = res.totalList
+            this.total = res.total
+            this.isLoading = false
+            // const that = this;
+            console.log(that.taskInstanceList.length>0)
+            if (that.taskInstanceList.length>0){
+              that.setParams()
+              that.$router.push({
+                name:'projects-task-global-list',
+                params:{
+                  taskInstanceList:that.taskInstanceList,
+                  searchParams: that.taskSearchParams,
+                  // total:this.total
+                }
+              })
+            }
+          }
+        }).catch(e => {
+          this.isLoading = false;
+          console.log("query error:",e)
+          this.$message.error(e.msg || '');
+        })
+      },
+
       selectAll() {
         if (this.stateList.length < this.stateTypeList.length) {
           this.stateList = []
@@ -233,7 +366,9 @@
         if (val === '全选') {
           this.stateList = []
         }
-      }
+      },
+
+
     }
   }
 </script>

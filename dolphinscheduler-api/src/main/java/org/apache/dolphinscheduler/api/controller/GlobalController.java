@@ -1,6 +1,7 @@
 package org.apache.dolphinscheduler.api.controller;
 
 import io.swagger.annotations.*;
+import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.exceptions.ApiException;
 import org.apache.dolphinscheduler.api.service.GlobalService;
 import org.apache.dolphinscheduler.api.utils.Result;
@@ -18,7 +19,7 @@ import springfox.documentation.annotations.ApiIgnore;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.dolphinscheduler.api.enums.Status.QUERY_PROCESS_INSTANCE_LIST_PAGING_ERROR;
+import static org.apache.dolphinscheduler.api.enums.Status.*;
 
 /**
  * @program: dolphinscheduler
@@ -83,6 +84,90 @@ public class GlobalController extends BaseController{
         searchVal = ParameterUtils.handleEscapes(searchVal);
         Map<String, Object> result = globalService.queryProcessInstanceList(
                 loginUser, processDefinitionId, startTime, endTime, searchVal, executorName, stateType, host, pageNo, pageSize);
+        return returnDataListPaging(result);
+    }
+
+    /**
+     * query task list paging
+     *
+     * @param loginUser         login user
+     * @param processInstanceId process instance id
+     * @param searchVal         search value
+     * @param stateType         state type
+     * @param host              host
+     * @param startTime         start time
+     * @param endTime           end time
+     * @param pageNo            page number
+     * @param pageSize          page size
+     * @return task list page
+     */
+    @ApiOperation(value = "queryTaskListPaging", notes = "QUERY_TASK_INSTANCE_LIST_PAGING_NOTES")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "processInstanceId", value = "PROCESS_INSTANCE_ID", required = false, dataType = "Int", example = "100"),
+            @ApiImplicitParam(name = "searchVal", value = "SEARCH_VAL", type = "String"),
+            @ApiImplicitParam(name = "taskName", value = "TASK_NAME", type = "String"),
+            @ApiImplicitParam(name = "executorName", value = "EXECUTOR_NAME", type = "String"),
+            @ApiImplicitParam(name = "stateType", value = "EXECUTION_STATUS", type = "ExecutionStatus"),
+            @ApiImplicitParam(name = "host", value = "HOST", type = "String"),
+            @ApiImplicitParam(name = "startDate", value = "START_DATE", type = "String"),
+            @ApiImplicitParam(name = "endDate", value = "END_DATE", type = "String"),
+            @ApiImplicitParam(name = "pageNo", value = "PAGE_NO", dataType = "Int", example = "1"),
+            @ApiImplicitParam(name = "pageSize", value = "PAGE_SIZE", dataType = "Int", example = "20")
+    })
+    @GetMapping("task-instance-list-paging")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_TASK_LIST_PAGING_ERROR)
+    public Result queryTaskListPaging(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                      @RequestParam(value = "processInstanceId", required = false, defaultValue = "0") Integer processInstanceId,
+                                      @RequestParam(value = "searchVal", required = false) String searchVal,
+                                      @RequestParam(value = "executorName", required = false) String executorName,
+                                      @RequestParam(value = "stateType", required = false) String stateType,
+                                      @RequestParam(value = "host", required = false) String host,
+                                      @RequestParam(value = "globalStartDate", required = false) String startTime,
+                                      @RequestParam(value = "globalEndDate", required = false) String endTime,
+                                      @RequestParam("pageNo") Integer pageNo,
+                                      @RequestParam("pageSize") Integer pageSize) {
+
+        logger.info("query task instance list, search value:{}, executor name: {},state type:{}, host:{}, start:{}, end:{}", searchVal, executorName, stateType, host, startTime, endTime);
+        searchVal = ParameterUtils.handleEscapes(searchVal);
+        Map<String, Object> result = globalService.queryTaskListPaging(
+                loginUser, processInstanceId, executorName, startTime, endTime, searchVal, stateType, host, pageNo, pageSize);
+        return returnDataListPaging(result);
+    }
+
+    /**
+     * query process definition list paging
+     *
+     * @param loginUser   login user
+     * @param projectName project name
+     * @param searchVal   search value
+     * @param pageNo      page number
+     * @param pageSize    page size
+     * @param userId      user id
+     * @return process definition page
+     */
+    @ApiOperation(value = "queryProcessDefinitionListPaging", notes= "QUERY_PROCESS_DEFINITION_LIST_PAGING_NOTES")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "pageNo", value = "PAGE_NO", required = true, dataType = "Int", example = "100"),
+            @ApiImplicitParam(name = "searchVal", value = "SEARCH_VAL", required = false, type = "String"),
+            @ApiImplicitParam(name = "userId", value = "USER_ID", required = false, dataType = "Int", example = "100"),
+            @ApiImplicitParam(name = "pageSize", value = "PAGE_SIZE", required = true, dataType = "Int", example = "100")
+    })
+    @GetMapping(value = "process-definition-list-paging")
+    @ResponseStatus(HttpStatus.OK)
+    @ApiException(QUERY_PROCESS_DEFINITION_LIST_PAGING_ERROR)
+    public Result queryProcessDefinitionListPaging(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
+                                                   @RequestParam("pageNo") Integer pageNo,
+                                                   @RequestParam(value = "searchVal", required = false) String searchVal,
+                                                   @RequestParam(value = "userId", required = false, defaultValue = "0") Integer userId,
+                                                   @RequestParam("pageSize") Integer pageSize) {
+        logger.info("query process definition list paging, login user:{}, searchVal:{}, userId:{}", loginUser.getUserName(), searchVal, userId);
+        Map<String, Object> result = checkPageParams(pageNo, pageSize);
+        if (result.get(Constants.STATUS) != Status.SUCCESS) {
+            return returnDataListPaging(result);
+        }
+        searchVal = ParameterUtils.handleEscapes(searchVal);
+        result = globalService.queryProcessDefinitionListPaging(loginUser, searchVal, pageNo, pageSize, userId);
         return returnDataListPaging(result);
     }
 }

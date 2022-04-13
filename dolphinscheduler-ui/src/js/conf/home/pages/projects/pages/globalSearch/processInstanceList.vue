@@ -39,7 +39,7 @@
 <script>
   import _ from 'lodash'
   import { mapActions } from 'vuex'
-  import mList from './_source/list'
+  import mList from './_source/processInstance/list'
   import mSpin from '@/module/components/spin/spin'
   import localStore from '@/module/util/localStorage'
   import { setUrlParams } from '@/module/util/routerUtil'
@@ -69,7 +69,7 @@
           // host
           host: '',
           // State
-          stateType: '',
+          stateType: '[]',
           // Start Time
           globalStartDate: '',
           // End Time

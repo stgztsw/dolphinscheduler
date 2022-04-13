@@ -427,6 +427,32 @@ export default {
     })
   },
   /**
+   * Get global process instance
+   */
+  getGlobalTaskInstance ({ state }, payload) {
+    return new Promise((resolve, reject) => {
+      io.get(`projects/global/task-instance-list-paging`, payload, res => {
+        state.instanceListS = res.data.totalList
+        resolve(res.data)
+      }).catch(res => {
+        reject(res)
+      })
+    })
+  },
+  /**
+   * Get global process instance
+   */
+  getGlobalProcessDefinition ({ state }, payload) {
+    return new Promise((resolve, reject) => {
+      io.get(`projects/global/process-definition-list-paging`, payload, res => {
+        state.instanceListS = res.data.totalList
+        resolve(res.data)
+      }).catch(res => {
+        reject(res)
+      })
+    })
+  },
+  /**
    * Get alarm list
    */
   getNotifyGroupList ({ state }, payload) {

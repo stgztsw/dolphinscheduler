@@ -102,6 +102,15 @@ const router = new Router({
                 title: `${i18n.$t('Process definition')}`
               }
             },
+            // 全局搜索 实例 的路由
+            {
+              path: '/projects/definition/global/list',
+              name: 'projects-definition-global-list',
+              component: resolve => require(['../pages/projects/pages/globalSearch/processDefinitionList'], resolve),
+              meta: {
+                title: `${i18n.$t('Process Instance')}`
+              }
+            },
             {
               path: '/projects/definition/list/:id',
               name: 'projects-definition-details',
@@ -159,7 +168,7 @@ const router = new Router({
             {
               path: '/projects/instance/global/list',
               name: 'projects-instance-global-list',
-              component: resolve => require(['../pages/projects/pages/globalSearch/list'], resolve),
+              component: resolve => require(['../pages/projects/pages/globalSearch/processInstanceList'], resolve),
               meta: {
                 title: `${i18n.$t('Process Instance')}`
               }
@@ -205,6 +214,14 @@ const router = new Router({
           component: resolve => require(['../pages/projects/pages/taskRecord'], resolve),
           meta: {
             title: `${i18n.$t('Task record')}`
+          }
+        },
+        {
+          path: '/projects/task-instance/global/list',
+          name: 'projects-task-global-list',
+          component: resolve => require(['../pages/projects/pages/globalSearch/taskInstanceList'], resolve),
+          meta: {
+            title: `${i18n.$t('Process Instance')}`
           }
         },
         {
