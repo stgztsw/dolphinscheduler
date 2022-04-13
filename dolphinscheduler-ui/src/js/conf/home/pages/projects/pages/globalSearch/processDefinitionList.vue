@@ -43,7 +43,7 @@
 <script>
   import _ from 'lodash'
   import { mapActions } from 'vuex'
-  import mList from './_source/definition/list'
+  import mList from '@/conf/home/pages/projects/pages/definition/pages/list/_source/list'//'./_source/definition/list'
   import mSpin from '@/module/components/spin/spin'
   import localStore from '@/module/util/localStorage'
   import mNoData from '@/module/components/noData/noData'

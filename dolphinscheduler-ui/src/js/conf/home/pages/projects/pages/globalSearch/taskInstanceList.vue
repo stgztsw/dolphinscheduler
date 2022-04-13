@@ -39,7 +39,7 @@
 <script>
   import _ from 'lodash'
   import { mapActions } from 'vuex'
-  import mList from './_source/taskInstance/list'
+  import mList from '@/conf/home/pages/projects/pages/taskInstance/_source/list'//'./_source/taskInstance/list'
   import mSpin from '@/module/components/spin/spin'
   import mNoData from '@/module/components/noData/noData'
   import listUrlParamHandle from '@/module/mixin/listUrlParamHandle'
