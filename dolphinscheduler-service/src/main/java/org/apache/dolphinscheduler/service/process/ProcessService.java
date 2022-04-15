@@ -849,13 +849,19 @@ public class ProcessService {
         int batchNo = parentProcessInstance.getSchedulerBatchNo();
         List<DateInterval> dateIntervals = DependentUtils
                 .getDateIntervalListForDependent(schedulerTime, schedulerInterval);
-        Date start = dateIntervals.get(0).getStartTime();
-        Date end = dateIntervals.get(0).getEndTime();
+        Date startSchedulerTime = dateIntervals.get(0).getStartTime();
+        Date endSchedulerTime = dateIntervals.get(0).getEndTime();
+        Date startTime = new Date();
+        Date endTime = null;
+
         int[] states = new int[]{ExecutionStatus.FAILURE.ordinal(),
                 ExecutionStatus.STOP_BY_DEPENDENT_FAILURE.ordinal(), ExecutionStatus.KILL.ordinal(),
                 ExecutionStatus.STOP.ordinal(), ExecutionStatus.PAUSE.ordinal()};
         logger.debug("init all the failed or stopped process state which scheduler by processInstance={} to SUBMITTED_SUCCESS", parentProcessInstance.getId());
-        processInstanceMapper.updateProcessStateInBatch(start, end, states, batchNo, ExecutionStatus.INITED.ordinal(), parentProcessInstance.getId());
+        int i = processInstanceMapper.updateProcessStateInBatch(
+                startTime, endTime,
+                startSchedulerTime, endSchedulerTime, states, batchNo, ExecutionStatus.INITED.ordinal(), parentProcessInstance.getId());
+        logger.info("update initAllProcessInstanceFromScheduler size : {}",i);
     }
 
     /**

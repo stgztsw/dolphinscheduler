@@ -247,8 +247,11 @@ public interface ProcessInstanceMapper extends BaseMapper<ProcessInstance> {
      * @param schedulerStartId schedulerStartId
      * @return ProcessInstance list
      */
-    int updateProcessStateInBatch(@Param("startTime") Date startTime,
+    int updateProcessStateInBatch(
+                                  @Param("startTime") Date startTime,
                                   @Param("endTime") Date endTime,
+                                  @Param("startSchedulerTime") Date startSchedulerTime,
+                                  @Param("endSchedulerTime") Date endSchedulerTime,
                                   @Param("states") int[] stateArray,
                                   @Param("batchNo") int batchNo,
                                   @Param("newState") int newState,

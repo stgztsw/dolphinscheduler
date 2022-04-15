@@ -241,7 +241,11 @@
     </select>
     <update id="updateProcessStateInBatch">
         update t_ds_process_instance
-        set state = #{newState}
+        <set>
+            state = #{newState},
+            start_time = #{startTime},
+            end_time = #{endTime}
+        </set>
         where 1=1
         <if test="states !=null and states.length != 0">
             and state in
@@ -250,7 +254,7 @@
             </foreach>
         </if>
         and scheduler_start_id = #{schedulerStartId}
-        and schedule_time <![CDATA[ >= ]]> #{startTime} and schedule_time <![CDATA[ <= ]]> #{endTime}
+        and schedule_time <![CDATA[ >= ]]> #{startSchedulerTime} and schedule_time <![CDATA[ <= ]]> #{endSchedulerTime}
         and scheduler_batch_no = #{batchNo}
     </update>
     <select id="querySchedulerProcessInstances" resultType="org.apache.dolphinscheduler.dao.entity.ProcessInstance">

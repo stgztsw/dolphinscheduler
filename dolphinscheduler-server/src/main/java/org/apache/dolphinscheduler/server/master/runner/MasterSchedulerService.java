@@ -30,6 +30,7 @@ import org.apache.dolphinscheduler.dao.entity.Command;
 import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
 import org.apache.dolphinscheduler.dao.entity.ProcessDependent;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
+import org.apache.dolphinscheduler.dao.mapper.ProcessInstanceMapper;
 import org.apache.dolphinscheduler.remote.NettyRemotingClient;
 import org.apache.dolphinscheduler.remote.config.NettyClientConfig;
 import org.apache.dolphinscheduler.server.master.config.MasterConfig;
@@ -69,6 +70,12 @@ public class MasterSchedulerService extends Thread {
      */
     @Autowired
     private ZKMasterClient zkMasterClient;
+
+    /**
+     * control instance dao interface
+     */
+    @Autowired
+    private ProcessInstanceMapper processInstanceMapper;
 
     /**
      * master config
@@ -404,6 +411,7 @@ public class MasterSchedulerService extends Thread {
                     if (!processInstance.getState().typeIsFinished() && ExecutionStatus.INITED != processInstance.getState() && !processInstance.getState().typeIsInformal()) {
                         logger.info("definitionId={} definitionName={} has existed instanceId={} instanceName={} in running now, no need to be fired",
                                 processDefinition.getId(), processDefinition.getName(), processInstance.getId(), processInstance.getName());
+                        extendAndUpdateInitedInfo(parentProcessInstance,processInstance);
                         continue;
                     }else if (ExecutionStatus.SUCCESS == processInstance.getState()) {
                         dependentProcessQueue.offer(CompletableFuture.completedFuture(processInstance));
@@ -424,6 +432,12 @@ public class MasterSchedulerService extends Thread {
                     generateCommand(parentProcessInstance, processDefinition, null, SchedulerConsumer);
                 }
             }
+        }
+
+        private void extendAndUpdateInitedInfo(ProcessInstance parentProcessInstance, ProcessInstance processInstance) {
+            processInstance.setStartTime(parentProcessInstance.getStartTime());
+            processInstance.setEndTime(parentProcessInstance.getEndTime());
+            processInstanceMapper.updateById(processInstance);
         }
 
         private void initOlderProperty(ProcessInstance processInstance) {
