@@ -34,6 +34,7 @@ export function formatParams(data: INodeData): {
   const taskParams: ITaskParams = {}
   if (data.taskType === 'SUB_PROCESS') {
     taskParams.processDefinitionCode = data.processDefinitionCode
+    taskParams.childNodeProjectCode = data.childNodeProjectCode
   }
   if (
     data.taskType === 'SPARK' ||

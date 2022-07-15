@@ -299,6 +299,7 @@ interface ITaskParams {
   noteId?: string
   paragraphId?: string
   processDefinitionCode?: number
+  childNodeProjectCode?: number
   conditionResult?: {
     successNode?: number[]
     failedNode?: number[]

@@ -73,10 +73,11 @@ export function useSubProcess({
       Fields.useEnvironmentName(model, !data?.id),
       ...Fields.useTaskGroup(model, projectCode),
       ...Fields.useTimeoutAlarm(model),
-      Fields.useChildNode({
+      ...Fields.useChildNode({
         model,
         projectCode,
         from,
+        childNodeProjectCode: data?.taskParams?.childNodeProjectCode,
         processName: data?.processName,
         code: from === 1 ? 0 : Number(workflowCode)
       }),
