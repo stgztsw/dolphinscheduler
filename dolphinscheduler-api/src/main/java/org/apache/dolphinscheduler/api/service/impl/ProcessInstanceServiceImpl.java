@@ -408,11 +408,11 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
             return result;
         }
 
-        TaskDefinition taskDefinition = taskDefinitionMapper.queryByCode(taskInstance.getTaskCode());
-        if (taskDefinition != null && projectCode != taskDefinition.getProjectCode()) {
-            putMsg(result, Status.TASK_INSTANCE_NOT_EXISTS, taskId);
-            return result;
-        }
+//        TaskDefinition taskDefinition = taskDefinitionMapper.queryByCode(taskInstance.getTaskCode());
+//        if (taskDefinition != null && projectCode != taskDefinition.getProjectCode()) {
+//            putMsg(result, Status.TASK_INSTANCE_NOT_EXISTS, taskId);
+//            return result;
+//        }
 
         if (!taskInstance.isSubProcess()) {
             putMsg(result, Status.TASK_INSTANCE_NOT_SUB_WORKFLOW_INSTANCE, taskInstance.getName());
