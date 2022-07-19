@@ -164,18 +164,18 @@ const NodeDetailModal = defineComponent({
             if (router.currentRoute.value.name === 'workflow-instance-detail') {
               querySubProcessInstanceByTaskCode(
                 { taskId: props.taskInstance?.id },
-                { projectCode: props.projectCode }
+                { projectCode: props.data.taskParams?.childNodeProjectCode }
               ).then((res: any) => {
                 router.push({
                   name: 'workflow-instance-detail',
-                  params: { id: res.subProcessInstanceId },
+                  params: { id: res.subProcessInstanceId, projectCode: props.data?.taskParams?.childNodeProjectCode },
                   query: { code: props.data.taskParams?.processDefinitionCode }
                 })
               })
             } else {
               router.push({
                 name: 'workflow-definition-detail',
-                params: { code: props.data.taskParams?.processDefinitionCode }
+                params: { code: props.data.taskParams?.processDefinitionCode, projectCode: props.data?.taskParams?.childNodeProjectCode}
               })
             }
           },

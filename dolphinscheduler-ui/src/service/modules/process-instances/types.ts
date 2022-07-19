@@ -17,7 +17,7 @@
 import type { ITaskState } from '@/common/types'
 
 interface CodeReq {
-  projectCode: number
+  projectCode?: number
 }
 
 interface ProcessInstanceListReq {
