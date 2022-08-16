@@ -22,7 +22,7 @@ import {
   queryProcessDefinitionByCode
 } from '@/service/modules/process-definition'
 import type { IJsonItem } from '../types'
-import {queryAllProjectList} from "@/service/modules/projects";
+import {queryProjectCreatedAndAuthorizedByUser} from "@/service/modules/projects";
 
 export function useChildNode({
   model,
@@ -46,7 +46,7 @@ export function useChildNode({
   const loading = ref(false)
 
   const getProjectList = async () => {
-    const result = await queryAllProjectList()
+    const result = await queryProjectCreatedAndAuthorizedByUser()
     project_options.value = result.map((item: { code: number; name: string }) => ({
       value: item.code,
       label: item.name
