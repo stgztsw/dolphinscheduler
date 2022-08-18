@@ -50,7 +50,7 @@ public class ExecutorDispatcherTest {
     private WorkerConfig workerConfig;
 
     @Test(expected = ExecuteException.class)
-    public void testDispatchWithException() throws ExecuteException {
+    public void testDispatchWithException() throws ExecuteException, InterruptedException {
         ExecutionContext executionContext = ExecutionContextTestUtils.getExecutionContext(10000);
         executorDispatcher.dispatch(executionContext);
     }

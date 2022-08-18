@@ -132,6 +132,8 @@ public class ServerNodeManager implements InitializingBean {
     @Autowired
     private MasterConfig masterConfig;
 
+    private WorkerNodeInfoAndGroupDbSyncTask workerNodeInfoAndGroupDbSyncTask;
+
     private List<WorkerInfoChangeListener> workerInfoChangeListeners = new ArrayList<>();
 
     private static volatile int MASTER_SLOT = 0;
@@ -163,6 +165,7 @@ public class ServerNodeManager implements InitializingBean {
          */
         executorService = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("ServerNodeManagerExecutor"));
         executorService.scheduleWithFixedDelay(new WorkerNodeInfoAndGroupDbSyncTask(), 0, 10, TimeUnit.SECONDS);
+        this.workerNodeInfoAndGroupDbSyncTask = new WorkerNodeInfoAndGroupDbSyncTask();
         /*
          * init MasterNodeListener listener
          */
@@ -485,6 +488,10 @@ public class ServerNodeManager implements InitializingBean {
     @PreDestroy
     public void destroy() {
         executorService.shutdownNow();
+    }
+
+    public WorkerNodeInfoAndGroupDbSyncTask getWorkerNodeInfoAndGroupDbSyncTask() {
+        return workerNodeInfoAndGroupDbSyncTask;
     }
 
 }

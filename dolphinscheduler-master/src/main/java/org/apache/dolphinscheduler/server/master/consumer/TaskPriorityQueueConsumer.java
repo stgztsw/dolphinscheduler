@@ -226,7 +226,7 @@ public class TaskPriorityQueueConsumer extends BaseDaemonThread {
                     taskPriority.getTaskId(),
                     executionContext.getHost());
             }
-        } catch (RuntimeException | ExecuteException e) {
+        } catch (RuntimeException | ExecuteException | InterruptedException e) {
             logger.error("Master dispatch task to worker error, taskPriority: {}", taskPriority, e);
         }
         return result;
