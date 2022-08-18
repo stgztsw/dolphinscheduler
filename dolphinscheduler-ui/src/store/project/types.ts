@@ -40,6 +40,7 @@ interface TaskNodeState {
   postTaskOptions: IOption[]
   preTaskOptions: IOption[]
   preTasks: number[]
+  postTasks: number[]
   resources: IResource[]
   mainJars: { [key in ProgramType]?: IMainJar[] }
   name: string

@@ -93,7 +93,8 @@ export function useSqoop({
       Fields.useDelayTime(model),
       ...Fields.useTimeoutAlarm(model),
       ...Fields.useSqoop(model),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

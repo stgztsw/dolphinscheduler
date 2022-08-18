@@ -343,6 +343,7 @@ export default {
     value_tips: 'value(选填)',
     value_required_tips: 'value(必填)',
     pre_tasks: '前置任务',
+    post_tasks: '后置任务',
     program_type: '程序类型',
     spark_version: 'Spark版本',
     main_class: '主函数的Class',

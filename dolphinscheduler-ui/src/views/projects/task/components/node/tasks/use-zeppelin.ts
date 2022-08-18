@@ -73,7 +73,8 @@ export function useZeppelin({
       Fields.useDelayTime(model),
       ...Fields.useTimeoutAlarm(model),
       ...Fields.useZeppelin(model),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

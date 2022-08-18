@@ -74,7 +74,8 @@ export function useEmr({
       Fields.useDelayTime(model),
       ...Fields.useTimeoutAlarm(model),
       ...Fields.useEmr(model),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

@@ -77,7 +77,8 @@ export function useSwitch({
       Fields.useDelayTime(model),
       ...Fields.useTimeoutAlarm(model),
       ...Fields.useSwitch(model, projectCode),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

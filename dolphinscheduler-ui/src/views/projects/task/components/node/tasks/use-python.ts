@@ -75,7 +75,8 @@ export function usePython({
       Fields.useDelayTime(model),
       ...Fields.useTimeoutAlarm(model),
       ...Fields.useShell(model),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

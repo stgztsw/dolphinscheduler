@@ -347,6 +347,7 @@ export default {
     value_tips: 'value(optional)',
     value_required_tips: 'value(required)',
     pre_tasks: 'Pre tasks',
+    post_tasks: 'Post tasks',
     program_type: 'Program Type',
     spark_version: 'Spark Version',
     main_class: 'Main Class',

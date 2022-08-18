@@ -81,7 +81,8 @@ export function useSubProcess({
         processName: data?.processName,
         code: from === 1 ? 0 : Number(workflowCode)
       }),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

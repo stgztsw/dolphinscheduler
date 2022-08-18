@@ -78,7 +78,8 @@ export function useProcedure({
       ...Fields.useTimeoutAlarm(model),
       ...Fields.useDatasource(model),
       ...Fields.useProcedure(model),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

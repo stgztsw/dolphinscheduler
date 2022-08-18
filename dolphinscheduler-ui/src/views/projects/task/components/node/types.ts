@@ -344,6 +344,7 @@ interface INodeData
   code?: number
   name?: string
   preTasks?: number[]
+  postTasks?: number[]
   preTaskOptions?: []
   postTaskOptions?: []
   resourceList?: number[]

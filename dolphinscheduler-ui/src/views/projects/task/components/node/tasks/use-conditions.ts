@@ -75,7 +75,8 @@ export function useConditions({
       ...Fields.useTaskGroup(model, projectCode),
       ...Fields.useFailed(),
       ...Fields.useConditions(model),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

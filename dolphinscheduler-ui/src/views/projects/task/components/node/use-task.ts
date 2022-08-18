@@ -65,6 +65,7 @@ export function useTask({
   const { model, json } = nodes[data.taskType || 'SHELL'](params)
   jsonRef.value = json
   model.preTasks = taskStore.getPreTasks
+  model.postTasks = taskStore.getPostTasks
   model.name = taskStore.getName
 
   const getElements = () => {

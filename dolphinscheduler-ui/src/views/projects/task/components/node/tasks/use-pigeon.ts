@@ -73,7 +73,8 @@ export function usePigeon({
       Fields.useDelayTime(model),
       ...Fields.useTimeoutAlarm(model),
       Fields.useTargetTaskName(),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

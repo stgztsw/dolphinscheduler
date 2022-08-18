@@ -77,7 +77,8 @@ export function useDependent({
       ...Fields.useTaskGroup(model, projectCode),
       ...Fields.useFailed(),
       ...Fields.useDependent(model),
-      Fields.usePreTasks()
+      Fields.usePreTasks(),
+      Fields.usePostTasks()
     ] as IJsonItem[],
     model
   }

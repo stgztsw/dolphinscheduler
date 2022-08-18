@@ -33,6 +33,7 @@ export const useTaskNodeStore = defineStore({
     preTaskOptions: [],
     postTaskOptions: [],
     preTasks: [],
+    postTasks: [],
     resources: [],
     mainJars: {},
     name: '',
@@ -48,6 +49,9 @@ export const useTaskNodeStore = defineStore({
     },
     getPreTasks(): number[] {
       return this.preTasks
+    },
+    getPostTasks(): number[] {
+      return this.postTasks
     },
     getResources(): IResource[] {
       return this.resources
@@ -93,10 +97,12 @@ export const useTaskNodeStore = defineStore({
       this.preTaskOptions = uniqBy(preTaskOptions, 'value')
       if (!code) return
       const preTasks: number[] = []
+      const postTasks: number[] = []
       const postTaskOptions: { value: number; label: string }[] = []
       processTaskRelationList.forEach(
         (relation: { preTaskCode: number; postTaskCode: number }) => {
           if (relation.preTaskCode === code) {
+            postTasks.push(relation.postTaskCode)
             postTaskOptions.push({
               value: relation.postTaskCode,
               label: tasks[relation.postTaskCode]
@@ -118,6 +124,7 @@ export const useTaskNodeStore = defineStore({
         }
       )
       this.preTasks = preTasks
+      this.postTasks = postTasks
       this.postTaskOptions = postTaskOptions
     },
     updateResource(resources: IResource[]) {
@@ -140,6 +147,7 @@ export const useTaskNodeStore = defineStore({
       this.preTaskOptions = []
       this.postTaskOptions = []
       this.preTasks = []
+      this.postTasks= []
       this.resources = []
       this.mainJars = {}
       this.name = ''
