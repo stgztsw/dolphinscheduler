@@ -40,7 +40,7 @@ export function useSql({
     localParams: [],
     environmentCode: null,
     failRetryInterval: 1,
-    failRetryTimes: 0,
+    failRetryTimes: 3,
     workerGroup: 'default',
     delayTime: 0,
     timeout: 30,
@@ -48,7 +48,7 @@ export function useSql({
     displayRows: 10,
     segmentSeparator: '',
     sql: '',
-    sqlType: '0',
+    sqlType: '1',
     preStatements: [],
     postStatements: [],
     udfs: []

@@ -40,7 +40,7 @@ export function useDataX({
     localParams: [],
     environmentCode: null,
     failRetryInterval: 1,
-    failRetryTimes: 0,
+    failRetryTimes: 3,
     workerGroup: 'default',
     delayTime: 0,
     timeout: 30,
