@@ -194,6 +194,36 @@ public class TaskConstants {
     public static final String PARAMETER_BUSINESS_DATE = "system.biz.date";
 
     /**
+     * system date(yyyymmdd) yesterday -1 天
+     */
+    public static final String PARAMETER_BUSINESS_DATE_T2 = "system.biz.date.t2";
+
+    /**
+     * system date(yyyymmdd) yesterday -1 天
+     */
+    public static final String PARAMETER_BUSINESS_DATE_T3 = "system.biz.date.t3";
+
+    /**
+     * system date(yyyymmdd) yesterday -1 天
+     */
+    public static final String PARAMETER_BUSINESS_DATE_T4 = "system.biz.date.t4";
+
+    /**
+     * system date(yyyymmdd) yesterday -1 天
+     */
+    public static final String PARAMETER_BUSINESS_DATE_T5 = "system.biz.date.t5";
+
+    /**
+     * system date(yyyymmdd) yesterday -1 天
+     */
+    public static final String PARAMETER_BUSINESS_DATE_T6 = "system.biz.date.t6";
+
+    /**
+     * system date(yyyymmdd) yesterday -1 天
+     */
+    public static final String PARAMETER_BUSINESS_DATE_T7 = "system.biz.date.t7";
+
+    /**
      * the absolute path of current executing task
      */
     public static final String PARAMETER_TASK_EXECUTE_PATH = "system.task.execute.path";

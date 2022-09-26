@@ -17,11 +17,7 @@
 
 package org.apache.dolphinscheduler.plugin.task.api.parser;
 
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.PARAMETER_BUSINESS_DATE;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.PARAMETER_CURRENT_DATE;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.PARAMETER_DATETIME;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.PARAMETER_FORMAT_DATE;
-import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.PARAMETER_FORMAT_TIME;
+import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.*;
 import static org.apache.dolphinscheduler.spi.utils.DateUtils.addDays;
 import static org.apache.dolphinscheduler.spi.utils.DateUtils.format;
 
@@ -72,6 +68,12 @@ public class BusinessTimeUtils {
         result.put(PARAMETER_CURRENT_DATE, format(businessCurrentDate, PARAMETER_FORMAT_DATE));
         result.put(PARAMETER_BUSINESS_DATE, format(businessDate, PARAMETER_FORMAT_DATE));
         result.put(PARAMETER_DATETIME, format(businessCurrentDate, PARAMETER_FORMAT_TIME));
+        result.put(PARAMETER_BUSINESS_DATE_T2, format(addDays(businessDate, -1), PARAMETER_FORMAT_DATE));
+        result.put(PARAMETER_BUSINESS_DATE_T3, format(addDays(businessDate, -2), PARAMETER_FORMAT_DATE));
+        result.put(PARAMETER_BUSINESS_DATE_T4, format(addDays(businessDate, -3), PARAMETER_FORMAT_DATE));
+        result.put(PARAMETER_BUSINESS_DATE_T5, format(addDays(businessDate, -4), PARAMETER_FORMAT_DATE));
+        result.put(PARAMETER_BUSINESS_DATE_T6, format(addDays(businessDate, -5), PARAMETER_FORMAT_DATE));
+        result.put(PARAMETER_BUSINESS_DATE_T7, format(addDays(businessDate, -6), PARAMETER_FORMAT_DATE));
         return result;
     }
 }

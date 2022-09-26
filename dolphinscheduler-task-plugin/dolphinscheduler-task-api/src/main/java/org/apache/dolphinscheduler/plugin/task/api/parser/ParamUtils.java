@@ -20,6 +20,7 @@ package org.apache.dolphinscheduler.plugin.task.api.parser;
 import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.PARAMETER_TASK_EXECUTE_PATH;
 import static org.apache.dolphinscheduler.plugin.task.api.TaskConstants.PARAMETER_TASK_INSTANCE_ID;
 
+import org.apache.commons.lang.time.DateUtils;
 import org.apache.dolphinscheduler.plugin.task.api.TaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.api.enums.Direct;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
@@ -28,6 +29,7 @@ import org.apache.dolphinscheduler.spi.enums.CommandType;
 import org.apache.dolphinscheduler.plugin.task.api.enums.DataType;
 import org.apache.dolphinscheduler.spi.utils.StringUtils;
 
+import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -69,12 +71,14 @@ public class ParamUtils {
         if (globalParams.size() == 0 && localParams.size() == 0 && varParams.size() == 0) {
             return null;
         }
+
+        Date sBaseTime = getSBaseTime(globalParams);
         // if it is a complement,
         // you need to pass in the task instance id to locate the time
         // of the process instance complement
         Map<String,String> params = BusinessTimeUtils
                 .getBusinessTime(commandType,
-                        scheduleTime);
+                        sBaseTime == null ? scheduleTime:sBaseTime);
 
         if (globalParamsMap != null) {
 
@@ -113,6 +117,18 @@ public class ParamUtils {
         }
 
         return globalParams;
+    }
+
+    private static Date getSBaseTime(Map<String, Property> globalParams) {
+        Property sBaseTime = globalParams.get("s_base_time");
+        if (sBaseTime == null) {
+            return null;
+        }
+        try {
+            return DateUtils.parseDate(sBaseTime.getValue(), new String[]{"yyyyMMdd"});
+        } catch (ParseException e) {
+            return null;
+        }
     }
 
     /**
